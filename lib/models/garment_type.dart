@@ -9,6 +9,9 @@ enum GarmentType {
   shorts,
   vest,
   hat,
+  baseballHat,
+  // ── Bags ─────────────────────────────────────────────────────────────────
+  backpack,
   // ── Tops (extended) ──────────────────────────────────────────────────────
   tankTop,
   cropTop,
@@ -35,7 +38,9 @@ extension GarmentTypeX on GarmentType {
         GarmentType.pants => 'Pants',
         GarmentType.shorts => 'Shorts',
         GarmentType.vest => 'Vest',
-        GarmentType.hat => 'Hat',
+        GarmentType.hat => 'Hat / Beanie',
+        GarmentType.baseballHat => 'Baseball Hat',
+        GarmentType.backpack => 'Backpack',
         GarmentType.tankTop => 'Tank Top',
         GarmentType.cropTop => 'Crop Top',
         GarmentType.longSleeveCropTop => 'LS Crop Top',
@@ -69,7 +74,11 @@ extension GarmentTypeX on GarmentType {
         GarmentType.boot ||
         GarmentType.sandal =>
           'Footwear',
-        GarmentType.hat || GarmentType.accessory => 'Accessories',
+        GarmentType.hat ||
+        GarmentType.baseballHat ||
+        GarmentType.backpack ||
+        GarmentType.accessory =>
+          'Accessories',
       };
 
   /// Whether this garment type hangs on a rack (vs. folded on a table).
@@ -88,6 +97,8 @@ extension GarmentTypeX on GarmentType {
         GarmentType.longSleeveCropTop => true,
         GarmentType.bra => false,
         GarmentType.hat => false,
+        GarmentType.baseballHat => false,
+        GarmentType.backpack => false,
         GarmentType.sneaker => false,
         GarmentType.runningShoe => false,
         GarmentType.boot => false,
@@ -98,6 +109,8 @@ extension GarmentTypeX on GarmentType {
   /// Suggested fixture position: shelf, upper_rod, mid_rod, or lower_rod.
   String get suggestedPosition => switch (this) {
         GarmentType.hat => 'shelf',
+        GarmentType.baseballHat => 'shelf',
+        GarmentType.backpack => 'shelf',
         GarmentType.sneaker => 'shelf',
         GarmentType.runningShoe => 'shelf',
         GarmentType.boot => 'shelf',

@@ -56,6 +56,10 @@ class GarmentPainter extends CustomPainter {
         _drawVest(canvas, fill, stroke);
       case GarmentType.hat:
         _drawHat(canvas, fill, stroke);
+      case GarmentType.baseballHat:
+        _drawBaseballHat(canvas, fill, stroke);
+      case GarmentType.backpack:
+        _drawBackpack(canvas, fill, stroke);
       case GarmentType.sneaker:
         _drawSneaker(canvas, fill, stroke);
       case GarmentType.runningShoe:
@@ -408,6 +412,170 @@ class GarmentPainter extends CustomPainter {
     // Button on top
     canvas.drawCircle(const Offset(50, 17), 3, fill);
     canvas.drawCircle(const Offset(50, 17), 3, stroke);
+  }
+
+  // ── Baseball Hat ──────────────────────────────────────────────────────────
+  // Side-profile view: structured crown, flat brim, eyelets, sweatband.
+  void _drawBaseballHat(Canvas canvas, Paint fill, Paint stroke) {
+    final detailPaint = Paint()
+      ..color = stroke.color.withAlpha(100)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.7;
+
+    // Crown — structured 6-panel silhouette
+    final crown = Path()
+      ..moveTo(18, 64)           // brim-crown junction left
+      ..quadraticBezierTo(14, 38, 22, 24)  // front slope
+      ..quadraticBezierTo(36, 10, 52, 10)  // top curve
+      ..quadraticBezierTo(78, 12, 84, 30)  // back slope
+      ..lineTo(84, 64)           // back straight down
+      ..close();
+    canvas.drawPath(crown, fill);
+    canvas.drawPath(crown, stroke);
+
+    // Flat brim — extends forward from crown front
+    final brim = Path()
+      ..moveTo(18, 64)
+      ..lineTo(18, 70)
+      ..lineTo(-4, 74)           // brim tip (extends left)
+      ..lineTo(-6, 68)
+      ..quadraticBezierTo(4, 64, 18, 64)
+      ..close();
+    canvas.drawPath(brim, fill);
+    canvas.drawPath(brim, stroke);
+
+    // Underbrim shadow
+    canvas.drawLine(const Offset(18, 67), const Offset(-5, 71), detailPaint);
+
+    // Sweatband line
+    canvas.drawLine(const Offset(18, 64), const Offset(84, 64), detailPaint);
+
+    // Crown panel seam (center)
+    final panelSeam = Path()
+      ..moveTo(52, 10)
+      ..quadraticBezierTo(50, 38, 50, 64);
+    canvas.drawPath(panelSeam, detailPaint);
+
+    // Button on top
+    canvas.drawCircle(const Offset(52, 11), 3, fill);
+    canvas.drawCircle(const Offset(52, 11), 3, stroke);
+
+    // Eyelet (small circle on side panel)
+    canvas.drawCircle(const Offset(68, 36), 2.5,
+        Paint()
+          ..color = stroke.color.withAlpha(120)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 0.8);
+
+    // Adjustable snap/velcro back detail
+    final strap = RRect.fromRectAndRadius(
+      const Rect.fromLTWH(72, 60, 14, 5),
+      const Radius.circular(2),
+    );
+    canvas.drawRRect(strap, detailPaint);
+    // Snap holes
+    canvas.drawCircle(const Offset(76, 62.5), 1.0, detailPaint);
+    canvas.drawCircle(const Offset(80, 62.5), 1.0, detailPaint);
+    canvas.drawCircle(const Offset(84, 62.5), 1.0, detailPaint);
+  }
+
+  // ── Backpack ──────────────────────────────────────────────────────────────
+  // Front-facing technical daypack: main body, front pocket, top handle,
+  // shoulder straps visible at sides, compression straps, logo zone.
+  void _drawBackpack(Canvas canvas, Paint fill, Paint stroke) {
+    final accentPaint = Paint()
+      ..color = stroke.color.withAlpha(90)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.8;
+    final strapFill = Paint()
+      ..color = fill.color.withAlpha(200)
+      ..style = PaintingStyle.fill;
+
+    // ── Main body ────────────────────────────────────────────────────────────
+    final body = RRect.fromRectAndRadius(
+      const Rect.fromLTWH(14, 18, 72, 76),
+      const Radius.circular(8),
+    );
+    canvas.drawRRect(body, fill);
+    canvas.drawRRect(body, stroke);
+
+    // ── Top handle ───────────────────────────────────────────────────────────
+    final handle = Path()
+      ..moveTo(40, 18)
+      ..quadraticBezierTo(40, 8, 50, 8)
+      ..quadraticBezierTo(60, 8, 60, 18);
+    canvas.drawPath(handle, stroke);
+    canvas.drawPath(handle,
+        Paint()
+          ..color = fill.color
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 5);
+    canvas.drawPath(handle, stroke);
+
+    // ── Shoulder straps (visible at sides) ───────────────────────────────────
+    // Left strap
+    final lStrap = RRect.fromRectAndRadius(
+      const Rect.fromLTWH(4, 22, 10, 58),
+      const Radius.circular(5),
+    );
+    canvas.drawRRect(lStrap, strapFill);
+    canvas.drawRRect(lStrap, accentPaint);
+
+    // Right strap
+    final rStrap = RRect.fromRectAndRadius(
+      const Rect.fromLTWH(86, 22, 10, 58),
+      const Radius.circular(5),
+    );
+    canvas.drawRRect(rStrap, strapFill);
+    canvas.drawRRect(rStrap, accentPaint);
+
+    // ── Sternum strap ─────────────────────────────────────────────────────────
+    canvas.drawLine(const Offset(4, 46), const Offset(96, 46), accentPaint);
+    final sternumBuckle = RRect.fromRectAndRadius(
+      const Rect.fromLTWH(44, 42, 12, 8),
+      const Radius.circular(2),
+    );
+    canvas.drawRRect(sternumBuckle, strapFill);
+    canvas.drawRRect(sternumBuckle, accentPaint);
+
+    // ── Front zipper pocket ───────────────────────────────────────────────────
+    final frontPocket = RRect.fromRectAndRadius(
+      const Rect.fromLTWH(22, 68, 56, 22),
+      const Radius.circular(6),
+    );
+    canvas.drawRRect(frontPocket, strapFill);
+    canvas.drawRRect(frontPocket, accentPaint);
+
+    // Zipper track on pocket
+    canvas.drawLine(const Offset(24, 68), const Offset(76, 68), accentPaint);
+    // Zipper pull
+    canvas.drawCircle(const Offset(50, 68), 3,
+        Paint()
+          ..color = stroke.color.withAlpha(130)
+          ..style = PaintingStyle.fill);
+
+    // ── Main compartment zipper (top arc) ─────────────────────────────────────
+    final mainZip = Path()
+      ..moveTo(16, 28)
+      ..quadraticBezierTo(50, 22, 84, 28);
+    canvas.drawPath(mainZip, accentPaint);
+
+    // ── Side compression straps ───────────────────────────────────────────────
+    // Left
+    canvas.drawLine(const Offset(14, 36), const Offset(14, 60), accentPaint);
+    final lBuckle = RRect.fromRectAndRadius(
+      const Rect.fromLTWH(10, 56, 8, 5),
+      const Radius.circular(2),
+    );
+    canvas.drawRRect(lBuckle, accentPaint);
+
+    // Right
+    canvas.drawLine(const Offset(86, 36), const Offset(86, 60), accentPaint);
+    final rBuckle = RRect.fromRectAndRadius(
+      const Rect.fromLTWH(82, 56, 8, 5),
+      const Radius.circular(2),
+    );
+    canvas.drawRRect(rBuckle, accentPaint);
   }
 
   // ── Shoes ────────────────────────────────────────────────────────────────
@@ -1119,9 +1287,33 @@ class FoldedGarmentPainter extends CustomPainter {
             Offset(w * 0.5, topY + 5), Offset(w * 0.5, h * 0.38), detail);
         break;
       case GarmentType.hat:
-        // Brim line
+        // Round crown + brim hint
         canvas.drawLine(
             Offset(w * 0.15, topY + 6), Offset(w * 0.85, topY + 6), detail);
+        break;
+      case GarmentType.baseballHat:
+        // Structured crown outline + brim tab
+        final crownArc = Path()
+          ..moveTo(w * 0.18, topY + 8)
+          ..quadraticBezierTo(w * 0.5, topY + 2, w * 0.82, topY + 8);
+        canvas.drawPath(crownArc, detail);
+        canvas.drawLine(
+            Offset(w * 0.18, topY + 8), Offset(w * 0.1, topY + 12), detail);
+        break;
+      case GarmentType.backpack:
+        // Front pocket rectangle hint
+        canvas.drawRRect(
+          RRect.fromRectAndRadius(
+            Rect.fromLTWH(w * 0.22, topY + 2, w * 0.56, h * 0.16),
+            const Radius.circular(2),
+          ),
+          detail,
+        );
+        // Top zipper arc
+        final zipArc = Path()
+          ..moveTo(w * 0.2, topY + 2)
+          ..quadraticBezierTo(w * 0.5, topY - 2, w * 0.8, topY + 2);
+        canvas.drawPath(zipArc, detail);
         break;
       case GarmentType.bra:
         // Two cup outlines
