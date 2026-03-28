@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../models/decorative_element.dart';
 import '../../models/display_section.dart';
 import '../../models/garment_item.dart';
 import '../../models/garment_type.dart';
@@ -49,8 +50,15 @@ class WallSectionWidget extends StatelessWidget {
         .where((g) => g.type.suggestedPosition == 'lower_rod')
         .toList();
 
+    // Shelf-form mannequins placed on the top shelf
+    final shelfForms = section.decorativeElements
+        .where((e) => e.onShelf && e.type.isShelfForm)
+        .toList();
+
     final hasMannequin =
         section.mannequinLook != null && section.mannequinLook!.items.isNotEmpty;
+
+    final hasTopShelfContent = shelfItems.isNotEmpty || shelfForms.isNotEmpty;
 
     // Determine number of upright bays
     final bays = ((section.linearFeet ?? 8) / 4).ceil().clamp(2, 8);
@@ -92,10 +100,11 @@ class WallSectionWidget extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Top shelf items
-                if (shelfItems.isNotEmpty)
+                // Top shelf: garment items + shelf-form mannequins
+                if (hasTopShelfContent)
                   _ShelfRow(
                     items: shelfItems,
+                    shelfForms: shelfForms,
                     label: 'TOP SHELF',
                     onTap: onGarmentTap,
                   ),
@@ -110,14 +119,14 @@ class WallSectionWidget extends StatelessWidget {
                         child: CustomPaint(
                           painter: WallRackPainter(
                             uprightCount: bays - 1,
-                            hasTopShelf: shelfItems.isNotEmpty,
+                            hasTopShelf: hasTopShelfContent,
                           ),
                         ),
                       ),
 
                       // Upper rod garments
                       Positioned(
-                        top: shelfItems.isNotEmpty ? 76 : 56,
+                        top: hasTopShelfContent ? 76 : 56,
                         left: 8,
                         right: 8,
                         child: _HangingRow(
@@ -515,20 +524,28 @@ class _ShelfArmCell extends StatelessWidget {
 
 class _ShelfRow extends StatelessWidget {
   final List<GarmentItem> items;
+  final List<DecorativeElement> shelfForms;
   final String label;
   final void Function(GarmentItem)? onTap;
 
-  const _ShelfRow({required this.items, required this.label, this.onTap});
+  const _ShelfRow({
+    required this.items,
+    this.shelfForms = const [],
+    required this.label,
+    this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 4),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: items.map((g) {
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            // Garment items
+            ...items.map((g) {
               final color = g.colorways.isNotEmpty
                   ? g.colorways.first.color
                   : Colors.grey;
@@ -562,8 +579,44 @@ class _ShelfRow extends StatelessWidget {
                   ),
                 ),
               );
-            }).toList(),
-          ),
+            }),
+
+            // Shelf-form mannequins (half mannequin / bra form)
+            ...shelfForms.map((e) => _ShelfFormFigure(element: e)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ShelfFormFigure extends StatelessWidget {
+  final DecorativeElement element;
+  const _ShelfFormFigure({required this.element});
+
+  @override
+  Widget build(BuildContext context) {
+    final color = element.outfitTopColor?.color ?? AppTheme.primary;
+    return Padding(
+      padding: const EdgeInsets.only(right: 14),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (element.type == DecorElementType.halfMannequin)
+            HalfMannequinFigure(topColor: color, width: 52, height: 80)
+          else
+            BraMannequinFigure(braColor: color, width: 48, height: 72),
+          if (element.label != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: Text(
+                element.label!,
+                style: const TextStyle(
+                    fontSize: 6.5, color: AppTheme.textSecondary),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
         ],
       ),
     );

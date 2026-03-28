@@ -9,6 +9,10 @@ enum GarmentType {
   shorts,
   vest,
   hat,
+  // ── Tops (extended) ──────────────────────────────────────────────────────
+  tankTop,
+  cropTop,
+  longSleeveCropTop,
   // ── Footwear ─────────────────────────────────────────────────────────────
   sneaker,
   runningShoe,
@@ -32,6 +36,9 @@ extension GarmentTypeX on GarmentType {
         GarmentType.shorts => 'Shorts',
         GarmentType.vest => 'Vest',
         GarmentType.hat => 'Hat',
+        GarmentType.tankTop => 'Tank Top',
+        GarmentType.cropTop => 'Crop Top',
+        GarmentType.longSleeveCropTop => 'LS Crop Top',
         GarmentType.sneaker => 'Sneaker',
         GarmentType.runningShoe => 'Running Shoe',
         GarmentType.boot => 'Boot',
@@ -48,6 +55,9 @@ extension GarmentTypeX on GarmentType {
         GarmentType.halfZip ||
         GarmentType.jacket ||
         GarmentType.vest ||
+        GarmentType.tankTop ||
+        GarmentType.cropTop ||
+        GarmentType.longSleeveCropTop ||
         GarmentType.bra =>
           'Tops',
         GarmentType.jogger ||
@@ -73,6 +83,9 @@ extension GarmentTypeX on GarmentType {
         GarmentType.pants => true,
         GarmentType.shorts => true,
         GarmentType.vest => true,
+        GarmentType.tankTop => true,
+        GarmentType.cropTop => true,
+        GarmentType.longSleeveCropTop => true,
         GarmentType.bra => false,
         GarmentType.hat => false,
         GarmentType.sneaker => false,
@@ -97,6 +110,9 @@ extension GarmentTypeX on GarmentType {
         GarmentType.quarterZip => 'upper_rod',
         GarmentType.halfZip => 'upper_rod',
         GarmentType.tshirt => 'mid_rod',
+        GarmentType.tankTop => 'mid_rod',
+        GarmentType.cropTop => 'mid_rod',
+        GarmentType.longSleeveCropTop => 'mid_rod',
         GarmentType.jogger => 'lower_rod',
         GarmentType.pants => 'lower_rod',
         GarmentType.shorts => 'lower_rod',

@@ -66,6 +66,12 @@ class GarmentPainter extends CustomPainter {
         _drawSandal(canvas, fill, stroke);
       case GarmentType.bra:
         _drawBra(canvas, fill, stroke);
+      case GarmentType.tankTop:
+        _drawTankTop(canvas, fill, stroke);
+      case GarmentType.cropTop:
+        _drawCropTop(canvas, fill, stroke);
+      case GarmentType.longSleeveCropTop:
+        _drawLongSleeveCropTop(canvas, fill, stroke);
       case GarmentType.accessory:
         _drawAccessory(canvas, fill, stroke);
     }
@@ -832,6 +838,139 @@ class GarmentPainter extends CustomPainter {
     );
   }
 
+  // ── Tank Top ─────────────────────────────────────────────────────────────
+  // Sleeveless; wide scoop or straight neckline; narrow shoulder straps.
+  void _drawTankTop(Canvas canvas, Paint fill, Paint stroke) {
+    // Body
+    final body = Path()
+      ..moveTo(30, 18)       // left strap base
+      ..lineTo(20, 18)       // left armhole outer
+      ..quadraticBezierTo(10, 22, 12, 38) // armhole curve
+      ..lineTo(15, 95)
+      ..lineTo(85, 95)
+      ..lineTo(88, 38)
+      ..quadraticBezierTo(90, 22, 80, 18) // right armhole curve
+      ..lineTo(70, 18)       // right strap base
+      // Scoop neck: right strap → neckline → left strap
+      ..quadraticBezierTo(65, 8, 50, 10)
+      ..quadraticBezierTo(35, 8, 30, 18)
+      ..close();
+    canvas.drawPath(body, fill);
+    canvas.drawPath(body, stroke);
+
+    // Neckline stitch detail
+    final neckDetail = Path()
+      ..moveTo(32, 20)
+      ..quadraticBezierTo(50, 13, 68, 20);
+    canvas.drawPath(neckDetail,
+        Paint()
+          ..color = stroke.color.withAlpha(80)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 0.7);
+
+    // Side seams
+    canvas.drawLine(const Offset(20, 38), const Offset(18, 90), stroke..strokeWidth = 0.6);
+    canvas.drawLine(const Offset(80, 38), const Offset(82, 90), stroke..strokeWidth = 0.6);
+    stroke.strokeWidth = 1.0;
+  }
+
+  // ── Crop Top ──────────────────────────────────────────────────────────────
+  // Short body ending above the navel; short sleeves; fitted silhouette.
+  void _drawCropTop(Canvas canvas, Paint fill, Paint stroke) {
+    // Body — ends around y=62 (cropped)
+    final body = Path()
+      ..moveTo(28, 26)       // neck-shoulder junction
+      ..lineTo(14, 22)       // left shoulder
+      ..lineTo(8, 30)        // left sleeve outer
+      ..lineTo(15, 44)       // left underarm
+      ..lineTo(16, 64)       // left hem
+      ..lineTo(84, 64)       // right hem
+      ..lineTo(85, 44)       // right underarm
+      ..lineTo(92, 30)       // right sleeve outer
+      ..lineTo(86, 22)       // right shoulder
+      ..lineTo(72, 26)       // neck-shoulder junction
+      // Crew neck
+      ..quadraticBezierTo(62, 18, 50, 19)
+      ..quadraticBezierTo(38, 18, 28, 26)
+      ..close();
+    canvas.drawPath(body, fill);
+    canvas.drawPath(body, stroke);
+
+    // Crop hem detail line
+    canvas.drawLine(const Offset(16, 64), const Offset(84, 64), stroke);
+
+    // Center seam hint
+    canvas.drawLine(const Offset(50, 28), const Offset(50, 62),
+        Paint()
+          ..color = stroke.color.withAlpha(40)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 0.6);
+  }
+
+  // ── Long Sleeve Crop Top ──────────────────────────────────────────────────
+  // Fitted; full-length sleeves; body cropped above navel; ribbed cuffs.
+  void _drawLongSleeveCropTop(Canvas canvas, Paint fill, Paint stroke) {
+    // Body — cropped at ~y=65
+    final body = Path()
+      ..moveTo(30, 24)
+      ..lineTo(70, 24)
+      ..lineTo(72, 65)
+      ..lineTo(28, 65)
+      ..close();
+    canvas.drawPath(body, fill);
+    canvas.drawPath(body, stroke);
+
+    // Left sleeve — long, tapered
+    final lSleeve = Path()
+      ..moveTo(30, 24)
+      ..lineTo(14, 20)
+      ..lineTo(5, 72)      // cuff outer
+      ..lineTo(14, 74)     // cuff inner
+      ..lineTo(22, 34)     // underarm merge
+      ..lineTo(28, 30)
+      ..close();
+    canvas.drawPath(lSleeve, fill);
+    canvas.drawPath(lSleeve, stroke);
+
+    // Right sleeve — long, tapered
+    final rSleeve = Path()
+      ..moveTo(70, 24)
+      ..lineTo(86, 20)
+      ..lineTo(95, 72)
+      ..lineTo(86, 74)
+      ..lineTo(78, 34)
+      ..lineTo(72, 30)
+      ..close();
+    canvas.drawPath(rSleeve, fill);
+    canvas.drawPath(rSleeve, stroke);
+
+    // Crew neck
+    final neck = Path()
+      ..moveTo(30, 24)
+      ..quadraticBezierTo(50, 14, 70, 24);
+    canvas.drawPath(neck, stroke);
+
+    // Ribbed cuffs — 3 horizontal lines at wrist
+    final cuffPaint = Paint()
+      ..color = stroke.color.withAlpha(70)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.8;
+    for (int i = 0; i < 3; i++) {
+      final t = i / 3.0;
+      // Left cuff area (approx)
+      canvas.drawLine(
+          Offset(5 + t * 2, 72 - t * 2), Offset(14 + t * 2, 74 - t * 2),
+          cuffPaint);
+      // Right cuff area
+      canvas.drawLine(
+          Offset(95 - t * 2, 72 - t * 2), Offset(86 - t * 2, 74 - t * 2),
+          cuffPaint);
+    }
+
+    // Hem line
+    canvas.drawLine(const Offset(28, 65), const Offset(72, 65), stroke);
+  }
+
   // ── Accessory (generic bag/item) ─────────────────────────────────────────
   void _drawAccessory(Canvas canvas, Paint fill, Paint stroke) {
     final bag = RRect.fromRectAndRadius(
@@ -947,11 +1086,20 @@ class FoldedGarmentPainter extends CustomPainter {
       case GarmentType.halfZip:
       case GarmentType.quarterZip:
       case GarmentType.jacket:
+      case GarmentType.cropTop:
+      case GarmentType.longSleeveCropTop:
         // Collar/neck hint: small U-curve at top center
         final neckPath = Path()
           ..moveTo(w * 0.38, topY + 2)
           ..quadraticBezierTo(w * 0.5, topY + h * 0.08, w * 0.62, topY + 2);
         canvas.drawPath(neckPath, detail);
+        break;
+      case GarmentType.tankTop:
+        // Deep scoop neck hint
+        final scoopPath = Path()
+          ..moveTo(w * 0.32, topY + 1)
+          ..quadraticBezierTo(w * 0.5, topY + h * 0.12, w * 0.68, topY + 1);
+        canvas.drawPath(scoopPath, detail);
         break;
       case GarmentType.jogger:
       case GarmentType.pants:

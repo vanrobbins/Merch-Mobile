@@ -584,6 +584,20 @@ class _DecorRow extends StatelessWidget {
                         width: 48,
                         height: 64,
                       )
+                    else if (e.type == DecorElementType.halfMannequin)
+                      HalfMannequinFigure(
+                        topColor: e.outfitTopColor?.color ??
+                            const Color(0xFF90B8CC),
+                        width: 40,
+                        height: 72,
+                      )
+                    else if (e.type == DecorElementType.braMannequin)
+                      BraMannequinFigure(
+                        braColor: e.outfitTopColor?.color ??
+                            const Color(0xFF90B8CC),
+                        width: 38,
+                        height: 62,
+                      )
                     else
                       MannequinFigure(
                         topColor: e.outfitTopColor?.color ??
@@ -643,6 +657,7 @@ class _DecorativeElementDialogState extends State<_DecorativeElementDialog> {
   PlantStyle _plantStyle = PlantStyle.leafy;
   ColorVariant _topColor = ColorVariant.foam;
   ColorVariant _bottomColor = ColorVariant.black;
+  bool _onShelf = false;
   final _labelCtrl = TextEditingController();
 
   @override
@@ -660,22 +675,28 @@ class _DecorativeElementDialogState extends State<_DecorativeElementDialog> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Type selector
-            SegmentedButton<DecorElementType>(
-              segments: DecorElementType.values
-                  .map((t) => ButtonSegment<DecorElementType>(
-                        value: t,
-                        label: Text(t.displayName,
-                            style: const TextStyle(fontSize: 12)),
-                        icon: Text(t.icon),
-                      ))
-                  .toList(),
-              selected: {_type},
-              onSelectionChanged: (s) =>
-                  setState(() => _type = s.first),
-              style: SegmentedButton.styleFrom(
-                selectedBackgroundColor: AppTheme.primary,
-                selectedForegroundColor: Colors.white,
+            // Type selector — shown as a scrollable chip row
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: DecorElementType.values.map((t) {
+                  final selected = _type == t;
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: ChoiceChip(
+                      label: Text('${t.icon} ${t.displayName}',
+                          style: const TextStyle(fontSize: 11)),
+                      selected: selected,
+                      onSelected: (_) => setState(() {
+                        _type = t;
+                        _onShelf = t.isShelfForm;
+                      }),
+                      selectedColor: AppTheme.primary,
+                      labelStyle:
+                          TextStyle(color: selected ? Colors.white : null),
+                    ),
+                  );
+                }).toList(),
               ),
             ),
 
@@ -684,14 +705,21 @@ class _DecorativeElementDialogState extends State<_DecorativeElementDialog> {
             // Preview
             Center(
               child: _type == DecorElementType.plant
-                  ? PlantWidget(
-                      style: _plantStyle, width: 70, height: 90)
-                  : MannequinFigure(
-                      topColor: _topColor.color,
-                      bottomColor: _bottomColor.color,
-                      width: 60,
-                      height: 120,
-                    ),
+                  ? PlantWidget(style: _plantStyle, width: 70, height: 90)
+                  : _type == DecorElementType.halfMannequin
+                      ? HalfMannequinFigure(
+                          topColor: _topColor.color, width: 56, height: 88)
+                      : _type == DecorElementType.braMannequin
+                          ? BraMannequinFigure(
+                              braColor: _topColor.color,
+                              width: 56,
+                              height: 80)
+                          : MannequinFigure(
+                              topColor: _topColor.color,
+                              bottomColor: _bottomColor.color,
+                              width: 60,
+                              height: 120,
+                            ),
             ),
 
             const SizedBox(height: 12),
@@ -722,9 +750,9 @@ class _DecorativeElementDialogState extends State<_DecorativeElementDialog> {
               ),
             ],
 
-            // Mannequin outfit colors
-            if (_type == DecorElementType.mannequin) ...[
-              const Text('OUTFIT COLORS',
+            // Color pickers
+            if (_type != DecorElementType.plant) ...[
+              const Text('OUTFIT COLOR',
                   style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.w700,
@@ -732,7 +760,9 @@ class _DecorativeElementDialogState extends State<_DecorativeElementDialog> {
                       color: AppTheme.textSecondary)),
               const SizedBox(height: 8),
               _ColorRow(
-                label: 'Top',
+                label: _type == DecorElementType.braMannequin
+                    ? 'Bra'
+                    : 'Top',
                 color: _topColor,
                 onPick: () async {
                   final cv = await showDialog<ColorVariant>(
@@ -743,18 +773,37 @@ class _DecorativeElementDialogState extends State<_DecorativeElementDialog> {
                   if (cv != null) setState(() => _topColor = cv);
                 },
               ),
-              const SizedBox(height: 8),
-              _ColorRow(
-                label: 'Bottom',
-                color: _bottomColor,
-                onPick: () async {
-                  final cv = await showDialog<ColorVariant>(
-                    context: context,
-                    builder: (_) =>
-                        ColorPickerDialog(initial: _bottomColor),
-                  );
-                  if (cv != null) setState(() => _bottomColor = cv);
-                },
+              if (_type == DecorElementType.mannequin) ...[
+                const SizedBox(height: 8),
+                _ColorRow(
+                  label: 'Bottom',
+                  color: _bottomColor,
+                  onPick: () async {
+                    final cv = await showDialog<ColorVariant>(
+                      context: context,
+                      builder: (_) =>
+                          ColorPickerDialog(initial: _bottomColor),
+                    );
+                    if (cv != null) setState(() => _bottomColor = cv);
+                  },
+                ),
+              ],
+            ],
+
+            // Shelf placement toggle for half/bra forms
+            if (_type.isShelfForm) ...[
+              const SizedBox(height: 10),
+              SwitchListTile(
+                value: _onShelf,
+                onChanged: (v) => setState(() => _onShelf = v),
+                title: const Text('Place on shelf',
+                    style: TextStyle(fontSize: 13)),
+                subtitle: const Text(
+                  'Renders the form on the wall top shelf',
+                  style: TextStyle(fontSize: 11, color: AppTheme.textSecondary),
+                ),
+                contentPadding: EdgeInsets.zero,
+                activeColor: AppTheme.accent,
               ),
             ],
 
@@ -779,18 +828,29 @@ class _DecorativeElementDialogState extends State<_DecorativeElementDialog> {
             final label = _labelCtrl.text.trim().isEmpty
                 ? null
                 : _labelCtrl.text.trim();
+            late final DecorativeElement result;
             if (_type == DecorElementType.plant) {
-              Navigator.pop(context, DecorativeElement.plant(label: label));
+              result = DecorativeElement.plant(label: label);
+            } else if (_type == DecorElementType.halfMannequin) {
+              result = DecorativeElement.halfMannequin(
+                topColor: _topColor,
+                label: label,
+                onShelf: _onShelf,
+              );
+            } else if (_type == DecorElementType.braMannequin) {
+              result = DecorativeElement.braMannequin(
+                topColor: _topColor,
+                label: label,
+                onShelf: _onShelf,
+              );
             } else {
-              Navigator.pop(
-                context,
-                DecorativeElement.mannequin(
-                  topColor: _topColor,
-                  bottomColor: _bottomColor,
-                  label: label,
-                ),
+              result = DecorativeElement.mannequin(
+                topColor: _topColor,
+                bottomColor: _bottomColor,
+                label: label,
               );
             }
+            Navigator.pop(context, result);
           },
           child: const Text('Add'),
         ),
