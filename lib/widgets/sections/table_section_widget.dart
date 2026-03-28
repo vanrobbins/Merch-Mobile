@@ -28,10 +28,7 @@ class TableSectionWidget extends StatelessWidget {
         section.mannequinLook!.items.isNotEmpty;
 
     return Container(
-      decoration: BoxDecoration(
-        color: AppTheme.cardBg,
-        border: Border.all(color: AppTheme.sectionBorder, width: 0.8),
-      ),
+      color: AppTheme.cardBg,
       padding: const EdgeInsets.all(16),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -58,7 +55,7 @@ class TableSectionWidget extends StatelessWidget {
                   TextButton.icon(
                     onPressed: onAddGarment,
                     icon: const Icon(Icons.add, size: 16),
-                    label: const Text('Add Product'),
+                    label: const Text('ADD PRODUCT'),
                     style: TextButton.styleFrom(
                       foregroundColor: AppTheme.textSecondary,
                       textStyle: const TextStyle(fontSize: 12),

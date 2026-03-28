@@ -361,11 +361,15 @@ class _StoreLayoutScreenState extends State<StoreLayoutScreen> {
             title: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('${project.name} — Layout'),
+                const Text('STORE LAYOUT'),
                 Text(
-                  '${project.storeWidthFt.toStringAsFixed(0)}ft × ${project.storeDepthFt.toStringAsFixed(0)}ft',
+                  '${project.storeWidthFt.toStringAsFixed(0)}FT × ${project.storeDepthFt.toStringAsFixed(0)}FT',
                   style: const TextStyle(
-                      fontSize: 11, color: AppTheme.textSecondary),
+                    fontSize: 9,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 1.2,
+                    color: AppTheme.textTertiary,
+                  ),
                 ),
               ],
             ),

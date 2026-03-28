@@ -64,10 +64,7 @@ class WallSectionWidget extends StatelessWidget {
     final bays = ((section.linearFeet ?? 8) / 4).ceil().clamp(2, 8);
 
     return Container(
-      decoration: BoxDecoration(
-        color: AppTheme.cardBg,
-        border: Border.all(color: AppTheme.sectionBorder, width: 0.8),
-      ),
+      color: AppTheme.cardBg,
       padding: const EdgeInsets.all(12),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -167,7 +164,7 @@ class WallSectionWidget extends StatelessWidget {
                       TextButton.icon(
                         onPressed: onAddGarment,
                         icon: const Icon(Icons.add, size: 16),
-                        label: const Text('Add Product'),
+                        label: const Text('ADD PRODUCT'),
                         style: TextButton.styleFrom(
                           foregroundColor: AppTheme.textSecondary,
                           textStyle: const TextStyle(fontSize: 12),
@@ -177,7 +174,7 @@ class WallSectionWidget extends StatelessWidget {
                         TextButton.icon(
                           onPressed: onFillArms,
                           icon: const Icon(Icons.auto_fix_high, size: 16),
-                          label: const Text('Fill Arms'),
+                          label: const Text('FILL ARMS'),
                           style: TextButton.styleFrom(
                             foregroundColor: AppTheme.accent,
                             textStyle: const TextStyle(fontSize: 12),
@@ -239,10 +236,7 @@ class _ArmAssignmentView extends StatelessWidget {
         section.mannequinLook != null && section.mannequinLook!.items.isNotEmpty;
 
     return Container(
-      decoration: BoxDecoration(
-        color: AppTheme.cardBg,
-        border: Border.all(color: AppTheme.sectionBorder, width: 0.8),
-      ),
+      color: AppTheme.cardBg,
       padding: const EdgeInsets.all(12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

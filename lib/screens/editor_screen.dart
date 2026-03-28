@@ -247,13 +247,25 @@ class _EditorViewState extends State<_EditorView> {
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(_project.name),
             if (_project.storeName != null)
               Text(
-                _project.storeName!,
+                _project.storeName!.toUpperCase(),
                 style: const TextStyle(
-                    fontSize: 12, color: AppTheme.textSecondary),
+                  fontSize: 9,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 1.6,
+                  color: AppTheme.textTertiary,
+                ),
               ),
+            Text(
+              _project.name.toUpperCase(),
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 2.0,
+                color: AppTheme.textPrimary,
+              ),
+            ),
           ],
         ),
         actions: [
@@ -339,10 +351,8 @@ class _EditorViewState extends State<_EditorView> {
       floatingActionButton: _isEditing
           ? FloatingActionButton.extended(
               onPressed: _addSection,
-              backgroundColor: AppTheme.primary,
-              foregroundColor: Colors.white,
-              icon: const Icon(Icons.add),
-              label: const Text('Add Section'),
+              icon: const Icon(Icons.add, size: 18),
+              label: const Text('ADD SECTION'),
             )
           : null,
     );
@@ -380,7 +390,12 @@ class _SectionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 20),
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: const BoxDecoration(
+        color: AppTheme.cardBg,
+        boxShadow: AppTheme.cardShadow,
+        borderRadius: BorderRadius.all(Radius.circular(2)),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -458,27 +473,46 @@ class _SectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
+    return Container(
+      padding: const EdgeInsets.fromLTRB(14, 11, 8, 11),
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: AppTheme.outline, width: 1)),
+      ),
       child: Row(
         children: [
           // Drag handle (only in edit mode)
           if (isEditing)
-            const Icon(Icons.drag_indicator,
-                size: 18, color: AppTheme.textTertiary),
-          if (isEditing) const SizedBox(width: 4),
+            const Padding(
+              padding: EdgeInsets.only(right: 6),
+              child: Icon(Icons.drag_indicator,
+                  size: 16, color: AppTheme.textTertiary),
+            ),
 
-          Text(section.type.icon, style: const TextStyle(fontSize: 14)),
-          const SizedBox(width: 6),
+          // Type label + title
           Expanded(
-            child: Text(
-              section.title,
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 0.2,
-                color: AppTheme.textPrimary,
-              ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  section.type.displayName.toUpperCase(),
+                  style: const TextStyle(
+                    fontSize: 9,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 1.4,
+                    color: AppTheme.textTertiary,
+                  ),
+                ),
+                const SizedBox(height: 1),
+                Text(
+                  section.title,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.1,
+                    color: AppTheme.textPrimary,
+                  ),
+                ),
+              ],
             ),
           ),
 
@@ -567,7 +601,10 @@ class _DecorRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: AppTheme.surface,
+      decoration: const BoxDecoration(
+        color: AppTheme.surface,
+        border: Border(top: BorderSide(color: AppTheme.outline, width: 1)),
+      ),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       child: Row(
         children: elements.map((e) {
@@ -916,39 +953,43 @@ class _EmptyProjectState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 32),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.view_quilt_outlined,
-              size: 56, color: AppTheme.textTertiary),
-          const SizedBox(height: 16),
+          Container(width: 32, height: 2, color: AppTheme.accent),
+          const SizedBox(height: 20),
           const Text(
-            'Empty schematic',
+            'Empty\nSchematic.',
             style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-                color: AppTheme.textPrimary),
+              fontSize: 28,
+              fontWeight: FontWeight.w800,
+              color: AppTheme.textPrimary,
+              letterSpacing: -0.5,
+              height: 1.1,
+            ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           const Text(
-            'Add sections manually or use Auto-Layout',
-            style: TextStyle(fontSize: 13, color: AppTheme.textSecondary),
+            'Add sections manually or let Auto-Layout\nbuild an initial plan from your products.',
+            style: TextStyle(
+                fontSize: 13, color: AppTheme.textSecondary, height: 1.55),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 28),
           Row(
-            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               OutlinedButton.icon(
                 onPressed: onAddSection,
-                icon: const Icon(Icons.add),
-                label: const Text('Add Section'),
+                icon: const Icon(Icons.add, size: 16),
+                label: const Text('ADD SECTION'),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 10),
               FilledButton.icon(
                 onPressed: onAutoLayout,
-                icon: const Icon(Icons.auto_awesome, size: 16),
-                label: const Text('Auto-Layout'),
+                icon: const Icon(Icons.auto_awesome, size: 15),
+                label: const Text('AUTO-LAYOUT'),
               ),
             ],
           ),

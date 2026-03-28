@@ -14,10 +14,11 @@ class HomeScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppTheme.surface,
       appBar: AppBar(
-        title: const Text('Merch Mobile'),
+        title: const Text('MERCH MOBILE'),
         actions: [
           IconButton(
             icon: const Icon(Icons.info_outline, size: 20),
+            color: AppTheme.textTertiary,
             onPressed: () => _showAbout(context),
           ),
         ],
@@ -28,35 +29,58 @@ class HomeScreen extends StatelessWidget {
           if (projects.isEmpty) {
             return _EmptyState(onCreate: () => _createProject(context));
           }
-          return ListView.separated(
-            padding: const EdgeInsets.all(16),
-            itemCount: projects.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 10),
-            itemBuilder: (context, i) => _ProjectCard(
-              project: projects[i],
-              onTap: () => _openProject(context, projects[i]),
-              onDelete: () => _deleteProject(context, provider, projects[i]),
-            ),
+          return CustomScrollView(
+            slivers: [
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(20, 28, 20, 8),
+                sliver: SliverToBoxAdapter(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '${projects.length} Schematic${projects.length == 1 ? '' : 's'}',
+                        style: context.headlineLarge,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Your store display plans',
+                        style: context.bodyMedium,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
+                sliver: SliverList.separated(
+                  itemCount: projects.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 12),
+                  itemBuilder: (context, i) => _ProjectCard(
+                    project: projects[i],
+                    onTap: () => _openProject(context, projects[i]),
+                    onDelete: () =>
+                        _deleteProject(context, provider, projects[i]),
+                  ),
+                ),
+              ),
+            ],
           );
         },
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _createProject(context),
-        backgroundColor: AppTheme.primary,
-        foregroundColor: Colors.white,
-        icon: const Icon(Icons.add),
-        label: const Text('New Schematic'),
+        icon: const Icon(Icons.add, size: 18),
+        label: const Text('NEW SCHEMATIC'),
       ),
     );
   }
 
   Future<void> _createProject(BuildContext context) async {
-    final result = await showDialog<Map<String, String>>(
+    final result = await showDialog<Map<String, String?>>(
       context: context,
-      builder: (ctx) => const _NewProjectDialog(),
+      builder: (_) => const _NewProjectDialog(),
     );
     if (result == null || !context.mounted) return;
-
     final provider = context.read<ProjectsProvider>();
     final project = await provider.createProject(
       name: result['name']!,
@@ -68,9 +92,7 @@ class HomeScreen extends StatelessWidget {
   void _openProject(BuildContext context, SchematicProject project) {
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (_) => EditorScreen(projectId: project.id),
-      ),
+      MaterialPageRoute(builder: (_) => EditorScreen(projectId: project.id)),
     );
   }
 
@@ -81,47 +103,47 @@ class HomeScreen extends StatelessWidget {
   ) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Delete Schematic'),
+      builder: (_) => AlertDialog(
+        title: const Text('DELETE SCHEMATIC'),
         content: Text('Delete "${project.name}"? This cannot be undone.'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
+            onPressed: () => Navigator.pop(context, false),
             child: const Text('Cancel'),
           ),
           FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: FilledButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('Delete'),
+            onPressed: () => Navigator.pop(context, true),
+            style: FilledButton.styleFrom(backgroundColor: Colors.red.shade900),
+            child: const Text('DELETE'),
           ),
         ],
       ),
     );
-    if (confirmed == true) {
-      await provider.deleteProject(project.id);
-    }
+    if (confirmed == true) await provider.deleteProject(project.id);
   }
 
   void _showAbout(BuildContext context) {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Merch Mobile'),
+        title: const Text('MERCH MOBILE'),
         content: const Text(
           'Visual merchandising schematic tool.\n\n'
-          'Create store display plans for perimeter walls, tables, and floor racks. '
-          'Configure garments with custom colors and export to PDF.',
+          'Plan store display layouts — perimeter walls, tables, floor racks, '
+          'zones, and color stories. Export to PDF.',
         ),
         actions: [
-          TextButton(
+          FilledButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
+            child: const Text('CLOSE'),
           ),
         ],
       ),
     );
   }
 }
+
+// ── Project card ──────────────────────────────────────────────────────────────
 
 class _ProjectCard extends StatelessWidget {
   final SchematicProject project;
@@ -137,56 +159,100 @@ class _ProjectCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final fmt = DateFormat('MMM d, yyyy');
-    return Card(
+    final sectionCount = project.sections.length;
+
+    return Material(
+      color: AppTheme.cardBg,
+      borderRadius: BorderRadius.circular(2),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
+        borderRadius: BorderRadius.circular(2),
+        child: Container(
+          decoration: const BoxDecoration(
+            borderRadius: BorderRadius.all(Radius.circular(2)),
+            boxShadow: AppTheme.cardShadow,
+            color: AppTheme.cardBg,
+          ),
           child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Icon
+              // Accent stripe
               Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: AppTheme.primary.withAlpha(12),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Icon(
-                  Icons.store_outlined,
+                width: 3,
+                decoration: const BoxDecoration(
                   color: AppTheme.primary,
-                  size: 22,
+                  borderRadius:
+                      BorderRadius.horizontal(left: Radius.circular(2)),
                 ),
               ),
-              const SizedBox(width: 14),
 
-              // Info
+              // Content
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(project.name, style: context.titleMedium),
-                    if (project.storeName != null)
-                      Text(project.storeName!, style: context.bodyMedium),
-                    const SizedBox(height: 4),
-                    Text(
-                      '${project.sections.length} section${project.sections.length == 1 ? '' : 's'} · Updated ${fmt.format(project.updatedAt)}',
-                      style: context.labelSmall,
-                    ),
-                  ],
-                ),
-              ),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 14, 8, 14),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Store name eyebrow
+                            if (project.storeName != null) ...[
+                              Text(
+                                project.storeName!.toUpperCase(),
+                                style: context.labelSmall,
+                              ),
+                              const SizedBox(height: 3),
+                            ],
+                            // Project name
+                            Text(project.name, style: context.titleMedium),
+                            const SizedBox(height: 6),
+                            // Meta
+                            Row(
+                              children: [
+                                _MetaBadge(
+                                  label: '$sectionCount SECTION${sectionCount == 1 ? '' : 'S'}',
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  fmt.format(project.updatedAt),
+                                  style: const TextStyle(
+                                    fontSize: 10,
+                                    color: AppTheme.textTertiary,
+                                    letterSpacing: 0.3,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
 
-              // Actions
-              PopupMenuButton<String>(
-                icon: const Icon(Icons.more_vert, size: 20, color: AppTheme.textTertiary),
-                onSelected: (v) {
-                  if (v == 'delete') onDelete();
-                },
-                itemBuilder: (_) => [
-                  const PopupMenuItem(value: 'delete', child: Text('Delete')),
-                ],
+                      // Menu
+                      PopupMenuButton<String>(
+                        icon: const Icon(Icons.more_vert,
+                            size: 18, color: AppTheme.textTertiary),
+                        onSelected: (v) {
+                          if (v == 'delete') onDelete();
+                        },
+                        itemBuilder: (_) => const [
+                          PopupMenuItem(
+                            value: 'delete',
+                            child: Row(
+                              children: [
+                                Icon(Icons.delete_outline,
+                                    size: 16, color: Colors.red),
+                                SizedBox(width: 10),
+                                Text('Delete',
+                                    style: TextStyle(color: Colors.red)),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ],
           ),
@@ -196,36 +262,77 @@ class _ProjectCard extends StatelessWidget {
   }
 }
 
+class _MetaBadge extends StatelessWidget {
+  final String label;
+  const _MetaBadge({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: AppTheme.surface,
+        border: Border.all(color: AppTheme.outline),
+        borderRadius: BorderRadius.circular(2),
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(
+          fontSize: 9,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.8,
+          color: AppTheme.textSecondary,
+        ),
+      ),
+    );
+  }
+}
+
+// ── Empty state ───────────────────────────────────────────────────────────────
+
 class _EmptyState extends StatelessWidget {
   final VoidCallback onCreate;
-
   const _EmptyState({required this.onCreate});
 
   @override
   Widget build(BuildContext context) {
-    return Center(
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 32),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.view_quilt_outlined, size: 64, color: AppTheme.textTertiary),
-          const SizedBox(height: 16),
-          Text('No schematics yet', style: context.headlineLarge),
-          const SizedBox(height: 8),
-          Text(
-            'Create your first store display plan',
-            style: context.bodyMedium,
+          Container(
+            width: 48,
+            height: 2,
+            color: AppTheme.accent,
           ),
           const SizedBox(height: 24),
+          Text(
+            'No schematics\nyet.',
+            style: context.headlineLarge.copyWith(
+              fontSize: 32,
+              height: 1.05,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Build your first store display plan —\nwalls, tables, floor racks, and zones.',
+            style: context.bodyMedium.copyWith(height: 1.6),
+          ),
+          const SizedBox(height: 36),
           FilledButton.icon(
             onPressed: onCreate,
-            icon: const Icon(Icons.add),
-            label: const Text('New Schematic'),
+            icon: const Icon(Icons.add, size: 16),
+            label: const Text('NEW SCHEMATIC'),
           ),
         ],
       ),
     );
   }
 }
+
+// ── New project dialog ────────────────────────────────────────────────────────
 
 class _NewProjectDialog extends StatefulWidget {
   const _NewProjectDialog();
@@ -249,7 +356,7 @@ class _NewProjectDialogState extends State<_NewProjectDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('New Schematic'),
+      title: const Text('NEW SCHEMATIC'),
       content: Form(
         key: _formKey,
         child: Column(
@@ -259,18 +366,18 @@ class _NewProjectDialogState extends State<_NewProjectDialog> {
               controller: _nameCtrl,
               autofocus: true,
               decoration: const InputDecoration(
-                labelText: 'Schematic Name',
+                labelText: 'SCHEMATIC NAME',
                 hintText: 'e.g. Fall Collection Floor Set',
               ),
               validator: (v) =>
                   (v == null || v.trim().isEmpty) ? 'Required' : null,
               textCapitalization: TextCapitalization.words,
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 20),
             TextFormField(
               controller: _storeCtrl,
               decoration: const InputDecoration(
-                labelText: 'Store / Location (optional)',
+                labelText: 'STORE / LOCATION',
                 hintText: 'e.g. NYC Flagship',
               ),
               textCapitalization: TextCapitalization.words,
@@ -294,7 +401,7 @@ class _NewProjectDialogState extends State<_NewProjectDialog> {
               });
             }
           },
-          child: const Text('Create'),
+          child: const Text('CREATE'),
         ),
       ],
     );
