@@ -2,6 +2,8 @@ import 'package:uuid/uuid.dart';
 import 'garment_item.dart';
 import 'mannequin_look.dart';
 import 'decorative_element.dart';
+import 'store_zone.dart';
+import 'wall_arm_template.dart';
 
 enum SectionType { perimeter, table, floorRack }
 
@@ -46,6 +48,25 @@ class DisplaySection {
   final String? previousSectionNote;
   final String? nextSectionNote;
 
+  // ── Store layout positioning ───────────────────────────────────────────────
+
+  /// Which wall this section is on (for perimeter sections).
+  final WallSide wallSide;
+
+  /// Normalised position on the wall or floor (0.0–1.0).
+  /// For wall sections: position along the wall (0 = left end, 1 = right end).
+  /// For floor sections: (layoutX, layoutY) position in the store.
+  final double layoutPosition;
+  final double layoutX;
+  final double layoutY;
+
+  /// ID of the zone this section belongs to (null = unassigned).
+  final String? zoneId;
+
+  /// Arm assignments from a wall arm template auto-fill.
+  /// When non-null, the wall renders arm-by-arm with color-triangle layout.
+  final List<ArmAssignment>? armAssignments;
+
   DisplaySection({
     String? id,
     required this.title,
@@ -57,7 +78,13 @@ class DisplaySection {
     this.faceOutCount = 2,
     this.uBarCount = 3,
     this.previousSectionNote,
+    this.wallSide = WallSide.none,
+    this.layoutPosition = 0.0,
+    this.layoutX = 0.5,
+    this.layoutY = 0.5,
+    this.zoneId,
     this.nextSectionNote,
+    this.armAssignments,
   }) : id = id ?? const Uuid().v4();
 
   DisplaySection copyWith({
@@ -71,7 +98,15 @@ class DisplaySection {
     int? uBarCount,
     String? previousSectionNote,
     String? nextSectionNote,
+    WallSide? wallSide,
+    double? layoutPosition,
+    double? layoutX,
+    double? layoutY,
+    String? zoneId,
+    List<ArmAssignment>? armAssignments,
     bool clearMannequin = false,
+    bool clearZone = false,
+    bool clearArmAssignments = false,
   }) {
     return DisplaySection(
       id: id,
@@ -86,6 +121,14 @@ class DisplaySection {
       uBarCount: uBarCount ?? this.uBarCount,
       previousSectionNote: previousSectionNote ?? this.previousSectionNote,
       nextSectionNote: nextSectionNote ?? this.nextSectionNote,
+      wallSide: wallSide ?? this.wallSide,
+      layoutPosition: layoutPosition ?? this.layoutPosition,
+      layoutX: layoutX ?? this.layoutX,
+      layoutY: layoutY ?? this.layoutY,
+      zoneId: clearZone ? null : (zoneId ?? this.zoneId),
+      armAssignments: clearArmAssignments
+          ? null
+          : (armAssignments ?? this.armAssignments),
     );
   }
 
@@ -102,6 +145,12 @@ class DisplaySection {
         'uBarCount': uBarCount,
         'previousSectionNote': previousSectionNote,
         'nextSectionNote': nextSectionNote,
+        'wallSide': wallSide.name,
+        'layoutPosition': layoutPosition,
+        'layoutX': layoutX,
+        'layoutY': layoutY,
+        'zoneId': zoneId,
+        'armAssignments': armAssignments?.map((a) => a.toJson()).toList(),
       };
 
   factory DisplaySection.fromJson(Map<String, dynamic> json) => DisplaySection(
@@ -124,5 +173,15 @@ class DisplaySection {
         uBarCount: json['uBarCount'] as int? ?? 3,
         previousSectionNote: json['previousSectionNote'] as String?,
         nextSectionNote: json['nextSectionNote'] as String?,
+        wallSide: json['wallSide'] != null
+            ? WallSide.values.byName(json['wallSide'] as String)
+            : WallSide.none,
+        layoutPosition: (json['layoutPosition'] as num?)?.toDouble() ?? 0.0,
+        layoutX: (json['layoutX'] as num?)?.toDouble() ?? 0.5,
+        layoutY: (json['layoutY'] as num?)?.toDouble() ?? 0.5,
+        zoneId: json['zoneId'] as String?,
+        armAssignments: (json['armAssignments'] as List?)
+            ?.map((a) => ArmAssignment.fromJson(a as Map<String, dynamic>))
+            .toList(),
       );
 }

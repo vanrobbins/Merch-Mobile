@@ -9,7 +9,14 @@ enum GarmentType {
   shorts,
   vest,
   hat,
-  shoes,
+  // ── Footwear ─────────────────────────────────────────────────────────────
+  sneaker,
+  runningShoe,
+  boot,
+  sandal,
+  // ── Intimates / Sports Apparel ────────────────────────────────────────────
+  bra,
+  // ── Other ─────────────────────────────────────────────────────────────────
   accessory,
 }
 
@@ -25,8 +32,34 @@ extension GarmentTypeX on GarmentType {
         GarmentType.shorts => 'Shorts',
         GarmentType.vest => 'Vest',
         GarmentType.hat => 'Hat',
-        GarmentType.shoes => 'Shoes',
+        GarmentType.sneaker => 'Sneaker',
+        GarmentType.runningShoe => 'Running Shoe',
+        GarmentType.boot => 'Boot',
+        GarmentType.sandal => 'Sandal / Slide',
+        GarmentType.bra => 'Bra / Sports Bra',
         GarmentType.accessory => 'Accessory',
+      };
+
+  /// Grouping label for the Add Garment type picker.
+  String get group => switch (this) {
+        GarmentType.tshirt ||
+        GarmentType.hoodie ||
+        GarmentType.quarterZip ||
+        GarmentType.halfZip ||
+        GarmentType.jacket ||
+        GarmentType.vest ||
+        GarmentType.bra =>
+          'Tops',
+        GarmentType.jogger ||
+        GarmentType.pants ||
+        GarmentType.shorts =>
+          'Bottoms',
+        GarmentType.sneaker ||
+        GarmentType.runningShoe ||
+        GarmentType.boot ||
+        GarmentType.sandal =>
+          'Footwear',
+        GarmentType.hat || GarmentType.accessory => 'Accessories',
       };
 
   /// Whether this garment type hangs on a rack (vs. folded on a table).
@@ -40,15 +73,23 @@ extension GarmentTypeX on GarmentType {
         GarmentType.pants => true,
         GarmentType.shorts => true,
         GarmentType.vest => true,
+        GarmentType.bra => false,
         GarmentType.hat => false,
-        GarmentType.shoes => false,
+        GarmentType.sneaker => false,
+        GarmentType.runningShoe => false,
+        GarmentType.boot => false,
+        GarmentType.sandal => false,
         GarmentType.accessory => false,
       };
 
-  /// Suggested fixture position: top shelf, mid shelf, or hanging rod.
+  /// Suggested fixture position: shelf, upper_rod, mid_rod, or lower_rod.
   String get suggestedPosition => switch (this) {
         GarmentType.hat => 'shelf',
-        GarmentType.shoes => 'shelf',
+        GarmentType.sneaker => 'shelf',
+        GarmentType.runningShoe => 'shelf',
+        GarmentType.boot => 'shelf',
+        GarmentType.sandal => 'shelf',
+        GarmentType.bra => 'shelf',
         GarmentType.accessory => 'shelf',
         GarmentType.jacket => 'upper_rod',
         GarmentType.hoodie => 'upper_rod',

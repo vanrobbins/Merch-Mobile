@@ -56,8 +56,16 @@ class GarmentPainter extends CustomPainter {
         _drawVest(canvas, fill, stroke);
       case GarmentType.hat:
         _drawHat(canvas, fill, stroke);
-      case GarmentType.shoes:
-        _drawShoes(canvas, fill, stroke);
+      case GarmentType.sneaker:
+        _drawSneaker(canvas, fill, stroke);
+      case GarmentType.runningShoe:
+        _drawRunningShoe(canvas, fill, stroke);
+      case GarmentType.boot:
+        _drawBoot(canvas, fill, stroke);
+      case GarmentType.sandal:
+        _drawSandal(canvas, fill, stroke);
+      case GarmentType.bra:
+        _drawBra(canvas, fill, stroke);
       case GarmentType.accessory:
         _drawAccessory(canvas, fill, stroke);
     }
@@ -428,6 +436,402 @@ class GarmentPainter extends CustomPainter {
     canvas.drawLine(const Offset(58, 70), const Offset(95, 68), stroke);
   }
 
+  // ── Sneaker (low-top athletic) ────────────────────────────────────────────
+  void _drawSneaker(Canvas canvas, Paint fill, Paint stroke) {
+    // Left sneaker (side profile)
+    final lSole = Path()
+      ..moveTo(2, 72)
+      ..lineTo(2, 66)
+      ..quadraticBezierTo(4, 60, 12, 57)
+      ..lineTo(12, 48)
+      ..quadraticBezierTo(14, 42, 22, 40)
+      ..lineTo(38, 40)
+      ..quadraticBezierTo(44, 40, 44, 46)
+      ..lineTo(44, 65)
+      ..quadraticBezierTo(40, 72, 30, 74)
+      ..quadraticBezierTo(12, 76, 2, 72)
+      ..close();
+    canvas.drawPath(lSole, fill);
+    canvas.drawPath(lSole, stroke);
+    // Midsole stripe
+    final lMidsole = Paint()
+      ..color = const Color(0xFFFFFFFF).withAlpha(80)
+      ..style = PaintingStyle.fill;
+    canvas.drawPath(
+      Path()
+        ..moveTo(2, 68)
+        ..lineTo(44, 66)
+        ..lineTo(44, 70)
+        ..quadraticBezierTo(30, 76, 2, 72)
+        ..close(),
+      lMidsole,
+    );
+    // Laces
+    for (int i = 0; i < 3; i++) {
+      canvas.drawLine(
+        Offset(18.0 + i * 7, 41.0),
+        Offset(17.0 + i * 7, 50.0),
+        stroke..strokeWidth = stroke.strokeWidth * 0.7,
+      );
+    }
+    // Tongue tab
+    canvas.drawLine(const Offset(22, 40), const Offset(22, 44), stroke);
+
+    // Right sneaker
+    final rSole = Path()
+      ..moveTo(56, 72)
+      ..lineTo(56, 66)
+      ..quadraticBezierTo(58, 60, 66, 57)
+      ..lineTo(66, 48)
+      ..quadraticBezierTo(68, 42, 76, 40)
+      ..lineTo(92, 40)
+      ..quadraticBezierTo(98, 40, 98, 46)
+      ..lineTo(98, 65)
+      ..quadraticBezierTo(94, 72, 84, 74)
+      ..quadraticBezierTo(66, 76, 56, 72)
+      ..close();
+    canvas.drawPath(rSole, fill);
+    canvas.drawPath(rSole, stroke);
+    canvas.drawPath(
+      Path()
+        ..moveTo(56, 68)
+        ..lineTo(98, 66)
+        ..lineTo(98, 70)
+        ..quadraticBezierTo(84, 76, 56, 72)
+        ..close(),
+      lMidsole,
+    );
+    for (int i = 0; i < 3; i++) {
+      canvas.drawLine(
+        Offset(72.0 + i * 7, 41.0),
+        Offset(71.0 + i * 7, 50.0),
+        stroke..strokeWidth = stroke.strokeWidth * 0.7,
+      );
+    }
+  }
+
+  // ── Running Shoe (lightweight, mesh upper) ────────────────────────────────
+  void _drawRunningShoe(Canvas canvas, Paint fill, Paint stroke) {
+    // Left – more aggressive heel/toe profile
+    final accentFill = Paint()
+      ..color = fill.color.withAlpha(200)
+      ..style = PaintingStyle.fill;
+
+    final lUpper = Path()
+      ..moveTo(4, 65)
+      ..lineTo(4, 55)
+      ..quadraticBezierTo(6, 44, 16, 40)
+      ..lineTo(16, 32)
+      ..quadraticBezierTo(18, 26, 28, 25)
+      ..lineTo(38, 25)
+      ..quadraticBezierTo(46, 25, 46, 32)
+      ..lineTo(46, 58)
+      ..quadraticBezierTo(42, 68, 28, 70)
+      ..quadraticBezierTo(10, 72, 4, 65)
+      ..close();
+    canvas.drawPath(lUpper, fill);
+
+    // Heel cup reinforcement
+    final lHeel = Path()
+      ..moveTo(4, 65)
+      ..lineTo(4, 48)
+      ..lineTo(12, 46)
+      ..lineTo(12, 64)
+      ..close();
+    canvas.drawPath(lHeel, accentFill);
+    canvas.drawPath(lHeel, stroke);
+    canvas.drawPath(lUpper, stroke);
+
+    // Chunky midsole
+    final lMid = Path()
+      ..moveTo(2, 68)
+      ..lineTo(48, 65)
+      ..lineTo(48, 73)
+      ..quadraticBezierTo(35, 78, 10, 76)
+      ..quadraticBezierTo(2, 74, 2, 68)
+      ..close();
+    final midFill = Paint()
+      ..color = const Color(0xFFEEEEEE)
+      ..style = PaintingStyle.fill;
+    canvas.drawPath(lMid, midFill);
+    canvas.drawPath(lMid, stroke);
+
+    // Right shoe (mirror)
+    final rUpper = Path()
+      ..moveTo(54, 65)
+      ..lineTo(54, 55)
+      ..quadraticBezierTo(56, 44, 66, 40)
+      ..lineTo(66, 32)
+      ..quadraticBezierTo(68, 26, 78, 25)
+      ..lineTo(88, 25)
+      ..quadraticBezierTo(96, 25, 96, 32)
+      ..lineTo(96, 58)
+      ..quadraticBezierTo(92, 68, 78, 70)
+      ..quadraticBezierTo(60, 72, 54, 65)
+      ..close();
+    canvas.drawPath(rUpper, fill);
+    final rHeel = Path()
+      ..moveTo(54, 65)
+      ..lineTo(54, 48)
+      ..lineTo(62, 46)
+      ..lineTo(62, 64)
+      ..close();
+    canvas.drawPath(rHeel, accentFill);
+    canvas.drawPath(rHeel, stroke);
+    canvas.drawPath(rUpper, stroke);
+    final rMid = Path()
+      ..moveTo(52, 68)
+      ..lineTo(98, 65)
+      ..lineTo(98, 73)
+      ..quadraticBezierTo(85, 78, 60, 76)
+      ..quadraticBezierTo(52, 74, 52, 68)
+      ..close();
+    canvas.drawPath(rMid, midFill);
+    canvas.drawPath(rMid, stroke);
+  }
+
+  // ── Boot (ankle/mid-calf height) ──────────────────────────────────────────
+  void _drawBoot(Canvas canvas, Paint fill, Paint stroke) {
+    // Left boot
+    final lBoot = Path()
+      ..moveTo(12, 5)     // top of shaft
+      ..lineTo(30, 5)
+      ..lineTo(32, 55)    // shaft down to ankle
+      ..quadraticBezierTo(36, 58, 42, 58)
+      ..lineTo(44, 65)
+      ..quadraticBezierTo(44, 72, 36, 74)
+      ..lineTo(8, 74)
+      ..quadraticBezierTo(2, 72, 2, 65)
+      ..lineTo(2, 58)
+      ..quadraticBezierTo(8, 55, 10, 48)
+      ..lineTo(10, 5)
+      ..close();
+    canvas.drawPath(lBoot, fill);
+    canvas.drawPath(lBoot, stroke);
+    // Sole
+    canvas.drawPath(
+      Path()
+        ..moveTo(2, 68)
+        ..lineTo(44, 68)
+        ..lineTo(44, 74)
+        ..lineTo(2, 74)
+        ..close(),
+      Paint()
+        ..color = const Color(0xFF333333)
+        ..style = PaintingStyle.fill,
+    );
+    canvas.drawLine(const Offset(2, 68), const Offset(44, 68), stroke);
+    // Shaft crease
+    canvas.drawLine(const Offset(11, 5), const Offset(11, 48), stroke);
+    // Zipper hint (right side)
+    canvas.drawLine(const Offset(29, 8), const Offset(31, 48), stroke);
+
+    // Right boot
+    final rBoot = Path()
+      ..moveTo(62, 5)
+      ..lineTo(80, 5)
+      ..lineTo(82, 55)
+      ..quadraticBezierTo(86, 58, 92, 58)
+      ..lineTo(94, 65)
+      ..quadraticBezierTo(94, 72, 86, 74)
+      ..lineTo(58, 74)
+      ..quadraticBezierTo(52, 72, 52, 65)
+      ..lineTo(52, 58)
+      ..quadraticBezierTo(58, 55, 60, 48)
+      ..lineTo(60, 5)
+      ..close();
+    canvas.drawPath(rBoot, fill);
+    canvas.drawPath(rBoot, stroke);
+    canvas.drawPath(
+      Path()
+        ..moveTo(52, 68)
+        ..lineTo(94, 68)
+        ..lineTo(94, 74)
+        ..lineTo(52, 74)
+        ..close(),
+      Paint()
+        ..color = const Color(0xFF333333)
+        ..style = PaintingStyle.fill,
+    );
+    canvas.drawLine(const Offset(52, 68), const Offset(94, 68), stroke);
+    canvas.drawLine(const Offset(61, 5), const Offset(61, 48), stroke);
+    canvas.drawLine(const Offset(79, 8), const Offset(81, 48), stroke);
+  }
+
+  // ── Sandal / Slide ────────────────────────────────────────────────────────
+  void _drawSandal(Canvas canvas, Paint fill, Paint stroke) {
+    // Left sandal – thin footbed + two straps
+    final lSole = Path()
+      ..moveTo(2, 70)
+      ..quadraticBezierTo(6, 60, 14, 56)
+      ..lineTo(40, 56)
+      ..quadraticBezierTo(46, 56, 46, 62)
+      ..lineTo(46, 70)
+      ..quadraticBezierTo(40, 76, 24, 76)
+      ..quadraticBezierTo(6, 76, 2, 70)
+      ..close();
+    canvas.drawPath(lSole, fill);
+    canvas.drawPath(lSole, stroke);
+
+    // Straps
+    final strapFill = Paint()
+      ..color = fill.color
+      ..style = PaintingStyle.fill;
+    // Front strap
+    canvas.drawPath(
+      Path()
+        ..moveTo(20, 56)
+        ..lineTo(20, 50)
+        ..lineTo(32, 50)
+        ..lineTo(32, 56)
+        ..close(),
+      strapFill,
+    );
+    canvas.drawPath(
+      Path()
+        ..moveTo(20, 56)
+        ..lineTo(20, 50)
+        ..lineTo(32, 50)
+        ..lineTo(32, 56)
+        ..close(),
+      stroke,
+    );
+    // Ankle strap
+    canvas.drawPath(
+      Path()
+        ..moveTo(10, 60)
+        ..lineTo(10, 54)
+        ..quadraticBezierTo(16, 50, 24, 50)
+        ..quadraticBezierTo(32, 50, 38, 54)
+        ..lineTo(38, 60),
+      stroke,
+    );
+    // Footbed texture
+    final thinStroke = Paint()
+      ..color = stroke.color.withAlpha(80)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.5;
+    for (int i = 0; i < 3; i++) {
+      canvas.drawLine(
+        Offset(6.0 + i * 12, 66.0),
+        Offset(10.0 + i * 12, 66.0),
+        thinStroke,
+      );
+    }
+
+    // Right sandal (offset right)
+    final rSole = Path()
+      ..moveTo(54, 70)
+      ..quadraticBezierTo(58, 60, 66, 56)
+      ..lineTo(92, 56)
+      ..quadraticBezierTo(98, 56, 98, 62)
+      ..lineTo(98, 70)
+      ..quadraticBezierTo(92, 76, 76, 76)
+      ..quadraticBezierTo(58, 76, 54, 70)
+      ..close();
+    canvas.drawPath(rSole, fill);
+    canvas.drawPath(rSole, stroke);
+    canvas.drawPath(
+      Path()
+        ..moveTo(72, 56)
+        ..lineTo(72, 50)
+        ..lineTo(84, 50)
+        ..lineTo(84, 56)
+        ..close(),
+      strapFill,
+    );
+    canvas.drawPath(
+      Path()
+        ..moveTo(72, 56)
+        ..lineTo(72, 50)
+        ..lineTo(84, 50)
+        ..lineTo(84, 56)
+        ..close(),
+      stroke,
+    );
+    canvas.drawPath(
+      Path()
+        ..moveTo(62, 60)
+        ..lineTo(62, 54)
+        ..quadraticBezierTo(68, 50, 76, 50)
+        ..quadraticBezierTo(84, 50, 90, 54)
+        ..lineTo(90, 60),
+      stroke,
+    );
+  }
+
+  // ── Bra / Sports Bra ──────────────────────────────────────────────────────
+  void _drawBra(Canvas canvas, Paint fill, Paint stroke) {
+    // Left cup
+    final lCup = Path()
+      ..moveTo(50, 55)
+      ..quadraticBezierTo(38, 50, 22, 55)
+      ..quadraticBezierTo(12, 60, 14, 72)
+      ..quadraticBezierTo(20, 80, 30, 80)
+      ..quadraticBezierTo(44, 80, 50, 70)
+      ..close();
+    canvas.drawPath(lCup, fill);
+    canvas.drawPath(lCup, stroke);
+
+    // Right cup
+    final rCup = Path()
+      ..moveTo(50, 55)
+      ..quadraticBezierTo(62, 50, 78, 55)
+      ..quadraticBezierTo(88, 60, 86, 72)
+      ..quadraticBezierTo(80, 80, 70, 80)
+      ..quadraticBezierTo(56, 80, 50, 70)
+      ..close();
+    canvas.drawPath(rCup, fill);
+    canvas.drawPath(rCup, stroke);
+
+    // Center gore
+    canvas.drawLine(const Offset(50, 55), const Offset(50, 72), stroke);
+
+    // Band / underband
+    final band = Path()
+      ..moveTo(14, 72)
+      ..lineTo(86, 72)
+      ..lineTo(86, 80)
+      ..lineTo(14, 80)
+      ..close();
+    canvas.drawPath(band, fill);
+    canvas.drawPath(band, stroke);
+
+    // Clasp on band (back)
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+          const Rect.fromLTWH(44, 73, 12, 6), const Radius.circular(2)),
+      stroke,
+    );
+
+    // Left shoulder strap
+    final lStrap = Path()
+      ..moveTo(26, 55)
+      ..quadraticBezierTo(24, 35, 30, 18)
+      ..lineTo(38, 22)
+      ..quadraticBezierTo(34, 36, 36, 55);
+    canvas.drawPath(lStrap, fill);
+    canvas.drawPath(lStrap, stroke);
+
+    // Right shoulder strap
+    final rStrap = Path()
+      ..moveTo(74, 55)
+      ..quadraticBezierTo(76, 35, 70, 18)
+      ..lineTo(62, 22)
+      ..quadraticBezierTo(66, 36, 64, 55);
+    canvas.drawPath(rStrap, fill);
+    canvas.drawPath(rStrap, stroke);
+
+    // Sports-bra style front seam detail
+    canvas.drawPath(
+      Path()
+        ..moveTo(36, 55)
+        ..quadraticBezierTo(44, 62, 50, 62)
+        ..quadraticBezierTo(56, 62, 64, 55),
+      stroke..strokeWidth = stroke.strokeWidth * 0.8,
+    );
+  }
+
   // ── Accessory (generic bag/item) ─────────────────────────────────────────
   void _drawAccessory(Canvas canvas, Paint fill, Paint stroke) {
     final bag = RRect.fromRectAndRadius(
@@ -457,6 +861,164 @@ class GarmentPainter extends CustomPainter {
       old.type != type ||
       old.fillColor != fillColor ||
       old.strokeColor != strokeColor;
+}
+
+// ── Folded Garment Painter ────────────────────────────────────────────────────
+
+/// Draws a top-down view of a folded garment as it appears stacked on a shelf.
+/// Shows the front face of the fold with fold crease and type-specific top detail.
+class FoldedGarmentPainter extends CustomPainter {
+  final GarmentType type;
+  final Color fillColor;
+
+  const FoldedGarmentPainter({
+    required this.type,
+    required this.fillColor,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+
+    final strokeColor = fillColor.computeLuminance() > 0.7
+        ? const Color(0xFF888888)
+        : const Color(0xFF333333);
+
+    final fill = Paint()
+      ..color = fillColor
+      ..style = PaintingStyle.fill;
+    final stroke = Paint()
+      ..color = strokeColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.0
+      ..strokeJoin = StrokeJoin.round;
+    final creasePaint = Paint()
+      ..color = strokeColor.withAlpha(60)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.8;
+    final detailPaint = Paint()
+      ..color = strokeColor.withAlpha(120)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.7;
+
+    // Main folded rectangle with slight rounded corners
+    final rect = RRect.fromRectAndRadius(
+      Rect.fromLTWH(1, 1, w - 2, h - 2),
+      const Radius.circular(3),
+    );
+    canvas.drawRRect(rect, fill);
+    canvas.drawRRect(rect, stroke);
+
+    // Horizontal fold crease at mid-height
+    final creaseY = h * 0.52;
+    canvas.drawLine(
+      Offset(4, creaseY),
+      Offset(w - 4, creaseY),
+      creasePaint,
+    );
+
+    // Type-specific top detail
+    _drawTopDetail(canvas, w, h, detailPaint, strokeColor);
+
+    // Shadow gradient on bottom half to suggest depth
+    final shadowPaint = Paint()
+      ..shader = LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [Colors.transparent, strokeColor.withAlpha(18)],
+      ).createShader(Rect.fromLTWH(0, creaseY, w, h - creaseY));
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(1, creaseY, w - 2, h - creaseY - 1),
+        const Radius.circular(3),
+      ),
+      shadowPaint,
+    );
+  }
+
+  void _drawTopDetail(
+      Canvas canvas, double w, double h, Paint detail, Color strokeColor) {
+    final topY = h * 0.12;
+    switch (type) {
+      case GarmentType.tshirt:
+      case GarmentType.hoodie:
+      case GarmentType.vest:
+      case GarmentType.halfZip:
+      case GarmentType.quarterZip:
+      case GarmentType.jacket:
+        // Collar/neck hint: small U-curve at top center
+        final neckPath = Path()
+          ..moveTo(w * 0.38, topY + 2)
+          ..quadraticBezierTo(w * 0.5, topY + h * 0.08, w * 0.62, topY + 2);
+        canvas.drawPath(neckPath, detail);
+        break;
+      case GarmentType.jogger:
+      case GarmentType.pants:
+        // Waistband: double horizontal line at top
+        canvas.drawLine(Offset(4, topY), Offset(w - 4, topY), detail);
+        canvas.drawLine(
+            Offset(4, topY + 3), Offset(w - 4, topY + 3), detail);
+        // Center seam
+        canvas.drawLine(
+            Offset(w * 0.5, topY + 5), Offset(w * 0.5, h * 0.45), detail);
+        break;
+      case GarmentType.shorts:
+        canvas.drawLine(Offset(4, topY), Offset(w - 4, topY), detail);
+        canvas.drawLine(
+            Offset(4, topY + 3), Offset(w - 4, topY + 3), detail);
+        canvas.drawLine(
+            Offset(w * 0.5, topY + 5), Offset(w * 0.5, h * 0.38), detail);
+        break;
+      case GarmentType.hat:
+        // Brim line
+        canvas.drawLine(
+            Offset(w * 0.15, topY + 6), Offset(w * 0.85, topY + 6), detail);
+        break;
+      case GarmentType.bra:
+        // Two cup outlines
+        final leftCup = Path()
+          ..addOval(
+              Rect.fromCenter(center: Offset(w * 0.32, topY + 6), width: w * 0.28, height: h * 0.14));
+        final rightCup = Path()
+          ..addOval(
+              Rect.fromCenter(center: Offset(w * 0.68, topY + 6), width: w * 0.28, height: h * 0.14));
+        canvas.drawPath(leftCup, detail);
+        canvas.drawPath(rightCup, detail);
+        break;
+      default:
+        // Generic: just a small centered dot/label area
+        break;
+    }
+  }
+
+  @override
+  bool shouldRepaint(FoldedGarmentPainter old) =>
+      old.type != type || old.fillColor != fillColor;
+}
+
+/// A folded garment shown as it would appear stacked on a shelf (top-down view).
+class FoldedGarmentWidget extends StatelessWidget {
+  final GarmentType type;
+  final Color color;
+  final double width;
+  final double height;
+
+  const FoldedGarmentWidget({
+    super.key,
+    required this.type,
+    required this.color,
+    this.width = 56,
+    this.height = 44,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomPaint(
+      size: Size(width, height),
+      painter: FoldedGarmentPainter(type: type, fillColor: color),
+    );
+  }
 }
 
 /// A ready-to-use widget that renders a garment illustration.

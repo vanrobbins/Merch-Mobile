@@ -19,7 +19,9 @@ import '../widgets/dialogs/add_garment_dialog.dart';
 import '../widgets/dialogs/mannequin_dialog.dart';
 import '../widgets/dialogs/auto_layout_dialog.dart';
 import '../widgets/dialogs/color_picker_dialog.dart';
+import '../widgets/dialogs/wall_arm_template_dialog.dart';
 import 'export_screen.dart';
+import 'store_layout_screen.dart';
 
 class EditorScreen extends StatelessWidget {
   final String projectId;
@@ -192,6 +194,38 @@ class _EditorViewState extends State<_EditorView> {
     }
   }
 
+  // ── Wall arm fill ─────────────────────────────────────────────────────────
+
+  Future<void> _fillWallArms(DisplaySection section) async {
+    await showDialog(
+      context: context,
+      builder: (_) => WallAutoFillDialog(
+        section: section,
+        projectId: _project.id,
+      ),
+    );
+  }
+
+  // ── Store layout nav ──────────────────────────────────────────────────────
+
+  void _openStoreLayout() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => StoreLayoutScreen(projectId: _project.id),
+      ),
+    );
+  }
+
+  void _openArmTemplates() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const WallArmTemplatesScreen(),
+      ),
+    );
+  }
+
   // ── Export ────────────────────────────────────────────────────────────────
 
   void _exportPdf() {
@@ -229,17 +263,46 @@ class _EditorViewState extends State<_EditorView> {
             tooltip: _isEditing ? 'Preview' : 'Edit',
             onPressed: () => setState(() => _isEditing = !_isEditing),
           ),
-          // Auto-layout
+          // Store layout floor plan
           IconButton(
-            icon: const Icon(Icons.auto_awesome),
-            tooltip: 'Auto-Layout',
-            onPressed: _autoLayout,
+            icon: const Icon(Icons.map_outlined),
+            tooltip: 'Store Layout',
+            onPressed: _openStoreLayout,
           ),
-          // Export PDF
-          IconButton(
-            icon: const Icon(Icons.picture_as_pdf_outlined),
-            tooltip: 'Export PDF',
-            onPressed: _exportPdf,
+          // More menu
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert),
+            onSelected: (v) {
+              if (v == 'auto') _autoLayout();
+              if (v == 'arms') _openArmTemplates();
+              if (v == 'pdf') _exportPdf();
+            },
+            itemBuilder: (_) => const [
+              PopupMenuItem(
+                value: 'auto',
+                child: ListTile(
+                  leading: Icon(Icons.auto_awesome, size: 18),
+                  title: Text('Auto-Layout'),
+                  contentPadding: EdgeInsets.zero,
+                ),
+              ),
+              PopupMenuItem(
+                value: 'arms',
+                child: ListTile(
+                  leading: Icon(Icons.space_bar_outlined, size: 18),
+                  title: Text('Arm Templates'),
+                  contentPadding: EdgeInsets.zero,
+                ),
+              ),
+              PopupMenuItem(
+                value: 'pdf',
+                child: ListTile(
+                  leading: Icon(Icons.picture_as_pdf_outlined, size: 18),
+                  title: Text('Export PDF'),
+                  contentPadding: EdgeInsets.zero,
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -267,6 +330,9 @@ class _EditorViewState extends State<_EditorView> {
                   onAddDecor: () => _addDecorativeElement(section),
                   onRemoveDecor: (id) =>
                       _removeDecorativeElement(section, id),
+                  onFillArms: section.type == SectionType.perimeter
+                      ? () => _fillWallArms(section)
+                      : null,
                 );
               },
             ),
@@ -295,6 +361,7 @@ class _SectionCard extends StatelessWidget {
   final VoidCallback onEditMannequin;
   final VoidCallback onAddDecor;
   final void Function(String) onRemoveDecor;
+  final VoidCallback? onFillArms;
 
   const _SectionCard({
     super.key,
@@ -307,6 +374,7 @@ class _SectionCard extends StatelessWidget {
     required this.onEditMannequin,
     required this.onAddDecor,
     required this.onRemoveDecor,
+    this.onFillArms,
   });
 
   @override
@@ -354,6 +422,7 @@ class _SectionCard extends StatelessWidget {
           section: section,
           onGarmentTap: onGarmentTap,
           onAddGarment: onAddGarment,
+          onFillArms: onFillArms,
           isEditing: isEditing,
         ),
       SectionType.floorRack => RackSectionWidget(
