@@ -19,10 +19,8 @@ class AppScaffold extends StatelessWidget {
     final location = GoRouterState.of(context).matchedLocation;
     final index = _tabs.indexWhere((t) => location.startsWith(t.path));
     final activeIndex = index < 0 ? 0 : index;
-    final tab = _tabs[activeIndex];
 
     return Scaffold(
-      appBar: AppBar(title: Text(tab.label.toUpperCase())),
       body: child,
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: activeIndex,
