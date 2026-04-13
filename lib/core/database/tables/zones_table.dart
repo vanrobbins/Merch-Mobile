@@ -10,6 +10,7 @@ class ZonesTable extends Table {
   RealColumn get posY => real().withDefault(const Constant(0.0))();
   RealColumn get width => real().withDefault(const Constant(0.2))();
   RealColumn get height => real().withDefault(const Constant(0.2))();
+  TextColumn get shapePoints => text().nullable()(); // JSON: [{x,y},...] for polygon
   DateTimeColumn get updatedAt => dateTime()();
 
   @override

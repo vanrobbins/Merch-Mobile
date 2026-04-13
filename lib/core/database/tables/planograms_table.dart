@@ -9,6 +9,7 @@ class PlanogramsTable extends Table {
   TextColumn get slotsJson => text().withDefault(const Constant('[]'))();
   DateTimeColumn get publishedAt => dateTime().nullable()();
   DateTimeColumn get updatedAt => dateTime()();
+  TextColumn get storeId => text().withDefault(const Constant(''))();
 
   @override
   Set<Column> get primaryKey => {id};

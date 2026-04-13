@@ -11,6 +11,7 @@ class PhotoDocsTable extends Table {
   TextColumn get planogramId => text().nullable()();
   DateTimeColumn get capturedAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();
+  TextColumn get storeId => text().withDefault(const Constant(''))();
 
   @override
   Set<Column> get primaryKey => {id};

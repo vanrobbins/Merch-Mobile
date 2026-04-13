@@ -1,9 +1,10 @@
 import 'dart:async';
 
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../widgets/app_scaffold.dart';
 import '../../features/auth/splash_screen.dart';
 import '../../features/auth/login_screen.dart';
@@ -15,6 +16,12 @@ import '../../features/planogram/planogram_detail_screen.dart';
 import '../../features/product_catalog/catalog_screen.dart';
 import '../../features/photo_docs/photo_list_screen.dart';
 import '../../features/photo_docs/photo_detail_screen.dart';
+import '../../features/store/store_gate_screen.dart';
+import '../../features/store/create_store_screen.dart';
+import '../../features/store/join_store_screen.dart';
+import '../../features/store/pending_approval_screen.dart';
+import '../../features/store/members_screen.dart';
+import '../../features/store/group_management_screen.dart';
 
 part 'app_router.g.dart';
 
@@ -39,6 +46,7 @@ class AppRoutes {
   static const splash = 'splash';
   static const login = 'login';
   static const home = 'home';
+  static const dashboard = 'dashboard';
   static const zoneMap = 'zoneMap';
   static const floorBuilder = 'floorBuilder';
   static const autoBuild = 'autoBuild';
@@ -47,12 +55,21 @@ class AppRoutes {
   static const catalog = 'catalog';
   static const photoList = 'photoList';
   static const photoDetail = 'photoDetail';
+  static const storeGate = 'storeGate';
+  static const createStore = 'createStore';
+  static const joinStore = 'joinStore';
+  static const pendingApproval = 'pendingApproval';
+  static const members = 'members';
+  static const groupManagement = 'groupManagement';
+  static const zoneDetail = 'zoneDetail';
+  static const proposalReview = 'proposalReview';
 }
 
 class AppPaths {
   static const splash = '/';
   static const login = '/login';
   static const home = '/home';
+  static const dashboard = '/home/dashboard';
   static const zoneMap = '/home/zones';
   static const floorBuilder = '/home/zones/:zoneId/builder';
   static const autoBuild = '/home/zones/:zoneId/auto';
@@ -61,6 +78,14 @@ class AppPaths {
   static const catalog = '/home/catalog';
   static const photoList = '/home/photos';
   static const photoDetail = '/home/photos/:photoId';
+  static const storeGate = '/store-gate';
+  static const createStore = '/store-gate/create';
+  static const joinStore = '/store-gate/join';
+  static const pendingApproval = '/store-gate/pending';
+  static const members = '/home/members';
+  static const groupManagement = '/home/groups';
+  static const zoneDetail = '/home/zones/:zoneId/detail';
+  static const proposalReview = '/home/planograms/:planogramId/proposals';
 }
 
 
@@ -69,13 +94,25 @@ GoRouter appRouter(AppRouterRef ref) {
   return GoRouter(
     initialLocation: AppPaths.splash,
     refreshListenable: _AuthChangeNotifier(),
-    redirect: (context, state) {
+    redirect: (context, state) async {
       final isLoggedIn = FirebaseAuth.instance.currentUser != null;
       final loc = state.matchedLocation;
       final isPublic = loc == AppPaths.splash || loc == AppPaths.login;
+      final isStoreGate = loc.startsWith('/store-gate');
 
       if (!isLoggedIn && !isPublic) return AppPaths.login;
-      if (isLoggedIn && loc == AppPaths.login) return AppPaths.zoneMap;
+      if (isLoggedIn && loc == AppPaths.login) {
+        // Will be redirected to storeGate or home by store gate check below
+        return AppPaths.zoneMap;
+      }
+
+      // Store gate: if logged in but no active store, send to gate
+      // (Skip this check for store gate routes themselves)
+      if (isLoggedIn && !isPublic && !isStoreGate) {
+        final prefs = await SharedPreferences.getInstance();
+        final storeId = prefs.getString('active_store_id');
+        if (storeId == null || storeId.isEmpty) return AppPaths.storeGate;
+      }
       return null;
     },
     routes: [
@@ -89,9 +126,39 @@ GoRouter appRouter(AppRouterRef ref) {
         path: AppPaths.login,
         builder: (context, state) => const LoginScreen(),
       ),
+      // Store gate routes (outside ShellRoute — no bottom nav)
+      GoRoute(
+        name: AppRoutes.storeGate,
+        path: AppPaths.storeGate,
+        builder: (_, __) => const StoreGateScreen(),
+        routes: [
+          GoRoute(
+            name: AppRoutes.createStore,
+            path: 'create',
+            builder: (_, __) => const CreateStoreScreen(),
+          ),
+          GoRoute(
+            name: AppRoutes.joinStore,
+            path: 'join',
+            builder: (_, __) => const JoinStoreScreen(),
+          ),
+          GoRoute(
+            name: AppRoutes.pendingApproval,
+            path: 'pending',
+            builder: (_, __) => const PendingApprovalScreen(),
+          ),
+        ],
+      ),
       ShellRoute(
         builder: (context, state, child) => AppScaffold(child: child),
         routes: [
+          GoRoute(
+            name: AppRoutes.dashboard,
+            path: AppPaths.dashboard,
+            builder: (_, __) => const Scaffold(
+              body: Center(child: Text('Dashboard — Agent 4')),
+            ),
+          ),
           GoRoute(
             name: AppRoutes.zoneMap,
             path: AppPaths.zoneMap,
@@ -145,6 +212,16 @@ GoRouter appRouter(AppRouterRef ref) {
                 ),
               ),
             ],
+          ),
+          GoRoute(
+            name: AppRoutes.members,
+            path: AppPaths.members,
+            builder: (_, __) => const MembersScreen(),
+          ),
+          GoRoute(
+            name: AppRoutes.groupManagement,
+            path: AppPaths.groupManagement,
+            builder: (_, __) => const GroupManagementScreen(),
           ),
         ],
       ),
