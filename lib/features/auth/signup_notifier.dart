@@ -11,7 +11,7 @@ class SignUpNotifier extends _$SignUpNotifier {
   Future<void> signUp(String name, String email, String password) async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(
-      () => AuthService().signUpWithEmail(name.trim(), email.trim(), password),
+      () => AuthService().signUpWithEmail(name, email.trim(), password),
     );
   }
 }
