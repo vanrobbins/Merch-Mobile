@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import '../../core/providers/auth_provider.dart';
+import '../../core/router/app_router.dart';
 import '../../core/theme/app_theme.dart';
 import 'login_notifier.dart';
+import 'signup_notifier.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -11,21 +15,53 @@ class LoginScreen extends ConsumerStatefulWidget {
 }
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
+  final _nameCtrl = TextEditingController();
   final _emailCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
+  final _confirmCtrl = TextEditingController();
+
+  bool _isSignUp = false;
+  String? _confirmError;
+
+  void _toggleMode() {
+    setState(() {
+      _isSignUp = !_isSignUp;
+      _confirmError = null;
+    });
+    _nameCtrl.clear();
+    _emailCtrl.clear();
+    _passwordCtrl.clear();
+    _confirmCtrl.clear();
+    if (_isSignUp) {
+      ref.invalidate(loginNotifierProvider);
+    } else {
+      ref.invalidate(signUpNotifierProvider);
+    }
+  }
 
   @override
   void dispose() {
+    _nameCtrl.dispose();
     _emailCtrl.dispose();
     _passwordCtrl.dispose();
+    _confirmCtrl.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final state = ref.watch(loginNotifierProvider);
-    final error = state.hasError ? state.error.toString() : null;
-    final isLoading = state.isLoading;
+    ref.listen(authStateProvider, (_, next) {
+      if (next.value != null) context.goNamed(AppRoutes.home);
+    });
+
+    final loginState = ref.watch(loginNotifierProvider);
+    final signUpState = ref.watch(signUpNotifierProvider);
+    final activeState = _isSignUp ? signUpState : loginState;
+
+    final error = activeState.hasError
+        ? activeState.error.toString()
+        : _confirmError;
+    final isLoading = activeState.isLoading;
 
     const underline = InputDecoration(
       enabledBorder: UnderlineInputBorder(
@@ -40,12 +76,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     return Scaffold(
       backgroundColor: AppTheme.canvasBg,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 48),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const SizedBox(height: 48),
+              const SizedBox(height: 24),
               const Text(
                 'MERCH MOBILE',
                 style: TextStyle(
@@ -56,7 +92,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 ),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 48),
+              const SizedBox(height: 24),
               if (error != null)
                 Container(
                   padding: const EdgeInsets.all(12),
@@ -67,6 +103,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     style: const TextStyle(color: AppTheme.accent),
                   ),
                 ),
+              if (_isSignUp) ...[
+                TextField(
+                  controller: _nameCtrl,
+                  decoration: underline.copyWith(labelText: 'NAME'),
+                  textCapitalization: TextCapitalization.words,
+                  autocorrect: false,
+                ),
+                const SizedBox(height: 24),
+              ],
               TextField(
                 controller: _emailCtrl,
                 decoration: underline.copyWith(labelText: 'EMAIL'),
@@ -79,7 +124,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 decoration: underline.copyWith(labelText: 'PASSWORD'),
                 obscureText: true,
               ),
-              const SizedBox(height: 48),
+              if (_isSignUp) ...[
+                const SizedBox(height: 24),
+                TextField(
+                  controller: _confirmCtrl,
+                  decoration:
+                      underline.copyWith(labelText: 'CONFIRM PASSWORD'),
+                  obscureText: true,
+                ),
+              ],
+              const SizedBox(height: 24),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppTheme.primary,
@@ -90,12 +144,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         Radius.circular(AppTheme.borderRadius)),
                   ),
                 ),
-                onPressed: isLoading
-                    ? null
-                    : () => ref.read(loginNotifierProvider.notifier).signIn(
-                          _emailCtrl.text,
-                          _passwordCtrl.text,
-                        ),
+                onPressed: isLoading ? null : _submit,
                 child: isLoading
                     ? const SizedBox(
                         height: 18,
@@ -105,18 +154,62 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           color: AppTheme.canvasBg,
                         ),
                       )
-                    : const Text(
-                        'SIGN IN',
-                        style: TextStyle(
+                    : Text(
+                        _isSignUp ? 'SIGN UP' : 'SIGN IN',
+                        style: const TextStyle(
                           fontWeight: FontWeight.w700,
                           letterSpacing: 1.5,
                         ),
                       ),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    _isSignUp
+                        ? 'Already have an account? '
+                        : "Don't have an account? ",
+                    style: const TextStyle(color: AppTheme.textSecondary),
+                  ),
+                  TextButton(
+                    onPressed: _toggleMode,
+                    style: TextButton.styleFrom(
+                      padding: EdgeInsets.zero,
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    child: Text(
+                      _isSignUp ? 'Sign in' : 'Sign up',
+                      style: const TextStyle(color: AppTheme.textSecondary),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
         ),
       ),
     );
+  }
+
+  void _submit() {
+    if (_isSignUp) {
+      if (_passwordCtrl.text != _confirmCtrl.text) {
+        setState(() => _confirmError = 'Passwords do not match');
+        return;
+      }
+      setState(() => _confirmError = null);
+      ref.read(signUpNotifierProvider.notifier).signUp(
+            _nameCtrl.text,
+            _emailCtrl.text,
+            _passwordCtrl.text,
+          );
+    } else {
+      ref.read(loginNotifierProvider.notifier).signIn(
+            _emailCtrl.text,
+            _passwordCtrl.text,
+          );
+    }
   }
 }
