@@ -13,7 +13,7 @@ class AuthService {
       String name, String email, String password) async {
     final cred = await _auth.createUserWithEmailAndPassword(
         email: email, password: password);
-    await cred.user?.updateDisplayName(name);
+    await cred.user?.updateDisplayName(name.trim());
     return cred;
   }
 
