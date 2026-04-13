@@ -1,8 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
-import '../../core/providers/auth_provider.dart';
-import '../../core/router/app_router.dart';
 import '../../core/theme/app_theme.dart';
 import 'login_notifier.dart';
 import 'signup_notifier.dart';
@@ -50,10 +47,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    ref.listen(authStateProvider, (_, next) {
-      if (next.value != null) context.goNamed(AppRoutes.home);
-    });
-
     final loginState = ref.watch(loginNotifierProvider);
     final signUpState = ref.watch(signUpNotifierProvider);
     final activeState = _isSignUp ? signUpState : loginState;

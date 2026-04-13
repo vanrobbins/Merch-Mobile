@@ -1,12 +1,39 @@
-import 'package:flutter/material.dart';
+import 'dart:async';
+
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../widgets/app_scaffold.dart';
 import '../../features/auth/splash_screen.dart';
 import '../../features/auth/login_screen.dart';
-import 'route_guards.dart';
+import '../../features/zone_manager/zone_map_screen.dart';
+import '../../features/floor_builder/floor_builder_screen.dart';
+import '../../features/auto_build/auto_build_screen.dart';
+import '../../features/planogram/planogram_list_screen.dart';
+import '../../features/planogram/planogram_detail_screen.dart';
+import '../../features/product_catalog/catalog_screen.dart';
+import '../../features/photo_docs/photo_list_screen.dart';
+import '../../features/photo_docs/photo_detail_screen.dart';
 
 part 'app_router.g.dart';
+
+/// Bridges Firebase Auth's stream to GoRouter's refreshListenable so the
+/// router re-evaluates its redirect whenever auth state changes.
+class _AuthChangeNotifier extends ChangeNotifier {
+  _AuthChangeNotifier() {
+    _subscription =
+        FirebaseAuth.instance.authStateChanges().listen((_) => notifyListeners());
+  }
+
+  late final StreamSubscription<User?> _subscription;
+
+  @override
+  void dispose() {
+    _subscription.cancel();
+    super.dispose();
+  }
+}
 
 class AppRoutes {
   static const splash = 'splash';
@@ -36,23 +63,21 @@ class AppPaths {
   static const photoDetail = '/home/photos/:photoId';
 }
 
-class _PlaceholderScreen extends StatelessWidget {
-  const _PlaceholderScreen(this.title);
-  final String title;
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text(title.toUpperCase())),
-      body: Center(child: Text(title)),
-    );
-  }
-}
 
 @Riverpod(keepAlive: true)
 GoRouter appRouter(AppRouterRef ref) {
   return GoRouter(
     initialLocation: AppPaths.splash,
+    refreshListenable: _AuthChangeNotifier(),
+    redirect: (context, state) {
+      final isLoggedIn = FirebaseAuth.instance.currentUser != null;
+      final loc = state.matchedLocation;
+      final isPublic = loc == AppPaths.splash || loc == AppPaths.login;
+
+      if (!isLoggedIn && !isPublic) return AppPaths.login;
+      if (isLoggedIn && loc == AppPaths.login) return AppPaths.home;
+      return null;
+    },
     routes: [
       GoRoute(
         name: AppRoutes.splash,
@@ -62,70 +87,64 @@ GoRouter appRouter(AppRouterRef ref) {
       GoRoute(
         name: AppRoutes.login,
         path: AppPaths.login,
-        redirect: (context, state) => redirectIfAuthed(ref),
         builder: (context, state) => const LoginScreen(),
       ),
       GoRoute(
         name: AppRoutes.home,
         path: AppPaths.home,
-        redirect: (context, state) => requireAuth(ref),
         builder: (context, state) => const AppScaffold(),
       ),
       GoRoute(
         name: AppRoutes.zoneMap,
         path: AppPaths.zoneMap,
-        redirect: (context, state) => requireAuth(ref),
-        builder: (context, state) => const _PlaceholderScreen('Zones'),
+        builder: (context, state) => const ZoneMapScreen(),
         routes: [
           GoRoute(
             name: AppRoutes.floorBuilder,
             path: ':zoneId/builder',
-            redirect: (context, state) => requireAuth(ref),
-            builder: (context, state) =>
-                const _PlaceholderScreen('Floor Builder'),
+            builder: (context, state) => FloorBuilderScreen(
+              zoneId: state.pathParameters['zoneId']!,
+            ),
           ),
           GoRoute(
             name: AppRoutes.autoBuild,
             path: ':zoneId/auto',
-            redirect: (context, state) => requireAuth(ref),
-            builder: (context, state) =>
-                const _PlaceholderScreen('Auto Build'),
+            builder: (context, state) => AutoBuildScreen(
+              zoneId: state.pathParameters['zoneId']!,
+            ),
           ),
         ],
       ),
       GoRoute(
         name: AppRoutes.planogramList,
         path: AppPaths.planogramList,
-        redirect: (context, state) => requireAuth(ref),
-        builder: (context, state) => const _PlaceholderScreen('Planograms'),
+        builder: (context, state) => const PlanogramListScreen(),
         routes: [
           GoRoute(
             name: AppRoutes.planogramDetail,
             path: ':planogramId',
-            redirect: (context, state) => requireAuth(ref),
-            builder: (context, state) =>
-                const _PlaceholderScreen('Planogram Detail'),
+            builder: (context, state) => PlanogramDetailScreen(
+              planogramId: state.pathParameters['planogramId']!,
+            ),
           ),
         ],
       ),
       GoRoute(
         name: AppRoutes.catalog,
         path: AppPaths.catalog,
-        redirect: (context, state) => requireAuth(ref),
-        builder: (context, state) => const _PlaceholderScreen('Catalog'),
+        builder: (context, state) => const CatalogScreen(),
       ),
       GoRoute(
         name: AppRoutes.photoList,
         path: AppPaths.photoList,
-        redirect: (context, state) => requireAuth(ref),
-        builder: (context, state) => const _PlaceholderScreen('Photos'),
+        builder: (context, state) => const PhotoListScreen(),
         routes: [
           GoRoute(
             name: AppRoutes.photoDetail,
             path: ':photoId',
-            redirect: (context, state) => requireAuth(ref),
-            builder: (context, state) =>
-                const _PlaceholderScreen('Photo Detail'),
+            builder: (context, state) => PhotoDetailScreen(
+              photoId: state.pathParameters['photoId']!,
+            ),
           ),
         ],
       ),
