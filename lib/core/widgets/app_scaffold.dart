@@ -1,38 +1,33 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../router/app_router.dart';
 
-class AppScaffold extends ConsumerStatefulWidget {
-  const AppScaffold({super.key});
+class AppScaffold extends StatelessWidget {
+  const AppScaffold({super.key, required this.child});
 
-  @override
-  ConsumerState<AppScaffold> createState() => _AppScaffoldState();
-}
-
-class _AppScaffoldState extends ConsumerState<AppScaffold> {
-  int _index = 0;
+  final Widget child;
 
   static const _tabs = <_Tab>[
-    _Tab('Zones', Icons.map_outlined, AppRoutes.zoneMap),
-    _Tab('Planograms', Icons.grid_view_outlined, AppRoutes.planogramList),
-    _Tab('Catalog', Icons.inventory_2_outlined, AppRoutes.catalog),
-    _Tab('Photos', Icons.photo_library_outlined, AppRoutes.photoList),
+    _Tab('Zones', Icons.map_outlined, AppRoutes.zoneMap, AppPaths.zoneMap),
+    _Tab('Planograms', Icons.grid_view_outlined, AppRoutes.planogramList, AppPaths.planogramList),
+    _Tab('Catalog', Icons.inventory_2_outlined, AppRoutes.catalog, AppPaths.catalog),
+    _Tab('Photos', Icons.photo_library_outlined, AppRoutes.photoList, AppPaths.photoList),
   ];
 
   @override
   Widget build(BuildContext context) {
-    final tab = _tabs[_index];
+    final location = GoRouterState.of(context).matchedLocation;
+    final index = _tabs.indexWhere((t) => location.startsWith(t.path));
+    final activeIndex = index < 0 ? 0 : index;
+    final tab = _tabs[activeIndex];
+
     return Scaffold(
       appBar: AppBar(title: Text(tab.label.toUpperCase())),
-      body: Center(child: Text(tab.label)),
+      body: child,
       bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _index,
+        currentIndex: activeIndex,
         type: BottomNavigationBarType.fixed,
-        onTap: (i) {
-          setState(() => _index = i);
-          context.goNamed(_tabs[i].routeName);
-        },
+        onTap: (i) => context.goNamed(_tabs[i].routeName),
         items: [
           for (final t in _tabs)
             BottomNavigationBarItem(icon: Icon(t.icon), label: t.label),
@@ -43,8 +38,9 @@ class _AppScaffoldState extends ConsumerState<AppScaffold> {
 }
 
 class _Tab {
-  const _Tab(this.label, this.icon, this.routeName);
+  const _Tab(this.label, this.icon, this.routeName, this.path);
   final String label;
   final IconData icon;
   final String routeName;
+  final String path;
 }

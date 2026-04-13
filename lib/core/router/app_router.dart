@@ -75,7 +75,7 @@ GoRouter appRouter(AppRouterRef ref) {
       final isPublic = loc == AppPaths.splash || loc == AppPaths.login;
 
       if (!isLoggedIn && !isPublic) return AppPaths.login;
-      if (isLoggedIn && loc == AppPaths.login) return AppPaths.home;
+      if (isLoggedIn && loc == AppPaths.login) return AppPaths.zoneMap;
       return null;
     },
     routes: [
@@ -89,62 +89,62 @@ GoRouter appRouter(AppRouterRef ref) {
         path: AppPaths.login,
         builder: (context, state) => const LoginScreen(),
       ),
-      GoRoute(
-        name: AppRoutes.home,
-        path: AppPaths.home,
-        builder: (context, state) => const AppScaffold(),
-      ),
-      GoRoute(
-        name: AppRoutes.zoneMap,
-        path: AppPaths.zoneMap,
-        builder: (context, state) => const ZoneMapScreen(),
+      ShellRoute(
+        builder: (context, state, child) => AppScaffold(child: child),
         routes: [
           GoRoute(
-            name: AppRoutes.floorBuilder,
-            path: ':zoneId/builder',
-            builder: (context, state) => FloorBuilderScreen(
-              zoneId: state.pathParameters['zoneId']!,
-            ),
+            name: AppRoutes.zoneMap,
+            path: AppPaths.zoneMap,
+            builder: (context, state) => const ZoneMapScreen(),
+            routes: [
+              GoRoute(
+                name: AppRoutes.floorBuilder,
+                path: ':zoneId/builder',
+                builder: (context, state) => FloorBuilderScreen(
+                  zoneId: state.pathParameters['zoneId']!,
+                ),
+              ),
+              GoRoute(
+                name: AppRoutes.autoBuild,
+                path: ':zoneId/auto',
+                builder: (context, state) => AutoBuildScreen(
+                  zoneId: state.pathParameters['zoneId']!,
+                ),
+              ),
+            ],
           ),
           GoRoute(
-            name: AppRoutes.autoBuild,
-            path: ':zoneId/auto',
-            builder: (context, state) => AutoBuildScreen(
-              zoneId: state.pathParameters['zoneId']!,
-            ),
+            name: AppRoutes.planogramList,
+            path: AppPaths.planogramList,
+            builder: (context, state) => const PlanogramListScreen(),
+            routes: [
+              GoRoute(
+                name: AppRoutes.planogramDetail,
+                path: ':planogramId',
+                builder: (context, state) => PlanogramDetailScreen(
+                  planogramId: state.pathParameters['planogramId']!,
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
-      GoRoute(
-        name: AppRoutes.planogramList,
-        path: AppPaths.planogramList,
-        builder: (context, state) => const PlanogramListScreen(),
-        routes: [
           GoRoute(
-            name: AppRoutes.planogramDetail,
-            path: ':planogramId',
-            builder: (context, state) => PlanogramDetailScreen(
-              planogramId: state.pathParameters['planogramId']!,
-            ),
+            name: AppRoutes.catalog,
+            path: AppPaths.catalog,
+            builder: (context, state) => const CatalogScreen(),
           ),
-        ],
-      ),
-      GoRoute(
-        name: AppRoutes.catalog,
-        path: AppPaths.catalog,
-        builder: (context, state) => const CatalogScreen(),
-      ),
-      GoRoute(
-        name: AppRoutes.photoList,
-        path: AppPaths.photoList,
-        builder: (context, state) => const PhotoListScreen(),
-        routes: [
           GoRoute(
-            name: AppRoutes.photoDetail,
-            path: ':photoId',
-            builder: (context, state) => PhotoDetailScreen(
-              photoId: state.pathParameters['photoId']!,
-            ),
+            name: AppRoutes.photoList,
+            path: AppPaths.photoList,
+            builder: (context, state) => const PhotoListScreen(),
+            routes: [
+              GoRoute(
+                name: AppRoutes.photoDetail,
+                path: ':photoId',
+                builder: (context, state) => PhotoDetailScreen(
+                  photoId: state.pathParameters['photoId']!,
+                ),
+              ),
+            ],
           ),
         ],
       ),

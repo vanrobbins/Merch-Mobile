@@ -28,7 +28,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     final auth = ref.read(authStateProvider);
     final user = auth.value;
     if (user != null) {
-      context.goNamed(AppRoutes.home);
+      context.goNamed(AppRoutes.zoneMap);
     } else {
       context.goNamed(AppRoutes.login);
     }
