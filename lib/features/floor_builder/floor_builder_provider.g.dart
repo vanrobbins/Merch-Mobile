@@ -7,7 +7,7 @@ part of 'floor_builder_provider.dart';
 // **************************************************************************
 
 String _$floorBuilderNotifierHash() =>
-    r'1b73eb11f02b87ea8805b70c5a98c12a823d5a17';
+    r'014cd5c0e40223f7a3fd69ebeacf25379585ee4f';
 
 /// See also [FloorBuilderNotifier].
 @ProviderFor(FloorBuilderNotifier)

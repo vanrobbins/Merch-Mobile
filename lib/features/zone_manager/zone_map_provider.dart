@@ -4,7 +4,6 @@ import 'package:drift/drift.dart' show Value;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:uuid/uuid.dart';
 import '../../core/database/app_database.dart';
-import '../../core/database/tables/zones_table.dart';
 import '../../core/providers/database_provider.dart';
 import '../../core/providers/store_provider.dart';
 import 'zone_shape.dart';

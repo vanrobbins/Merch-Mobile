@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../core/models/store_zone.dart';
+import '../../core/database/app_database.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/design_tokens.dart';
 import 'zone_map_provider.dart';
@@ -26,7 +26,7 @@ class _LegendRow extends StatelessWidget {
     required this.onSelect,
   });
 
-  final List<StoreZone> zones;
+  final List<ZonesTableData> zones;
   final String? selectedZoneId;
   final void Function(String id) onSelect;
 

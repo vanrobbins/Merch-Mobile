@@ -1,0 +1,134 @@
+<h2>Design Section 2 — Store Onboarding & Switcher Flow (updated)</h2>
+<p class="subtitle">Join requests require coordinator approval before access is granted</p>
+
+<div class="section">
+  <h3>Schema change: store_memberships gains a status field</h3>
+  <div style="background:#F2EFE8;border-left:3px solid #BF5534;padding:12px 16px;border-radius:2px;font-family:monospace;font-size:12px;line-height:1.8">
+    store_memberships.status TEXT — <strong>pending | active | rejected</strong><br>
+    <span style="color:#888">// pending = awaiting coordinator approval<br>
+    // active = full access granted<br>
+    // rejected = coordinator declined</span>
+  </div>
+  <p style="font-size:12px;color:#666;margin-top:8px">No separate join_requests table needed — memberships start as <strong>pending</strong> and activate on approval.</p>
+</div>
+
+<div class="section">
+  <h3>Join Flow (staff perspective)</h3>
+  <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start;margin-top:8px">
+
+    <div style="flex:1;min-width:160px">
+      <div class="mockup">
+        <div class="mockup-header">1 — Enter Code</div>
+        <div class="mockup-body" style="padding:16px">
+          <div style="font-size:11px;color:#888;margin-bottom:8px">Enter the invite code from your coordinator.</div>
+          <div class="mock-input" style="margin-bottom:16px;font-size:18px;letter-spacing:8px;text-align:center">_ _ _ _ _ _</div>
+          <div class="mock-button" style="background:#BF5534;color:#fff;padding:10px;border-radius:2px;font-size:12px;letter-spacing:1px;text-align:center">REQUEST TO JOIN</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="flex:1;min-width:160px">
+      <div class="mockup">
+        <div class="mockup-header">2 — Pending State</div>
+        <div class="mockup-body" style="padding:16px;text-align:center">
+          <div style="font-size:28px;margin-bottom:8px">⏳</div>
+          <div style="font-size:13px;font-weight:700;margin-bottom:6px">Request Sent</div>
+          <div style="font-size:11px;color:#888;margin-bottom:16px">Waiting for a coordinator at <strong>Gap — Downtown</strong> to approve your request.</div>
+          <div style="font-size:10px;color:#888">You'll be notified once approved.</div>
+          <div style="margin-top:20px;color:#BF5534;font-size:11px;cursor:pointer">Join a different store</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="flex:1;min-width:160px">
+      <div class="mockup">
+        <div class="mockup-header">3 — Approved</div>
+        <div class="mockup-body" style="padding:16px;text-align:center">
+          <div style="font-size:28px;margin-bottom:8px">✓</div>
+          <div style="font-size:13px;font-weight:700;margin-bottom:6px">You're in!</div>
+          <div style="font-size:11px;color:#888;margin-bottom:16px"><strong>Gap — Downtown</strong> approved your request. Your role: <strong>staff</strong>.</div>
+          <div class="mock-button" style="background:#1A1917;color:#fff;padding:10px;border-radius:2px;font-size:12px;letter-spacing:1px;text-align:center">GO TO STORE</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="section">
+  <h3>Approval Flow (coordinator perspective)</h3>
+  <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start;margin-top:8px">
+
+    <div style="flex:1;min-width:200px">
+      <div class="mockup">
+        <div class="mockup-header">Members Screen — Pending Badge</div>
+        <div class="mockup-body" style="padding:0">
+          <div style="padding:12px 16px;border-bottom:1px solid #eee;font-size:11px;font-weight:700;letter-spacing:1.5px;color:#888;display:flex;justify-content:space-between">
+            <span>PENDING REQUESTS</span>
+            <span style="background:#BF5534;color:#fff;border-radius:10px;padding:1px 8px;font-size:10px">2</span>
+          </div>
+          <div style="padding:12px 16px;border-bottom:1px solid #eee">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <div>
+                <div style="font-size:13px;font-weight:700">Jordan Lee</div>
+                <div style="font-size:11px;color:#888">Requested 5 min ago</div>
+              </div>
+              <div style="display:flex;gap:8px">
+                <div style="background:#1A1917;color:#fff;padding:4px 10px;border-radius:2px;font-size:11px;letter-spacing:1px">APPROVE</div>
+                <div style="border:1px solid #ccc;color:#666;padding:4px 10px;border-radius:2px;font-size:11px;letter-spacing:1px">DENY</div>
+              </div>
+            </div>
+          </div>
+          <div style="padding:12px 16px;border-bottom:1px solid #eee">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <div>
+                <div style="font-size:13px;font-weight:700">Sam Rivera</div>
+                <div style="font-size:11px;color:#888">Requested 1 hr ago</div>
+              </div>
+              <div style="display:flex;gap:8px">
+                <div style="background:#1A1917;color:#fff;padding:4px 10px;border-radius:2px;font-size:11px;letter-spacing:1px">APPROVE</div>
+                <div style="border:1px solid #ccc;color:#666;padding:4px 10px;border-radius:2px;font-size:11px;letter-spacing:1px">DENY</div>
+              </div>
+            </div>
+          </div>
+          <div style="padding:12px 16px;font-size:11px;font-weight:700;letter-spacing:1.5px;color:#888">ACTIVE MEMBERS</div>
+          <div style="padding:8px 16px;border-bottom:1px solid #eee;display:flex;justify-content:space-between">
+            <div>
+              <div style="font-size:13px">Alex Kim</div>
+              <div style="font-size:11px;color:#888">manager</div>
+            </div>
+            <div style="font-size:11px;color:#BF5534;cursor:pointer">EDIT ROLE</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="flex:1;min-width:200px">
+      <div class="mockup">
+        <div class="mockup-header">Approve — Set Role</div>
+        <div class="mockup-body" style="padding:16px">
+          <div style="font-size:13px;font-weight:700;margin-bottom:4px">Approving Jordan Lee</div>
+          <div style="font-size:11px;color:#888;margin-bottom:16px">Assign a role before granting access.</div>
+          <div class="options" style="flex-direction:column;gap:8px">
+            <div class="option" data-choice="staff" onclick="toggleSelect(this)" style="padding:10px 14px">
+              <div class="letter">S</div>
+              <div class="content">
+                <h3 style="font-size:13px">Staff</h3>
+                <p style="font-size:11px">Executes tasks, captures photos, proposes planogram changes</p>
+              </div>
+            </div>
+            <div class="option" data-choice="manager" onclick="toggleSelect(this)" style="padding:10px 14px">
+              <div class="letter">M</div>
+              <div class="content">
+                <h3 style="font-size:13px">Manager</h3>
+                <p style="font-size:11px">Manages planograms & products, approves photos & proposals</p>
+              </div>
+            </div>
+          </div>
+          <div class="mock-button" style="background:#BF5534;color:#fff;padding:10px;border-radius:2px;font-size:12px;letter-spacing:1px;text-align:center;margin-top:16px">CONFIRM & APPROVE</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>

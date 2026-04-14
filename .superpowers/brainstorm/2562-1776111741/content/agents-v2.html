@@ -1,0 +1,172 @@
+<h2>Design Section 6 — v0.2 Agent Division (updated)</h2>
+<p class="subtitle">7 agents across 2 phases. Phase 1 = functional wiring only. Phase 2 = UI polish + tests.</p>
+
+<style>
+  .phase-header { padding:10px 16px; font-size:11px; font-weight:700; letter-spacing:2px; color:#fff; border-radius:2px; margin-bottom:12px; margin-top:20px; }
+  .phase-1 { background:#1A1917; }
+  .phase-2 { background:#BF5534; }
+  .agent-card { background:#fff; border:1px solid #e8e5de; border-radius:2px; padding:14px; margin-bottom:10px; }
+  .agent-header { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+  .agent-num { color:#fff; width:30px; height:30px; border-radius:2px; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px; flex-shrink:0; }
+  .agent-title { font-weight:700; font-size:13px; }
+  .agent-subtitle { font-size:10px; color:#888; letter-spacing:1px; }
+  .file-list { font-family:monospace; font-size:11px; line-height:1.9; color:#444; }
+  .new { color:#BF5534; font-weight:700; }
+  .modified { color:#3A7D44; font-weight:700; }
+  .tag { display:inline-block; padding:1px 7px; border-radius:2px; font-size:10px; font-weight:700; letter-spacing:1px; }
+  .tag-seq { background:#E07B54; color:#fff; }
+  .tag-par { background:#3A7D44; color:#fff; }
+  .tag-p2 { background:#BF5534; color:#fff; }
+  .blocker { background:#F2EFE8; border-left:2px solid #BF5534; padding:6px 10px; font-size:11px; color:#666; border-radius:1px; margin-top:8px; }
+  .rule { background:#FFF8E1; border-left:2px solid #E07B54; padding:6px 10px; font-size:11px; color:#666; border-radius:1px; margin-bottom:12px; }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+</style>
+
+<div class="phase-header phase-1">PHASE 1 — FUNCTIONAL IMPLEMENTATION</div>
+
+<div class="rule">
+  <strong>Phase 1 ground rules:</strong> Ship working functionality. Use placeholder UI where needed (default Flutter widgets are fine). Do NOT spend time on polish, animations, spacing tweaks, or hunting down minor bugs. If something is broken and not blocking core functionality, leave a <code>// TODO(Agent6)</code> comment and move on.
+</div>
+
+<div class="agent-card">
+  <div class="agent-header">
+    <div class="agent-num" style="background:#1A1917">1</div>
+    <div>
+      <div class="agent-title">Foundation & Schema</div>
+      <div class="agent-subtitle">RUNS FIRST — BLOCKS ALL OTHERS <span class="tag tag-seq">GATE</span></div>
+    </div>
+  </div>
+  <div class="file-list">
+    <span class="new">NEW</span> lib/core/database/tables/ — stores, store_memberships, store_groups, store_group_members, planogram_proposals<br>
+    <span class="new">NEW</span> lib/core/database/daos/ — stores, store_memberships, store_groups, planogram_proposals<br>
+    <span class="modified">MOD</span> lib/core/database/app_database.dart — schemaVersion bump, migration, store_id FK + shape_points + zone_type on existing tables<br>
+    <span class="modified">MOD</span> lib/core/models/ — Store, StoreMembership, StoreGroup, PlanogramProposal @freezed models<br>
+    <span class="modified">MOD</span> lib/core/providers/ — activeStoreProvider, currentMembershipProvider<br>
+    <span class="modified">MOD</span> lib/core/router/app_router.dart — store gate route, members route, group management route<br>
+    <span class="new">NEW</span> lib/features/store/ — StoreGateScreen, CreateStoreScreen, JoinStoreScreen, PendingApprovalScreen, StoreSwitcherSheet, MembersScreen, GroupManagementScreen
+  </div>
+  <div class="blocker">Agents 2–5 blocked until this merges.</div>
+</div>
+
+<div class="grid2">
+  <div class="agent-card">
+    <div class="agent-header">
+      <div class="agent-num" style="background:#3B6BC2">2</div>
+      <div>
+        <div class="agent-title">Zone Manager</div>
+        <div class="agent-subtitle">PARALLEL AFTER AGENT 1 <span class="tag tag-par">P1</span></div>
+      </div>
+    </div>
+    <div class="file-list">
+      <span class="modified">MOD</span> zone_map_screen.dart — polygon canvas, vertex drag, zone type, properties panel, zone detail for display zones<br>
+      <span class="modified">MOD</span> zone_map_painter.dart — arbitrary polygon rendering<br>
+      <span class="new">NEW</span> zone_vertex_editor.dart<br>
+      <span class="new">NEW</span> zone_shape_picker.dart<br>
+      <span class="new">NEW</span> zone_detail_screen.dart — fixtures + planogram badges<br>
+      <span class="modified">MOD</span> zone_map_provider.dart — real DB, store-scoped<br>
+      <span class="modified">MOD</span> zones_dao.dart — watchByStore, shape_points, zone_type
+    </div>
+  </div>
+
+  <div class="agent-card">
+    <div class="agent-header">
+      <div class="agent-num" style="background:#3A7D44">3</div>
+      <div>
+        <div class="agent-title">Floor Builder + Product Catalog</div>
+        <div class="agent-subtitle">PARALLEL AFTER AGENT 1 <span class="tag tag-par">P1</span></div>
+      </div>
+    </div>
+    <div class="file-list">
+      <span class="modified">MOD</span> floor_builder/ — fixtures persist to FixturesDAO, planogram_id FK wired<br>
+      <span class="modified">MOD</span> floor_builder_provider.dart — real DB load/save<br>
+      <span class="modified">MOD</span> catalog_screen.dart — real CRUD from ProductsDAO, store-scoped<br>
+      <span class="modified">MOD</span> catalog_provider.dart — wire to DB<br>
+      <span class="new">NEW</span> product_form_screen.dart — add/edit product<br>
+      <span class="modified">MOD</span> fixtures_dao.dart — watchByZone(storeId, zoneId)<br>
+      <span class="modified">MOD</span> products_dao.dart — watchByStore, upsert, delete
+    </div>
+  </div>
+
+  <div class="agent-card">
+    <div class="agent-header">
+      <div class="agent-num" style="background:#8B3D8B">4</div>
+      <div>
+        <div class="agent-title">Planogram Editor + Dashboard</div>
+        <div class="agent-subtitle">PARALLEL AFTER AGENT 1 <span class="tag tag-par">P1</span></div>
+      </div>
+    </div>
+    <div class="file-list">
+      <span class="modified">MOD</span> planogram_detail_screen.dart — real slot editing, product picker, staff proposal button<br>
+      <span class="modified">MOD</span> planogram_provider.dart — wire to DAOs<br>
+      <span class="new">NEW</span> planogram_proposal_screen.dart — staff submit<br>
+      <span class="new">NEW</span> proposal_review_screen.dart — manager/coord approve/reject<br>
+      <span class="new">NEW</span> product_slot_picker.dart — searchable product sheet<br>
+      <span class="new">NEW</span> dashboard_screen.dart — role-aware stats<br>
+      <span class="new">NEW</span> dashboard_provider.dart
+    </div>
+  </div>
+
+  <div class="agent-card">
+    <div class="agent-header">
+      <div class="agent-num" style="background:#C19A6B">5</div>
+      <div>
+        <div class="agent-title">Role Enforcement</div>
+        <div class="agent-subtitle">PARALLEL AFTER AGENT 1 <span class="tag tag-par">P1</span></div>
+      </div>
+    </div>
+    <div class="file-list">
+      <span class="modified">MOD</span> route_guards.dart — store gate guard, role-based route blocking<br>
+      <span class="new">NEW</span> lib/core/widgets/role_guard.dart — RoleGuard widget<br>
+      <span class="modified">MOD</span> All feature screens — wrap edit controls in RoleGuard using currentMembershipProvider<br>
+      <span style="color:#888">// No UI polish. No bug hunting.<br>// Flag issues with TODO(Agent6) comments.</span>
+    </div>
+  </div>
+</div>
+
+<div class="phase-header phase-2" style="margin-top:24px">PHASE 2 — UI POLISH & TESTING</div>
+
+<div class="rule" style="border-color:#BF5534">
+  <strong>Phase 2 starts after all Phase 1 agents merge.</strong> Agents 6 and 7 work in parallel. Agent 6 resolves all <code>TODO(Agent6)</code> comments and makes the app feel finished. Agent 7 writes the full test suite against the completed implementation.
+</div>
+
+<div class="grid2">
+  <div class="agent-card" style="border-color:#BF5534">
+    <div class="agent-header">
+      <div class="agent-num" style="background:#BF5534">6</div>
+      <div>
+        <div class="agent-title">UI & UX Polish</div>
+        <div class="agent-subtitle">PHASE 2 PARALLEL <span class="tag tag-p2">P2</span></div>
+      </div>
+    </div>
+    <div class="file-list">
+      Resolve all <code>TODO(Agent6)</code> comments across codebase<br>
+      Apply DesignTokens consistently (spacing, typography, border-radius)<br>
+      Zone map — polish polygon rendering, handle labels, snap feedback<br>
+      Members screen — pending badge, approval animations<br>
+      Dashboard — card layouts, stat chips, empty states<br>
+      Store switcher — bottom sheet polish<br>
+      Planogram detail — slot grid layout, proposal status chips<br>
+      Global — loading states, error states, empty states on all screens<br>
+      AppScaffold — store name + role badge in header
+    </div>
+  </div>
+
+  <div class="agent-card" style="border-color:#BF5534">
+    <div class="agent-header">
+      <div class="agent-num" style="background:#BF5534">7</div>
+      <div>
+        <div class="agent-title">Testing</div>
+        <div class="agent-subtitle">PHASE 2 PARALLEL <span class="tag tag-p2">P2</span></div>
+      </div>
+    </div>
+    <div class="file-list">
+      test/core/database/ — DAO unit tests (all 9 DAOs)<br>
+      test/features/store/ — store create, join, approval flow<br>
+      test/features/zone_manager/ — polygon CRUD, zone type, detail view<br>
+      test/features/planogram/ — slot editing, proposals, product assignment<br>
+      test/features/dashboard/ — role-aware stat rendering<br>
+      test/core/widgets/ — RoleGuard widget tests<br>
+      test/integration/ — full store create → join → approve → zone → planogram flow
+    </div>
+  </div>
+</div>

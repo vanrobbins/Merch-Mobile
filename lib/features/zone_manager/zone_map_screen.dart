@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../core/models/store_zone.dart';
+import '../../core/database/app_database.dart';
 import '../../core/providers/auth_provider.dart';
 import '../../core/router/app_router.dart';
 import '../../core/theme/app_theme.dart';
@@ -21,9 +21,6 @@ class _ZoneMapScreenState extends ConsumerState<ZoneMapScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(zoneMapNotifierProvider.notifier).createDefaultZones();
-    });
   }
 
   void _onZoneTap(String zoneId) {
@@ -35,7 +32,7 @@ class _ZoneMapScreenState extends ConsumerState<ZoneMapScreen> {
     _showZoneSheet(zone);
   }
 
-  void _showZoneSheet(StoreZone zone) {
+  void _showZoneSheet(ZonesTableData zone) {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -63,6 +60,7 @@ class _ZoneMapScreenState extends ConsumerState<ZoneMapScreen> {
                     child: CustomPaint(
                       painter: ZoneMapPainter(
                         zones: state.zones,
+                        canvasSize: const Size(800, 600),
                         selectedZoneId: state.selectedZoneId,
                         onZoneTap: _onZoneTap,
                       ),
@@ -88,7 +86,7 @@ class _ZoneMapScreenState extends ConsumerState<ZoneMapScreen> {
 
 class _ZoneEditSheet extends ConsumerStatefulWidget {
   const _ZoneEditSheet({required this.zone});
-  final StoreZone zone;
+  final ZonesTableData zone;
 
   @override
   ConsumerState<_ZoneEditSheet> createState() => _ZoneEditSheetState();

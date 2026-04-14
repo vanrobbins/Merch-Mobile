@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:drift/drift.dart' show Value;
 import 'package:uuid/uuid.dart';
-import '../../core/database/tables/products_table.dart';
+import '../../core/database/app_database.dart';
 import '../../core/providers/database_provider.dart';
 import '../../core/providers/store_provider.dart';
 import '../../core/theme/app_theme.dart';
@@ -64,7 +65,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
         sku: _skuCtrl.text.trim(),
         name: _nameCtrl.text.trim(),
         category: _categoryCtrl.text.trim(),
-        storeId: storeId,
+        storeId: Value(storeId),
         stockQty: Value(int.tryParse(_stockCtrl.text) ?? 0),
         updatedAt: DateTime.now(),
       ));

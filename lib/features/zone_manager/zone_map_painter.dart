@@ -1,6 +1,6 @@
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
-import '../../core/database/tables/zones_table.dart';
+import '../../core/database/app_database.dart';
 import 'zone_shape.dart';
 
 class ZoneMapPainter extends CustomPainter {
@@ -157,8 +157,8 @@ class ZoneMapPainter extends CustomPainter {
     return Offset(x / pts.length, y / pts.length);
   }
 
-  /// Returns the zone ID hit at [position], or null.
-  String? hitTest(Offset position) {
+  /// Returns the zone ID at [position], or null. Not an override of CustomPainter.hitTest.
+  String? zoneIdAt(Offset position) {
     // Iterate in reverse so topmost zone is hit first
     for (final zone in zones.reversed) {
       final path = _zonePaths[zone.id];
