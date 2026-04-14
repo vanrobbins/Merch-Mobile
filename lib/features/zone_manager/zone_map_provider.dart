@@ -1,16 +1,18 @@
 import 'dart:async';
+import 'dart:ui';
 import 'package:drift/drift.dart' show Value;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:uuid/uuid.dart';
 import '../../core/database/app_database.dart';
-import '../../core/models/store_zone.dart';
+import '../../core/database/tables/zones_table.dart';
 import '../../core/providers/database_provider.dart';
-import '../../core/theme/app_theme.dart';
+import '../../core/providers/store_provider.dart';
+import 'zone_shape.dart';
 
 part 'zone_map_provider.g.dart';
 
 class ZoneMapState {
-  final List<StoreZone> zones;
+  final List<ZonesTableData> zones;
   final String? selectedZoneId;
   final bool isLoading;
 
@@ -21,7 +23,7 @@ class ZoneMapState {
   });
 
   ZoneMapState copyWith({
-    List<StoreZone>? zones,
+    List<ZonesTableData>? zones,
     Object? selectedZoneId = _sentinel,
     bool? isLoading,
   }) {
@@ -37,34 +39,6 @@ class ZoneMapState {
 
 const _sentinel = Object();
 
-// Converts a Drift table row to a domain model
-StoreZone _rowToZone(ZonesTableData row) => StoreZone(
-      id: row.id,
-      name: row.name,
-      colorValue: row.colorValue,
-      zoneType: row.zoneType,
-      storeId: row.storeId,
-      posX: row.posX,
-      posY: row.posY,
-      width: row.width,
-      height: row.height,
-      updatedAt: row.updatedAt,
-    );
-
-// Converts a domain model to a Drift companion for upsert
-ZonesTableCompanion _zoneToCompanion(StoreZone z) => ZonesTableCompanion(
-      id: Value(z.id),
-      name: Value(z.name),
-      colorValue: Value(z.colorValue),
-      zoneType: Value(z.zoneType),
-      storeId: Value(z.storeId),
-      posX: Value(z.posX),
-      posY: Value(z.posY),
-      width: Value(z.width),
-      height: Value(z.height),
-      updatedAt: Value(z.updatedAt),
-    );
-
 @riverpod
 class ZoneMapNotifier extends _$ZoneMapNotifier {
   StreamSubscription<List<ZonesTableData>>? _sub;
@@ -72,91 +46,99 @@ class ZoneMapNotifier extends _$ZoneMapNotifier {
   @override
   ZoneMapState build() {
     final db = ref.watch(appDatabaseProvider);
+    final storeIdAsync = ref.watch(activeStoreIdProvider);
+    final storeId = storeIdAsync.value;
+
     _sub?.cancel();
-    _sub = db.zonesDao.watchAll().listen((rows) {
-      state = state.copyWith(
-        zones: rows.map(_rowToZone).toList(),
-        isLoading: false,
-      );
-    });
+    if (storeId != null && storeId.isNotEmpty) {
+      _sub = db.zonesDao.watchByStore(storeId).listen((rows) {
+        state = state.copyWith(zones: rows, isLoading: false);
+      });
+    }
     ref.onDispose(() => _sub?.cancel());
+
     return const ZoneMapState(zones: [], isLoading: true);
   }
 
-  Future<void> createDefaultZones() async {
-    if (state.zones.isNotEmpty) return;
+  void selectZone(String? id) => state = state.copyWith(selectedZoneId: id);
+
+  Future<void> addZone() async {
     final db = ref.read(appDatabaseProvider);
-    const uuid = Uuid();
-    final now = DateTime.now();
-
-    final defaults = [
-      _makeZone(uuid, 'WOMENS', 'womens', 0.05, 0.05, 0.4, 0.4, now),
-      _makeZone(uuid, 'MENS', 'mens', 0.55, 0.05, 0.4, 0.4, now),
-      _makeZone(uuid, 'ACCESSORIES', 'accessories', 0.05, 0.55, 0.25, 0.35, now),
-      _makeZone(uuid, 'FITTING', 'fitting', 0.35, 0.55, 0.3, 0.35, now),
-      _makeZone(uuid, 'ENTRANCE', 'entrance', 0.7, 0.55, 0.25, 0.35, now),
-    ];
-
-    for (final zone in defaults) {
-      await db.zonesDao.upsert(_zoneToCompanion(zone));
-    }
-  }
-
-  StoreZone _makeZone(
-    Uuid uuid,
-    String name,
-    String type,
-    double x,
-    double y,
-    double w,
-    double h,
-    DateTime now,
-  ) {
-    final color = AppTheme.zoneColors[type] ?? AppTheme.accent;
-    return StoreZone(
-      id: uuid.v4(),
-      name: name,
-      colorValue: color.toARGB32(),
-      zoneType: type,
-      storeId: 'default',
-      posX: x,
-      posY: y,
-      width: w,
-      height: h,
-      updatedAt: now,
-    );
-  }
-
-  void selectZone(String? id) {
-    state = state.copyWith(selectedZoneId: id);
+    final storeId = ref.read(activeStoreIdProvider).value ?? '';
+    final id = const Uuid().v4();
+    const center = Offset(0.5, 0.5);
+    await db.zonesDao.upsert(ZonesTableCompanion.insert(
+      id: id,
+      name: 'Zone ${state.zones.length + 1}',
+      colorValue: 0xFF3B6BC2,
+      zoneType: 'display',
+      storeId: storeId,
+      posX: const Value(0.4),
+      posY: const Value(0.4),
+      width: const Value(0.2),
+      height: const Value(0.15),
+      shapePoints: Value(ZoneShape.encode(ZoneShape.defaultRect(center))),
+      updatedAt: DateTime.now(),
+    ));
   }
 
   Future<void> updateZoneName(String id, String name) async {
+    final db = ref.read(appDatabaseProvider);
     final zone = state.zones.firstWhere((z) => z.id == id);
-    final updated = zone.copyWith(name: name, updatedAt: DateTime.now());
-    await ref.read(appDatabaseProvider).zonesDao.upsert(_zoneToCompanion(updated));
+    await db.zonesDao.upsert(zone.toCompanion(true).copyWith(
+          name: Value(name),
+          updatedAt: Value(DateTime.now()),
+        ));
   }
 
   Future<void> updateZoneColor(String id, int colorValue) async {
+    final db = ref.read(appDatabaseProvider);
     final zone = state.zones.firstWhere((z) => z.id == id);
-    final updated = zone.copyWith(colorValue: colorValue, updatedAt: DateTime.now());
-    await ref.read(appDatabaseProvider).zonesDao.upsert(_zoneToCompanion(updated));
+    await db.zonesDao.upsert(zone.toCompanion(true).copyWith(
+          colorValue: Value(colorValue),
+          updatedAt: Value(DateTime.now()),
+        ));
   }
 
-  Future<void> addZone() async {
-    const uuid = Uuid();
-    final zone = StoreZone(
-      id: uuid.v4(),
-      name: 'NEW ZONE',
-      colorValue: AppTheme.accent.toARGB32(),
-      zoneType: 'custom',
-      storeId: 'default',
-      posX: 0.1,
-      posY: 0.1,
-      width: 0.2,
-      height: 0.2,
-      updatedAt: DateTime.now(),
-    );
-    await ref.read(appDatabaseProvider).zonesDao.upsert(_zoneToCompanion(zone));
+  Future<void> updateZoneType(String id, String type) async {
+    final db = ref.read(appDatabaseProvider);
+    final zone = state.zones.firstWhere((z) => z.id == id);
+    await db.zonesDao.upsert(zone.toCompanion(true).copyWith(
+          zoneType: Value(type),
+          updatedAt: Value(DateTime.now()),
+        ));
+  }
+
+  Future<void> updateZoneShape(String id, List<Offset> points) async {
+    final db = ref.read(appDatabaseProvider);
+    final zone = state.zones.firstWhere((z) => z.id == id);
+    await db.zonesDao.upsert(zone.toCompanion(true).copyWith(
+          shapePoints: Value(ZoneShape.encode(points)),
+          updatedAt: Value(DateTime.now()),
+        ));
+  }
+
+  /// Updates zone shape in local state only (no DB write) — used for smooth vertex drag.
+  void updateZoneShapeLocal(String id, List<Offset> points) {
+    final updated = state.zones.map((z) {
+      if (z.id != id) return z;
+      return z.copyWith(shapePoints: Value(ZoneShape.encode(points)));
+    }).toList();
+    state = state.copyWith(zones: updated);
+  }
+
+  Future<void> deleteZone(String id) async {
+    final db = ref.read(appDatabaseProvider);
+    await db.zonesDao.deleteById(id);
+    if (state.selectedZoneId == id) {
+      state = state.copyWith(selectedZoneId: null);
+    }
+  }
+
+  Future<void> applyPreset(String id, String presetName) async {
+    final zone = state.zones.firstWhere((z) => z.id == id);
+    final center = Offset(zone.posX, zone.posY);
+    final points = ZoneShape.presetAt(presetName, center);
+    await updateZoneShape(id, points);
   }
 }
