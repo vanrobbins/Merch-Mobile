@@ -1,109 +1,94 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import '../../core/models/product.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/database/tables/products_table.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/design_tokens.dart';
 import '../../core/widgets/mm_card.dart';
+import '../../core/widgets/role_guard.dart';
 
-class ProductCard extends StatelessWidget {
-  const ProductCard({super.key, required this.product});
+class ProductCard extends ConsumerWidget {
+  const ProductCard({super.key, required this.product, this.onTap});
 
-  final Product product;
+  final ProductsTableData product;
+  final VoidCallback? onTap;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return SizedBox(
       width: 120,
       height: 160,
-      child: MmCard(
-        padding: EdgeInsets.zero,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Image
-            Expanded(
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  ClipRRect(
-                    borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(DesignTokens.radiusSm),
-                      topRight: Radius.circular(DesignTokens.radiusSm),
+      child: GestureDetector(
+        onTap: onTap,
+        child: MmCard(
+          padding: EdgeInsets.zero,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Image placeholder
+              Expanded(
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    ClipRRect(
+                      borderRadius: const BorderRadius.only(
+                        topLeft: Radius.circular(DesignTokens.radiusSm),
+                        topRight: Radius.circular(DesignTokens.radiusSm),
+                      ),
+                      child: Container(
+                        color: Colors.grey.shade200,
+                        child: const Center(
+                          child: Icon(
+                            Icons.image_not_supported_outlined,
+                            color: Colors.grey,
+                            size: DesignTokens.iconMd,
+                          ),
+                        ),
+                      ),
                     ),
-                    child: product.imageUrl.isNotEmpty
-                        ? CachedNetworkImage(
-                            imageUrl: product.imageUrl,
-                            fit: BoxFit.cover,
-                            placeholder: (context, url) => Container(
-                              color: Colors.grey.shade200,
-                              child: const Center(
-                                child: CircularProgressIndicator(strokeWidth: 1),
-                              ),
-                            ),
-                            errorWidget: (context, url, error) =>
-                                _GreyPlaceholder(),
-                          )
-                        : _GreyPlaceholder(),
-                  ),
-                  // Stock badge
-                  Positioned(
-                    top: DesignTokens.spaceXs,
-                    right: DesignTokens.spaceXs,
-                    child: _StockDot(inStock: product.stockQty > 0),
-                  ),
-                ],
-              ),
-            ),
-            // Bottom info
-            Padding(
-              padding: const EdgeInsets.all(DesignTokens.spaceXs),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // SKU
-                  Text(
-                    product.sku.toUpperCase(),
-                    style: const TextStyle(
-                      fontSize: DesignTokens.typeXs,
-                      fontWeight: DesignTokens.weightBold,
-                      letterSpacing: DesignTokens.letterSpacingEyebrow,
-                      color: AppTheme.textPrimary,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  if (product.sizes.isNotEmpty) ...[
-                    const SizedBox(height: DesignTokens.spaceXs),
-                    // Size chips
-                    Wrap(
-                      spacing: 2,
-                      runSpacing: 2,
-                      children: product.sizes
-                          .take(4)
-                          .map((s) => _SizeChip(size: s))
-                          .toList(),
+                    // Stock badge (coordinator/manager only)
+                    RoleGuard(
+                      allowedRoles: ['coordinator', 'manager'],
+                      child: Positioned(
+                        top: DesignTokens.spaceXs,
+                        right: DesignTokens.spaceXs,
+                        child: _StockDot(inStock: product.stockQty > 0),
+                      ),
                     ),
                   ],
-                ],
+                ),
               ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _GreyPlaceholder extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      color: Colors.grey.shade200,
-      child: const Center(
-        child: Icon(
-          Icons.image_not_supported_outlined,
-          color: Colors.grey,
-          size: DesignTokens.iconMd,
+              // Bottom info
+              Padding(
+                padding: const EdgeInsets.all(DesignTokens.spaceXs),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      product.sku.toUpperCase(),
+                      style: const TextStyle(
+                        fontSize: DesignTokens.typeXs,
+                        fontWeight: DesignTokens.weightBold,
+                        letterSpacing: DesignTokens.letterSpacingEyebrow,
+                        color: AppTheme.textPrimary,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: DesignTokens.spaceXs),
+                    Text(
+                      product.name,
+                      style: const TextStyle(
+                        fontSize: DesignTokens.typeSm,
+                        color: AppTheme.textSecondary,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -129,31 +114,6 @@ class _StockDot extends StatelessWidget {
             blurRadius: 2,
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _SizeChip extends StatelessWidget {
-  const _SizeChip({required this.size});
-
-  final String size;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 1),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade200,
-        borderRadius: BorderRadius.circular(DesignTokens.radiusSm),
-      ),
-      child: Text(
-        size,
-        style: const TextStyle(
-          fontSize: 7,
-          fontWeight: DesignTokens.weightMedium,
-          color: AppTheme.textSecondary,
-        ),
       ),
     );
   }
