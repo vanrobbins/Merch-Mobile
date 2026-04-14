@@ -229,4 +229,4 @@ GoRouter appRouter(AppRouterRef ref) {
   );
 }
 
-// TODO(Agent5): add connectivity listener here
+// Store gate redirect is enforced in the redirect function above.
