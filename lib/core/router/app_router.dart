@@ -9,6 +9,7 @@ import '../widgets/app_scaffold.dart';
 import '../../features/auth/splash_screen.dart';
 import '../../features/auth/login_screen.dart';
 import '../../features/zone_manager/zone_map_screen.dart';
+import '../../features/zone_manager/zone_detail_screen.dart';
 import '../../features/floor_builder/floor_builder_screen.dart';
 import '../../features/auto_build/auto_build_screen.dart';
 import '../../features/planogram/planogram_list_screen.dart';
@@ -175,6 +176,13 @@ GoRouter appRouter(AppRouterRef ref) {
                 name: AppRoutes.autoBuild,
                 path: ':zoneId/auto',
                 builder: (context, state) => AutoBuildScreen(
+                  zoneId: state.pathParameters['zoneId']!,
+                ),
+              ),
+              GoRoute(
+                name: AppRoutes.zoneDetail,
+                path: ':zoneId/detail',
+                builder: (context, state) => ZoneDetailScreen(
                   zoneId: state.pathParameters['zoneId']!,
                 ),
               ),
