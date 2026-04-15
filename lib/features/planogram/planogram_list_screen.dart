@@ -1,198 +1,139 @@
+import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../core/models/planogram.dart';
-import '../../core/providers/auth_provider.dart';
+import 'package:uuid/uuid.dart';
+
+import '../../core/database/app_database.dart';
+import '../../core/providers/database_provider.dart';
+import '../../core/providers/store_provider.dart';
 import '../../core/router/app_router.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/design_tokens.dart';
-import '../../core/widgets/mm_chip.dart';
-import '../../core/widgets/mm_empty_state.dart';
+import '../../core/widgets/role_guard.dart';
 import 'planogram_provider.dart';
 
+/// List of planograms for the active store. Coordinator/manager can create
+/// new planograms; staff see the list read-only.
 class PlanogramListScreen extends ConsumerWidget {
   const PlanogramListScreen({super.key});
 
-  Color _statusColor(String status) {
-    return switch (status) {
-      'published' => Colors.green.shade600,
-      _ => Colors.grey.shade400,
-    };
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(planogramNotifierProvider);
-    final userAsync = ref.watch(currentUserProvider);
-    final isCoordinator = userAsync.valueOrNull?.role == 'coordinator';
-
-    // Group by fixtureId
-    final Map<String, List<Planogram>> grouped = {};
-    for (final p in state.planograms) {
-      grouped.putIfAbsent(p.fixtureId, () => []).add(p);
-    }
+    final planogramsAsync = ref.watch(planogramListProvider);
 
     return Scaffold(
       appBar: AppBar(title: const Text('PLANOGRAMS')),
-      floatingActionButton: isCoordinator
-          ? FloatingActionButton.extended(
-              onPressed: () => _showCreateDialog(context, ref),
-              backgroundColor: AppTheme.accent,
-              foregroundColor: Colors.white,
-              label: const Text('NEW PLANOGRAM'),
-              icon: const Icon(Icons.add),
-            )
-          : null,
-      body: state.isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : state.planograms.isEmpty
-              ? const MmEmptyState(
-                  icon: Icons.view_module_outlined,
-                  headline: 'No Planograms',
-                  body: 'Create your first planogram to get started.',
-                )
-              : ListView(
-                  padding: const EdgeInsets.all(DesignTokens.spaceMd),
-                  children: [
-                    for (final entry in grouped.entries) ...[
-                      // Fixture header
-                      Padding(
-                        padding: const EdgeInsets.only(
-                          top: DesignTokens.spaceMd,
-                          bottom: DesignTokens.spaceXs,
-                        ),
-                        child: Text(
-                          'FIXTURE ${entry.key}'.toUpperCase(),
-                          style: const TextStyle(
-                            fontSize: DesignTokens.typeXs,
-                            fontWeight: DesignTokens.weightBold,
-                            letterSpacing: DesignTokens.letterSpacingEyebrow,
-                            color: AppTheme.textSecondary,
-                          ),
-                        ),
-                      ),
-                      for (final planogram in entry.value)
-                        _PlanogramTile(
-                          planogram: planogram,
-                          statusColor: _statusColor(planogram.status),
-                          onTap: () => context.goNamed(
-                            AppRoutes.planogramDetail,
-                            pathParameters: {'planogramId': planogram.id},
-                          ),
-                        ),
-                    ],
-                  ],
+      body: planogramsAsync.when(
+        data: (planograms) => planograms.isEmpty
+            ? const Center(
+                child: Text(
+                  'No planograms yet.',
+                  style: TextStyle(color: AppTheme.textSecondary),
                 ),
+              )
+            : ListView.separated(
+                padding: const EdgeInsets.all(DesignTokens.spaceMd),
+                itemCount: planograms.length,
+                separatorBuilder: (_, __) =>
+                    const SizedBox(height: DesignTokens.spaceSm),
+                itemBuilder: (_, i) =>
+                    _PlanogramTile(planogram: planograms[i]),
+              ),
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (e, _) => Center(child: Text('Error: $e')),
+      ),
+      floatingActionButton: RoleGuard(
+        allowedRoles: const ['coordinator', 'manager'],
+        child: FloatingActionButton.extended(
+          onPressed: () => _createPlanogram(context, ref),
+          label: const Text('NEW PLANOGRAM'),
+          icon: const Icon(Icons.add),
+          backgroundColor: AppTheme.accent,
+          foregroundColor: Colors.white,
+        ),
+      ),
     );
   }
 
-  Future<void> _showCreateDialog(BuildContext context, WidgetRef ref) async {
-    final fixtureIdController = TextEditingController();
-    final titleController = TextEditingController();
-    String season = 'Spring';
-
-    await showDialog<void>(
+  void _createPlanogram(BuildContext context, WidgetRef ref) {
+    final titleCtrl = TextEditingController();
+    final seasonCtrl = TextEditingController();
+    showDialog<void>(
       context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialogState) => AlertDialog(
-          title: const Text(
-            'NEW PLANOGRAM',
-            style: TextStyle(
-              fontWeight: DesignTokens.weightBold,
-              letterSpacing: DesignTokens.letterSpacingEyebrow,
-              fontSize: DesignTokens.typeMd,
+      builder: (ctx) => AlertDialog(
+        title: const Text('New Planogram'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: titleCtrl,
+              decoration: const InputDecoration(labelText: 'Title'),
+              autofocus: true,
+              textCapitalization: TextCapitalization.words,
             ),
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: fixtureIdController,
-                decoration: const InputDecoration(labelText: 'Fixture ID'),
-                autofocus: true,
-              ),
-              const SizedBox(height: DesignTokens.spaceSm),
-              TextField(
-                controller: titleController,
-                decoration: const InputDecoration(labelText: 'Title'),
-                textCapitalization: TextCapitalization.words,
-              ),
-              const SizedBox(height: DesignTokens.spaceMd),
-              DropdownButtonFormField<String>(
-                // ignore: deprecated_member_use
-                value: season,
-                decoration: const InputDecoration(labelText: 'Season'),
-                items: ['Spring', 'Summer', 'Fall', 'Winter']
-                    .map((s) => DropdownMenuItem(value: s, child: Text(s)))
-                    .toList(),
-                onChanged: (v) => setDialogState(() => season = v ?? season),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('CANCEL'),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                if (fixtureIdController.text.isNotEmpty &&
-                    titleController.text.isNotEmpty) {
-                  await ref.read(planogramNotifierProvider.notifier).createPlanogram(
-                        fixtureIdController.text.trim(),
-                        titleController.text.trim(),
-                        season,
-                      );
-                  if (ctx.mounted) Navigator.pop(ctx);
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.accent,
-                foregroundColor: Colors.white,
-              ),
-              child: const Text('CREATE'),
+            TextField(
+              controller: seasonCtrl,
+              decoration: const InputDecoration(labelText: 'Season'),
             ),
           ],
         ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('CANCEL'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final title = titleCtrl.text.trim();
+              if (title.isEmpty) return;
+              final db = ref.read(appDatabaseProvider);
+              final storeId =
+                  ref.read(activeStoreIdProvider).value ?? '';
+              await db.planogramsDao.upsert(
+                PlanogramsTableCompanion.insert(
+                  id: const Uuid().v4(),
+                  fixtureId: '',
+                  title: title,
+                  season: seasonCtrl.text.trim(),
+                  updatedAt: DateTime.now(),
+                  storeId: Value(storeId),
+                ),
+              );
+              if (ctx.mounted) Navigator.pop(ctx);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.accent,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('CREATE'),
+          ),
+        ],
       ),
     );
   }
 }
 
 class _PlanogramTile extends StatelessWidget {
-  const _PlanogramTile({
-    required this.planogram,
-    required this.statusColor,
-    required this.onTap,
-  });
-
-  final Planogram planogram;
-  final Color statusColor;
-  final VoidCallback onTap;
+  const _PlanogramTile({required this.planogram});
+  final PlanogramsTableData planogram;
 
   @override
   Widget build(BuildContext context) {
     return Card(
-      margin: const EdgeInsets.only(bottom: DesignTokens.spaceSm),
       child: ListTile(
-        onTap: onTap,
         title: Text(
           planogram.title,
-          style: const TextStyle(
-            fontWeight: DesignTokens.weightMedium,
-            fontSize: DesignTokens.typeMd,
-          ),
+          style: const TextStyle(fontWeight: FontWeight.w600),
         ),
         subtitle: Text(
-          planogram.season,
-          style: const TextStyle(
-            fontSize: DesignTokens.typeSm,
-            color: AppTheme.textSecondary,
-          ),
+          '${planogram.season} · ${planogram.status.toUpperCase()}',
+          style: const TextStyle(fontSize: DesignTokens.typeXs),
         ),
-        trailing: MmChip(
-          label: planogram.status,
-          color: statusColor,
+        trailing: const Icon(Icons.chevron_right),
+        onTap: () => context.goNamed(
+          AppRoutes.planogramDetail,
+          pathParameters: {'planogramId': planogram.id},
         ),
       ),
     );

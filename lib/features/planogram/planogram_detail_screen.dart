@@ -1,333 +1,226 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:uuid/uuid.dart';
-import '../../core/models/planogram_slot.dart';
-import '../../core/providers/auth_provider.dart';
+
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/design_tokens.dart';
-import '../../core/widgets/mm_chip.dart';
-import '../../core/widgets/mm_empty_state.dart';
+import '../../core/providers/store_provider.dart';
+import '../../core/widgets/role_guard.dart';
 import 'planogram_provider.dart';
+import 'planogram_proposal_screen.dart';
+import 'planogram_slot.dart';
+import 'product_slot_picker.dart';
 
-class PlanogramDetailScreen extends ConsumerStatefulWidget {
+/// Coordinator/manager: tap slot to assign, long-press to clear.
+/// Staff: read-only + floating action button to submit a proposal.
+class PlanogramDetailScreen extends ConsumerWidget {
   const PlanogramDetailScreen({super.key, required this.planogramId});
 
   final String planogramId;
 
   @override
-  ConsumerState<PlanogramDetailScreen> createState() =>
-      _PlanogramDetailScreenState();
-}
+  Widget build(BuildContext context, WidgetRef ref) {
+    final planogramAsync = ref.watch(planogramDetailProvider(planogramId));
+    final slots = ref.watch(planogramEditorProvider(planogramId));
+    final membership = ref.watch(currentMembershipProvider).value;
+    final role = membership?.role ?? 'staff';
 
-class _PlanogramDetailScreenState
-    extends ConsumerState<PlanogramDetailScreen> {
-  final _productIdController = TextEditingController();
+    return planogramAsync.when(
+      data: (planogram) {
+        if (planogram == null) {
+          return Scaffold(
+            appBar: AppBar(title: const Text('PLANOGRAM')),
+            body: const Center(child: Text('Not found')),
+          );
+        }
 
-  @override
-  void dispose() {
-    _productIdController.dispose();
-    super.dispose();
-  }
+        // Lazy-init slots once per planogram row. loadSlots() falls back to
+        // defaults(6) when slotsJson is empty.
+        if (slots.isEmpty) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            ref
+                .read(planogramEditorProvider(planogramId).notifier)
+                .loadSlots(planogram.slotsJson);
+          });
+        }
 
-  Color _statusColor(String status) {
-    return switch (status) {
-      'published' => Colors.green.shade600,
-      _ => Colors.grey.shade400,
-    };
-  }
-
-  Future<void> _showAddSlotDialog() async {
-    _productIdController.clear();
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text(
-          'ADD SLOT',
-          style: TextStyle(
-            fontWeight: DesignTokens.weightBold,
-            letterSpacing: DesignTokens.letterSpacingEyebrow,
-            fontSize: DesignTokens.typeMd,
+        return Scaffold(
+          appBar: AppBar(
+            title: Text(planogram.title.toUpperCase()),
+            actions: [
+              RoleGuard(
+                allowedRoles: const ['coordinator', 'manager'],
+                child: TextButton(
+                  onPressed: () => ref
+                      .read(planogramEditorProvider(planogramId).notifier)
+                      .save(planogramId),
+                  child: const Text(
+                    'SAVE',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ),
+              ),
+            ],
           ),
-        ),
-        content: TextField(
-          controller: _productIdController,
-          autofocus: true,
-          decoration: const InputDecoration(
-            labelText: 'Product ID',
-            hintText: 'Enter product ID',
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('CANCEL'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.accent,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('ADD'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed == true && _productIdController.text.isNotEmpty) {
-      final state = ref.read(planogramNotifierProvider);
-      final planogram =
-          state.planograms.firstWhere((p) => p.id == widget.planogramId);
-      final slot = PlanogramSlot(
-        id: const Uuid().v4(),
-        productId: _productIdController.text.trim(),
-        sequence: planogram.slots.length + 1,
-        facings: 1,
-      );
-      await ref
-          .read(planogramNotifierProvider.notifier)
-          .addSlot(widget.planogramId, slot);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final state = ref.watch(planogramNotifierProvider);
-    final userAsync = ref.watch(currentUserProvider);
-    final isCoordinator = userAsync.valueOrNull?.role == 'coordinator';
-
-    // Find planogram — might not be loaded yet
-    final planogramOrNull = state.planograms
-        .cast<dynamic>()
-        .firstWhere((p) => p.id == widget.planogramId, orElse: () => null);
-
-    if (state.isLoading && planogramOrNull == null) {
-      return Scaffold(
-        appBar: AppBar(title: const Text('PLANOGRAM')),
-        body: const Center(child: CircularProgressIndicator()),
-      );
-    }
-
-    if (planogramOrNull == null) {
-      return Scaffold(
-        appBar: AppBar(title: const Text('PLANOGRAM')),
-        body: const MmEmptyState(
-          icon: Icons.error_outline,
-          headline: 'Not Found',
-          body: 'This planogram could not be found.',
-        ),
-      );
-    }
-
-    final planogram = planogramOrNull;
-
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(planogram.title.toUpperCase()),
-      ),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // Header info
-          Padding(
-            padding: const EdgeInsets.all(DesignTokens.spaceMd),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+          body: Column(
+            children: [
+              // Status + season chip row
+              Padding(
+                padding: const EdgeInsets.all(DesignTokens.spaceMd),
+                child: Row(
                   children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _InfoRow(label: 'FIXTURE', value: planogram.fixtureId),
-                          const SizedBox(height: DesignTokens.spaceXs),
-                          _InfoRow(label: 'SEASON', value: planogram.season),
-                        ],
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: planogram.status == 'published'
+                            ? Colors.green
+                            : Colors.grey,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        planogram.status.toUpperCase(),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: DesignTokens.weightBold,
+                        ),
                       ),
                     ),
-                    MmChip(
-                      label: planogram.status,
-                      color: _statusColor(planogram.status),
+                    const SizedBox(width: DesignTokens.spaceSm),
+                    Text(
+                      '${planogram.season} · ${slots.length} slots',
+                      style: const TextStyle(
+                        color: AppTheme.textSecondary,
+                        fontSize: DesignTokens.typeXs,
+                      ),
                     ),
                   ],
                 ),
-                // Coordinator publish/retract buttons
-                if (isCoordinator) ...[
-                  const SizedBox(height: DesignTokens.spaceMd),
-                  Row(
-                    children: [
-                      if (planogram.status == 'draft')
-                        ElevatedButton(
-                          onPressed: () async {
-                            final messenger = ScaffoldMessenger.of(context);
-                            try {
-                              await ref
-                                  .read(planogramNotifierProvider.notifier)
-                                  .publish(widget.planogramId);
-                            } catch (e) {
-                              if (mounted) {
-                                messenger.showSnackBar(
-                                  SnackBar(content: Text(e.toString())),
-                                );
-                              }
-                            }
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.green.shade600,
-                            foregroundColor: Colors.white,
-                            shape: const RoundedRectangleBorder(
-                              borderRadius: BorderRadius.all(
-                                  Radius.circular(DesignTokens.radiusSm)),
-                            ),
-                          ),
-                          child: const Text('PUBLISH'),
-                        ),
-                      if (planogram.status == 'published')
-                        OutlinedButton(
-                          onPressed: () async {
-                            await ref
-                                .read(planogramNotifierProvider.notifier)
-                                .retractToDraft(widget.planogramId);
-                          },
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: AppTheme.primary,
-                            side: const BorderSide(color: AppTheme.primary),
-                            shape: const RoundedRectangleBorder(
-                              borderRadius: BorderRadius.all(
-                                  Radius.circular(DesignTokens.radiusSm)),
-                            ),
-                          ),
-                          child: const Text('RETRACT'),
-                        ),
-                    ],
+              ),
+              // Slot grid
+              Expanded(
+                child: GridView.builder(
+                  padding: const EdgeInsets.all(DesignTokens.spaceMd),
+                  gridDelegate:
+                      const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 3,
+                    crossAxisSpacing: 8,
+                    mainAxisSpacing: 8,
+                    childAspectRatio: 0.85,
                   ),
-                ],
-              ],
-            ),
-          ),
-          const Divider(height: 1),
-          // Slots label
-          Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: DesignTokens.spaceMd,
-              vertical: DesignTokens.spaceSm,
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'SLOTS',
-                  style: TextStyle(
-                    fontSize: DesignTokens.typeXs,
-                    fontWeight: DesignTokens.weightBold,
-                    letterSpacing: DesignTokens.letterSpacingEyebrow,
-                    color: AppTheme.textSecondary,
-                  ),
-                ),
-                TextButton.icon(
-                  onPressed: _showAddSlotDialog,
-                  icon: const Icon(Icons.add, size: DesignTokens.iconSm),
-                  label: const Text('ADD SLOT'),
-                  style: TextButton.styleFrom(
-                    foregroundColor: AppTheme.accent,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          // Slots list
-          Expanded(
-            child: planogram.slots.isEmpty
-                ? const MmEmptyState(
-                    icon: Icons.view_column_outlined,
-                    headline: 'No Slots',
-                    body: 'Add product slots to this planogram.',
-                  )
-                : ListView.builder(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: DesignTokens.spaceMd,
+                  itemCount: slots.length,
+                  itemBuilder: (_, i) => _SlotCard(
+                    slot: slots[i],
+                    planogramId: planogramId,
+                    role: role,
+                    onAssign: () => ProductSlotPicker.show(
+                      context,
+                      planogramId,
+                      slots[i].id,
                     ),
-                    itemCount: planogram.slots.length,
-                    itemBuilder: (context, index) {
-                      final slot = planogram.slots[index];
-                      return _SlotTile(slot: slot);
-                    },
+                    onClear: () => ref
+                        .read(planogramEditorProvider(planogramId).notifier)
+                        .clearSlot(slots[i].id),
                   ),
+                ),
+              ),
+            ],
           ),
-        ],
+          floatingActionButton: role == 'staff'
+              ? FloatingActionButton.extended(
+                  onPressed: () => Navigator.push<void>(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => PlanogramProposalScreen(
+                        planogramId: planogramId,
+                      ),
+                    ),
+                  ),
+                  label: const Text('PROPOSE CHANGE'),
+                  icon: const Icon(Icons.edit_note),
+                  backgroundColor: AppTheme.accent,
+                  foregroundColor: Colors.white,
+                )
+              : null,
+        );
+      },
+      loading: () => const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
       ),
+      error: (e, _) => Scaffold(body: Center(child: Text('Error: $e'))),
     );
   }
 }
 
-class _InfoRow extends StatelessWidget {
-  const _InfoRow({required this.label, required this.value});
+class _SlotCard extends StatelessWidget {
+  const _SlotCard({
+    required this.slot,
+    required this.planogramId,
+    required this.role,
+    required this.onAssign,
+    required this.onClear,
+  });
 
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Text(
-          '$label: ',
-          style: const TextStyle(
-            fontSize: DesignTokens.typeXs,
-            fontWeight: DesignTokens.weightBold,
-            letterSpacing: DesignTokens.letterSpacingEyebrow,
-            color: AppTheme.textSecondary,
-          ),
-        ),
-        Text(
-          value,
-          style: const TextStyle(
-            fontSize: DesignTokens.typeSm,
-            fontWeight: DesignTokens.weightMedium,
-            color: AppTheme.textPrimary,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _SlotTile extends StatelessWidget {
-  const _SlotTile({required this.slot});
-
-  final PlanogramSlot slot;
+  final PgSlot slot;
+  final String planogramId;
+  final String role;
+  final VoidCallback onAssign;
+  final VoidCallback onClear;
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: DesignTokens.spaceXs),
-      child: ListTile(
-        leading: CircleAvatar(
-          radius: 14,
-          backgroundColor: AppTheme.canvasBg,
-          child: Text(
-            '${slot.sequence}',
-            style: const TextStyle(
-              fontSize: DesignTokens.typeSm,
-              fontWeight: DesignTokens.weightBold,
-              color: AppTheme.textPrimary,
+    final canEdit = role == 'coordinator' || role == 'manager';
+    final hasProduct = slot.productId != null;
+    return GestureDetector(
+      onTap: canEdit ? onAssign : null,
+      onLongPress: canEdit && hasProduct ? onClear : null,
+      child: Container(
+        decoration: BoxDecoration(
+          color: hasProduct ? AppTheme.canvasBg : Colors.grey.shade100,
+          border: Border.all(
+            color: hasProduct
+                // ignore: deprecated_member_use
+                ? AppTheme.primary.withOpacity(0.4)
+                : Colors.grey.shade300,
+          ),
+          borderRadius: BorderRadius.circular(AppTheme.borderRadius),
+        ),
+        padding: const EdgeInsets.all(8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '#${slot.position}',
+              style: const TextStyle(
+                fontSize: 10,
+                color: AppTheme.textSecondary,
+              ),
             ),
-          ),
-        ),
-        title: Text(
-          slot.productId.isNotEmpty ? slot.productId : '—',
-          style: const TextStyle(
-            fontSize: DesignTokens.typeSm,
-            fontFamily: 'monospace',
-          ),
-        ),
-        subtitle: Text(
-          '${slot.facings} facing${slot.facings == 1 ? '' : 's'}',
-          style: const TextStyle(
-            fontSize: DesignTokens.typeXs,
-            color: AppTheme.textSecondary,
-          ),
+            const Spacer(),
+            if (hasProduct) ...[
+              Text(
+                slot.productName ?? '',
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 2),
+              Text(
+                slot.productSku ?? '',
+                style: const TextStyle(
+                  fontSize: 10,
+                  color: AppTheme.textSecondary,
+                ),
+              ),
+            ] else
+              const Text(
+                'UNASSIGNED',
+                style: TextStyle(fontSize: 10, color: Colors.grey),
+              ),
+          ],
         ),
       ),
     );

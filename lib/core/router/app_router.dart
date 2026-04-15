@@ -14,6 +14,8 @@ import '../../features/floor_builder/floor_builder_screen.dart';
 import '../../features/auto_build/auto_build_screen.dart';
 import '../../features/planogram/planogram_list_screen.dart';
 import '../../features/planogram/planogram_detail_screen.dart';
+import '../../features/planogram/proposal_review_screen.dart';
+import '../../features/dashboard/dashboard_screen.dart';
 import '../../features/product_catalog/catalog_screen.dart';
 import '../../features/photo_docs/photo_list_screen.dart';
 import '../../features/photo_docs/photo_detail_screen.dart';
@@ -156,9 +158,7 @@ GoRouter appRouter(AppRouterRef ref) {
           GoRoute(
             name: AppRoutes.dashboard,
             path: AppPaths.dashboard,
-            builder: (_, __) => const Scaffold(
-              body: Center(child: Text('Dashboard — Agent 4')),
-            ),
+            builder: (_, __) => const DashboardScreen(),
           ),
           GoRoute(
             name: AppRoutes.zoneMap,
@@ -199,6 +199,15 @@ GoRouter appRouter(AppRouterRef ref) {
                 builder: (context, state) => PlanogramDetailScreen(
                   planogramId: state.pathParameters['planogramId']!,
                 ),
+                routes: [
+                  GoRoute(
+                    name: AppRoutes.proposalReview,
+                    path: 'proposals',
+                    builder: (context, state) => ProposalReviewScreen(
+                      planogramId: state.pathParameters['planogramId']!,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),

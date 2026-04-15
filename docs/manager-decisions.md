@@ -30,3 +30,25 @@ The original code used `isCoordinator` (only `coordinator` role). Per the v0.2 p
 
 ### store gate redirect: already present (no changes needed)
 Agent 1 already added the store gate redirect logic to `app_router.dart`. Verified and left in place. Removed the `TODO(Agent5)` marker since the work is complete.
+
+---
+
+## Agent 4 — Planogram Editor + Dashboard (2026-04-15)
+
+### Feature-scoped slot model `PgSlot` instead of reusing `core/models/planogram_slot.dart`
+The existing `PlanogramSlot` in `lib/core/models/` (freezed) has a v0.1 shape with `required String productId`, `sequence`, and `facings`. The v0.2 editor needs nullable `productId`, `productName`, `productSku`, and a 1-based `position`. Those fields are incompatible, and `core/` belongs to Agent 1. Decision: create a new `PgSlot` class in `lib/features/planogram/planogram_slot.dart` with its own JSON encode/decode helpers. Named `PgSlot` (not `PlanogramSlot`) so that accidentally mixing imports would produce a clear compile error rather than silent ambiguity. `PgSlot.fromJson` also accepts a legacy `sequence` key so rows written by the v0.1 notifier still load.
+
+### Replaced v0.1 `PlanogramNotifier` entirely
+The previous `PlanogramNotifier` held all planograms in state and implemented add/remove/reorder slot operations. The v0.2 design uses two smaller providers (`planogramListProvider` + `planogramDetailProvider`) plus a `planogramEditorProvider(planogramId)` family that holds only the slots for the currently open planogram. Since `PlanogramNotifier` was only referenced by the two planogram screens (which I'm rewriting anyway), I removed it instead of maintaining two parallel state systems. The legacy `core/models/planogram.dart` freezed model is no longer imported anywhere in `lib/features/planogram/`.
+
+### Dashboard "My Photos" counts all store photos (schema gap)
+The staff dashboard wants a "My Photos" count, but `PhotoDocsTable` has no uploader column (no `uploadedByUid`). Decision: fall back to "photos in this store" for `myPhotoCount` rather than leave it as 0 or add a new column (core schema is Agent 1 territory). Documented inline so a future pass can wire it to a real uploader field once the schema grows it.
+
+### Proposal review route added as subroute of planogramDetail
+`AppRoutes.proposalReview` + `AppPaths.proposalReview` already existed in the router constants (Agent 1 reserved the names), but there was no matching `GoRoute`. Added `ProposalReviewScreen` as a child of `planogramDetail` at path `proposals`, reachable as `/home/planograms/:planogramId/proposals`. No screen currently navigates there yet — the route is available for managers/coordinators to deep-link or for a future "View proposals" action on the detail screen.
+
+### `PlanogramsDao.watchByParentId` kept as legacy alias
+The v0.2 plan's example code removed `watchByParentId(fixtureId)` entirely in favor of `watchByStore`. I kept it as a backward-compatibility alias since it's a lightweight method and removing it would risk breaking any other agent's in-progress code that still uses the old name. `watchByStore` is the canonical query going forward.
+
+### `FixturesDao.watchByStore` added (not removed)
+Added `Stream<List<FixturesTableData>> watchByStore(String storeId)` to `fixtures_dao.dart` as explicitly required by the work order's "IMPORTANT" note. The existing `watchByZone(storeId, zoneId)` and `watchByParentId(zoneId)` methods were left untouched.
