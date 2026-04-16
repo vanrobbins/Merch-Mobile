@@ -3,8 +3,10 @@ import '../../core/theme/app_theme.dart';
 import '../../core/theme/design_tokens.dart';
 
 class ElementLibraryPanel extends StatelessWidget {
-  const ElementLibraryPanel({super.key, required this.onFixtureSelected});
+  const ElementLibraryPanel({super.key, required this.onFixtureSelected, this.onDragStarted});
   final void Function(String fixtureType) onFixtureSelected;
+  // Called when a drag begins so the parent can dismiss the sheet.
+  final VoidCallback? onDragStarted;
 
   static const _types = [
     _FixtureTile('rack', Icons.view_column_outlined, 'RACK'),
@@ -52,7 +54,11 @@ class ElementLibraryPanel extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: _types.map((t) => _DraggableTile(
                 tile: t,
-                onDragStarted: () => Navigator.pop(context),
+                onTap: () {
+                  Navigator.pop(context);
+                  onFixtureSelected(t.type);
+                },
+                onDragStarted: onDragStarted,
               )).toList(),
             ),
           ),
@@ -64,9 +70,10 @@ class ElementLibraryPanel extends StatelessWidget {
 }
 
 class _DraggableTile extends StatelessWidget {
-  const _DraggableTile({required this.tile, required this.onDragStarted});
+  const _DraggableTile({required this.tile, required this.onTap, this.onDragStarted});
   final _FixtureTile tile;
-  final VoidCallback onDragStarted;
+  final VoidCallback onTap;
+  final VoidCallback? onDragStarted;
 
   Widget _tileBox({double opacity = 1.0}) {
     return Column(
@@ -94,6 +101,13 @@ class _DraggableTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: _buildDraggable(),
+    );
+  }
+
+  Widget _buildDraggable() {
     return Draggable<String>(
       data: tile.type,
       onDragStarted: onDragStarted,

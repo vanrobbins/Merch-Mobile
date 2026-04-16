@@ -9,6 +9,7 @@ import '../../core/theme/design_tokens.dart';
 import 'zone_map_painter.dart';
 import 'zone_map_provider.dart';
 import 'zone_legend_panel.dart';
+import 'zone_shape.dart';
 
 class ZoneMapScreen extends ConsumerStatefulWidget {
   const ZoneMapScreen({super.key});
@@ -57,7 +58,6 @@ class _ZoneMapScreenState extends ConsumerState<ZoneMapScreen> {
                     minScale: 0.5,
                     maxScale: 4.0,
                     child: _ZoneCanvas(
-                      state: state,
                       onZoneTap: _onZoneTap,
                     ),
                   ),
@@ -79,33 +79,93 @@ class _ZoneMapScreenState extends ConsumerState<ZoneMapScreen> {
   }
 }
 
-// Wraps CustomPaint with a GestureDetector so taps hit-test against zone paths.
-class _ZoneCanvas extends StatefulWidget {
-  const _ZoneCanvas({required this.state, required this.onZoneTap});
-  final ZoneMapState state;
+// Handles tap (zone select) and pan (vertex drag) on the zone canvas.
+class _ZoneCanvas extends ConsumerStatefulWidget {
+  const _ZoneCanvas({required this.onZoneTap});
   final void Function(String zoneId) onZoneTap;
 
   @override
-  State<_ZoneCanvas> createState() => _ZoneCanvasState();
+  ConsumerState<_ZoneCanvas> createState() => _ZoneCanvasState();
 }
 
-class _ZoneCanvasState extends State<_ZoneCanvas> {
+class _ZoneCanvasState extends ConsumerState<_ZoneCanvas> {
   static const _canvasSize = Size(800, 600);
+  static const _vertexHitRadius = 20.0;
+
   ZoneMapPainter? _painter;
+
+  // Vertex drag state
+  String? _dragZoneId;
+  int? _dragVertexIdx;
+  List<Offset>? _dragPoints; // normalized 0..1
+
+  void _onPanStart(DragStartDetails d) {
+    final state = ref.read(zoneMapNotifierProvider);
+    final selectedId = state.selectedZoneId;
+    if (selectedId == null) return;
+    final zone = state.zones.firstWhere((z) => z.id == selectedId,
+        orElse: () => throw StateError('not found'));
+    final pts = ZoneShape.decode(zone.shapePoints);
+    if (pts.isEmpty) return;
+
+    // Convert normalized pts → screen px
+    final screenPts = pts
+        .map((p) => Offset(p.dx * _canvasSize.width, p.dy * _canvasSize.height))
+        .toList();
+
+    for (var i = 0; i < screenPts.length; i++) {
+      if ((screenPts[i] - d.localPosition).distance < _vertexHitRadius) {
+        setState(() {
+          _dragZoneId = selectedId;
+          _dragVertexIdx = i;
+          _dragPoints = List.of(pts);
+        });
+        return;
+      }
+    }
+  }
+
+  void _onPanUpdate(DragUpdateDetails d) {
+    if (_dragZoneId == null || _dragVertexIdx == null || _dragPoints == null) return;
+    final norm = Offset(
+      (d.localPosition.dx / _canvasSize.width).clamp(0.0, 1.0),
+      (d.localPosition.dy / _canvasSize.height).clamp(0.0, 1.0),
+    );
+    final updated = List.of(_dragPoints!)..[_dragVertexIdx!] = norm;
+    setState(() => _dragPoints = updated);
+    ref.read(zoneMapNotifierProvider.notifier)
+        .updateZoneShapeLocal(_dragZoneId!, updated);
+  }
+
+  void _onPanEnd(DragEndDetails _) {
+    if (_dragZoneId != null && _dragPoints != null) {
+      ref.read(zoneMapNotifierProvider.notifier)
+          .updateZoneShape(_dragZoneId!, _dragPoints!);
+    }
+    setState(() {
+      _dragZoneId = null;
+      _dragVertexIdx = null;
+      _dragPoints = null;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
+    final state = ref.watch(zoneMapNotifierProvider);
     _painter = ZoneMapPainter(
-      zones: widget.state.zones,
+      zones: state.zones,
       canvasSize: _canvasSize,
-      selectedZoneId: widget.state.selectedZoneId,
+      selectedZoneId: state.selectedZoneId,
       onZoneTap: widget.onZoneTap,
     );
     return GestureDetector(
-      onTapUp: (details) {
-        final id = _painter?.zoneIdAt(details.localPosition);
+      onTapUp: (d) {
+        final id = _painter?.zoneIdAt(d.localPosition);
         if (id != null) widget.onZoneTap(id);
       },
+      onPanStart: _onPanStart,
+      onPanUpdate: _onPanUpdate,
+      onPanEnd: _onPanEnd,
       child: CustomPaint(
         painter: _painter,
         size: _canvasSize,

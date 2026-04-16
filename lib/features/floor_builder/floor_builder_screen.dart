@@ -34,11 +34,12 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
     showModalBottomSheet<void>(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (_) => ElementLibraryPanel(
+      builder: (sheetCtx) => ElementLibraryPanel(
         onFixtureSelected: (type) {
-          // Add fixture at center of canvas
-          ref.read(floorBuilderNotifierProvider.notifier).addFixture(type, const Offset(10, 10));
+          ref.read(floorBuilderNotifierProvider.notifier)
+              .addFixture(type, const Offset(2, 2));
         },
+        onDragStarted: () => Navigator.of(sheetCtx).pop(),
       ),
     );
   }
