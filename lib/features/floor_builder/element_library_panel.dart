@@ -3,9 +3,14 @@ import '../../core/theme/app_theme.dart';
 import '../../core/theme/design_tokens.dart';
 
 class ElementLibraryPanel extends StatelessWidget {
-  const ElementLibraryPanel({super.key, required this.onFixtureSelected, this.onDragStarted});
+  const ElementLibraryPanel({
+    super.key,
+    required this.onFixtureSelected,
+    required this.onWallSelected,
+    this.onDragStarted,
+  });
   final void Function(String fixtureType) onFixtureSelected;
-  // Called when a drag begins so the parent can dismiss the sheet.
+  final VoidCallback onWallSelected;
   final VoidCallback? onDragStarted;
 
   static const _types = [
@@ -54,11 +59,16 @@ class ElementLibraryPanel extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: _types.map((t) => _DraggableTile(
                 tile: t,
+                draggable: t.type != 'wall',
                 onTap: () {
                   Navigator.pop(context);
-                  onFixtureSelected(t.type);
+                  if (t.type == 'wall') {
+                    onWallSelected();
+                  } else {
+                    onFixtureSelected(t.type);
+                  }
                 },
-                onDragStarted: onDragStarted,
+                onDragStarted: t.type == 'wall' ? null : onDragStarted,
               )).toList(),
             ),
           ),
@@ -70,10 +80,16 @@ class ElementLibraryPanel extends StatelessWidget {
 }
 
 class _DraggableTile extends StatelessWidget {
-  const _DraggableTile({required this.tile, required this.onTap, this.onDragStarted});
+  const _DraggableTile({
+    required this.tile,
+    required this.onTap,
+    this.onDragStarted,
+    this.draggable = true,
+  });
   final _FixtureTile tile;
   final VoidCallback onTap;
   final VoidCallback? onDragStarted;
+  final bool draggable;
 
   Widget _tileBox({double opacity = 1.0}) {
     return Column(
@@ -103,7 +119,7 @@ class _DraggableTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      child: _buildDraggable(),
+      child: draggable ? _buildDraggable() : _tileBox(),
     );
   }
 

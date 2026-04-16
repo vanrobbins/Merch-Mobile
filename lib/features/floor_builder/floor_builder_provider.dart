@@ -155,6 +155,33 @@ class FloorBuilderNotifier extends _$FloorBuilderNotifier {
     }
   }
 
+  Future<void> addWallFixture({
+    required Offset centerFt,
+    required double lengthFt,
+    required double angleDeg,
+  }) async {
+    if (_zoneId == null) return;
+    const uuid = Uuid();
+    const depthFt = 0.5;
+    final storeId = ref.read(activeStoreIdProvider).value ?? '';
+    final fixture = Fixture(
+      id: uuid.v4(),
+      zoneId: _zoneId!,
+      fixtureType: 'wall',
+      posX: centerFt.dx - lengthFt / 2,
+      posY: centerFt.dy - depthFt / 2,
+      rotation: angleDeg,
+      widthFt: lengthFt,
+      depthFt: depthFt,
+      label: 'WALL',
+      updatedAt: DateTime.now(),
+    );
+    final companion = _fixtureToCompanion(fixture).copyWith(
+      storeId: Value(storeId),
+    );
+    await ref.read(appDatabaseProvider).fixturesDao.upsert(companion);
+  }
+
   void selectFixture(String? id) {
     state = state.copyWith(selectedFixtureId: id);
   }

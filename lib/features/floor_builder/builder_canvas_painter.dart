@@ -1,7 +1,9 @@
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import '../../core/models/fixture.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/design_tokens.dart';
+import 'zone_edge_helper.dart';
 
 class BuilderCanvasPainter extends CustomPainter {
   BuilderCanvasPainter({
@@ -13,6 +15,7 @@ class BuilderCanvasPainter extends CustomPainter {
     this.zoneNormalizedPts,
     this.zoneColor,
     this.zoneName,
+    this.wallEdges,
   });
 
   final List<Fixture> fixtures;
@@ -23,6 +26,7 @@ class BuilderCanvasPainter extends CustomPainter {
   final List<Offset>? zoneNormalizedPts;
   final Color? zoneColor;
   final String? zoneName;
+  final List<ZoneEdge>? wallEdges;
 
   final Map<String, Rect> fixtureRects = {};
 
@@ -35,6 +39,44 @@ class BuilderCanvasPainter extends CustomPainter {
     }
     if (ghostPos != null && ghostType != null) {
       _drawGhost(canvas, ghostPos!, ghostType!);
+    }
+    if (wallEdges != null) {
+      _drawEdgeHandles(canvas, wallEdges!);
+    }
+  }
+
+  void _drawEdgeHandles(Canvas canvas, List<ZoneEdge> edges) {
+    for (var i = 0; i < edges.length; i++) {
+      final edge = edges[i];
+      canvas.drawLine(
+        edge.startPx,
+        edge.endPx,
+        Paint()
+          ..color = AppTheme.accent.withValues(alpha: 0.55)
+          ..strokeWidth = 3.5
+          ..strokeCap = StrokeCap.round,
+      );
+      canvas.drawCircle(edge.midPx, 14, Paint()..color = AppTheme.accent);
+      canvas.drawCircle(
+        edge.midPx,
+        14,
+        Paint()
+          ..color = Colors.white
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2.0,
+      );
+      final tp = TextPainter(
+        text: TextSpan(
+          text: '${i + 1}',
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        textDirection: ui.TextDirection.ltr,
+      )..layout();
+      tp.paint(canvas, edge.midPx - Offset(tp.width / 2, tp.height / 2));
     }
   }
 
@@ -218,5 +260,6 @@ class BuilderCanvasPainter extends CustomPainter {
   bool shouldRepaint(BuilderCanvasPainter old) =>
       old.fixtures != fixtures ||
       old.selectedFixtureId != selectedFixtureId ||
-      old.ghostPos != ghostPos;
+      old.ghostPos != ghostPos ||
+      old.wallEdges != wallEdges;
 }
