@@ -52,3 +52,6 @@ The v0.2 plan's example code removed `watchByParentId(fixtureId)` entirely in fa
 
 ### `FixturesDao.watchByStore` added (not removed)
 Added `Stream<List<FixturesTableData>> watchByStore(String storeId)` to `fixtures_dao.dart` as explicitly required by the work order's "IMPORTANT" note. The existing `watchByZone(storeId, zoneId)` and `watchByParentId(zoneId)` methods were left untouched.
+
+## v0.2 Complete
+All 7 agents finished. PR created at https://github.com/vanrobbins/Merch-Mobile/pull/2.
