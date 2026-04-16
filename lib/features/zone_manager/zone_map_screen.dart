@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/database/app_database.dart';
-import '../../core/providers/auth_provider.dart';
 import '../../core/router/app_router.dart';
+import '../../core/widgets/role_guard.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/design_tokens.dart';
 import 'zone_map_painter.dart';
@@ -44,7 +44,6 @@ class _ZoneMapScreenState extends ConsumerState<ZoneMapScreen> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(zoneMapNotifierProvider);
-    final user = ref.watch(currentUserProvider).value;
 
     return Scaffold(
       appBar: AppBar(title: const Text('ZONE MAP')),
@@ -71,15 +70,16 @@ class _ZoneMapScreenState extends ConsumerState<ZoneMapScreen> {
           const ZoneLegendPanel(),
         ],
       ),
-      floatingActionButton: user?.role == 'coordinator'
-          ? FloatingActionButton.extended(
-              onPressed: () =>
-                  ref.read(zoneMapNotifierProvider.notifier).addZone(),
-              label: const Text('ADD ZONE'),
-              icon: const Icon(Icons.add),
-              backgroundColor: AppTheme.accent,
-            )
-          : null,
+      floatingActionButton: RoleGuard(
+        allowedRoles: const ['coordinator', 'manager'],
+        child: FloatingActionButton.extended(
+          onPressed: () =>
+              ref.read(zoneMapNotifierProvider.notifier).addZone(),
+          label: const Text('ADD ZONE'),
+          icon: const Icon(Icons.add),
+          backgroundColor: AppTheme.accent,
+        ),
+      ),
     );
   }
 }
