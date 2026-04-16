@@ -59,19 +59,20 @@ class ZoneMapPainter extends CustomPainter {
     final isSelected = zone.id == selectedZoneId;
     final isDisplay = zone.zoneType == 'display';
 
-    // Fill
+    // Fill — selected zones are noticeably brighter
     canvas.drawPath(
       path,
       Paint()
-        ..color = color.withOpacity(isSelected ? 0.35 : 0.22)
+        ..color = color.withOpacity(isSelected ? 0.45 : 0.20)
         ..style = PaintingStyle.fill,
     );
 
-    // Stroke — dashed for non-display zones
+    // Stroke — selected uses accent + thick border; unselected uses zone color
     final strokePaint = Paint()
-      ..color = isSelected ? color : color.withOpacity(0.8)
+      ..color = isSelected ? const Color(0xFFBF5534) : color.withOpacity(0.7)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = isSelected ? 2.5 : 1.5;
+      ..strokeWidth = isSelected ? 3.5 : 1.5
+      ..strokeJoin = StrokeJoin.round;
 
     if (!isDisplay) {
       _drawDashedPath(canvas, path, strokePaint);

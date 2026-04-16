@@ -167,3 +167,7 @@ class FloorBuilderNotifier extends _$FloorBuilderNotifier {
     state = state.copyWith(isDragging: v);
   }
 }
+
+@riverpod
+Future<ZonesTableData?> zoneById(ZoneByIdRef ref, String zoneId) =>
+    ref.watch(appDatabaseProvider).zonesDao.findById(zoneId);

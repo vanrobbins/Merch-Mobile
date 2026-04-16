@@ -62,6 +62,7 @@ class _ZoneMapScreenState extends ConsumerState<ZoneMapScreen> {
                     ),
                   ),
           ),
+          _SelectedZoneBanner(state: state),
           const ZoneLegendPanel(),
         ],
       ),
@@ -74,6 +75,75 @@ class _ZoneMapScreenState extends ConsumerState<ZoneMapScreen> {
           icon: const Icon(Icons.add),
           backgroundColor: AppTheme.accent,
         ),
+      ),
+    );
+  }
+}
+
+// Shows the name + type of the currently selected zone above the legend.
+class _SelectedZoneBanner extends StatelessWidget {
+  const _SelectedZoneBanner({required this.state});
+  final ZoneMapState state;
+
+  @override
+  Widget build(BuildContext context) {
+    if (state.selectedZoneId == null) return const SizedBox.shrink();
+    final zone = state.zones.where((z) => z.id == state.selectedZoneId).firstOrNull;
+    if (zone == null) return const SizedBox.shrink();
+    final color = Color(zone.colorValue);
+    return Container(
+      width: double.infinity,
+      color: color.withOpacity(0.12),
+      padding: const EdgeInsets.symmetric(
+        horizontal: DesignTokens.spaceMd,
+        vertical: DesignTokens.spaceXs,
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 10,
+            height: 10,
+            decoration: BoxDecoration(
+              color: color,
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: DesignTokens.spaceSm),
+          Text(
+            zone.name.toUpperCase(),
+            style: TextStyle(
+              fontSize: DesignTokens.typeSm,
+              fontWeight: DesignTokens.weightBold,
+              letterSpacing: DesignTokens.letterSpacingEyebrow,
+              color: color,
+            ),
+          ),
+          const SizedBox(width: DesignTokens.spaceXs),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.18),
+              borderRadius: BorderRadius.circular(AppTheme.borderRadius),
+            ),
+            child: Text(
+              zone.zoneType.toUpperCase().replaceAll('_', ' '),
+              style: TextStyle(
+                fontSize: DesignTokens.typeXs,
+                fontWeight: DesignTokens.weightBold,
+                color: color,
+              ),
+            ),
+          ),
+          const Spacer(),
+          Text(
+            'TAP TO EDIT',
+            style: TextStyle(
+              fontSize: DesignTokens.typeXs,
+              color: AppTheme.textSecondary,
+              letterSpacing: DesignTokens.letterSpacingEyebrow,
+            ),
+          ),
+        ],
       ),
     );
   }

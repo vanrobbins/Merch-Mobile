@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/design_tokens.dart';
+import '../zone_manager/zone_shape.dart';
 import 'builder_canvas_painter.dart';
 import 'element_library_panel.dart';
 import 'floor_builder_provider.dart';
@@ -81,12 +82,18 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(floorBuilderNotifierProvider);
+    final zoneAsync = ref.watch(zoneByIdProvider(widget.zoneId));
+    final zone = zoneAsync.valueOrNull;
+    final zonePts = zone != null ? ZoneShape.decode(zone.shapePoints) : null;
     final painter = BuilderCanvasPainter(
       fixtures: state.fixtures,
       selectedFixtureId: state.selectedFixtureId,
       ghostPos: _ghostPos,
       ghostType: _ghostType,
       pixelsPerFt: _pixelsPerFt,
+      zoneNormalizedPts: (zonePts != null && zonePts.length >= 3) ? zonePts : null,
+      zoneColor: zone != null ? Color(zone.colorValue) : null,
+      zoneName: zone?.name,
     );
 
     return Scaffold(
