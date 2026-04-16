@@ -18,7 +18,8 @@ class ElementLibraryPanel extends StatelessWidget {
     return Container(
       decoration: const BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+        borderRadius: BorderRadius.vertical(
+            top: Radius.circular(DesignTokens.radiusLg)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -26,9 +27,14 @@ class ElementLibraryPanel extends StatelessWidget {
           // Handle
           Center(
             child: Container(
-              margin: const EdgeInsets.only(top: 8),
-              width: 40, height: 4,
-              decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2)),
+              margin: const EdgeInsets.only(top: DesignTokens.spaceSm),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade300,
+                borderRadius:
+                    BorderRadius.circular(AppTheme.borderRadius),
+              ),
             ),
           ),
           const Padding(
@@ -75,7 +81,7 @@ class _DraggableTile extends StatelessWidget {
           ),
           child: Icon(tile.icon, size: 32, color: AppTheme.primary.withValues(alpha: opacity)),
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: DesignTokens.spaceXs),
         Text(tile.label, style: TextStyle(
           fontSize: DesignTokens.typeXs,
           fontWeight: DesignTokens.weightBold,

@@ -10,6 +10,7 @@ import '../../core/providers/store_provider.dart';
 import '../../core/router/app_router.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/design_tokens.dart';
+import '../../core/widgets/mm_empty_state.dart';
 import '../../core/widgets/role_guard.dart';
 import 'planogram_provider.dart';
 
@@ -26,11 +27,10 @@ class PlanogramListScreen extends ConsumerWidget {
       appBar: AppBar(title: const Text('PLANOGRAMS')),
       body: planogramsAsync.when(
         data: (planograms) => planograms.isEmpty
-            ? const Center(
-                child: Text(
-                  'No planograms yet.',
-                  style: TextStyle(color: AppTheme.textSecondary),
-                ),
+            ? const MmEmptyState(
+                icon: Icons.grid_view_outlined,
+                headline: 'No Planograms',
+                body: 'Create a planogram to start arranging products.',
               )
             : ListView.separated(
                 padding: const EdgeInsets.all(DesignTokens.spaceMd),
@@ -41,7 +41,16 @@ class PlanogramListScreen extends ConsumerWidget {
                     _PlanogramTile(planogram: planograms[i]),
               ),
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Error: $e')),
+        error: (e, _) => Center(
+          child: Padding(
+            padding: const EdgeInsets.all(DesignTokens.spaceLg),
+            child: Text(
+              'Error: $e',
+              style: const TextStyle(color: AppTheme.textSecondary),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
       ),
       floatingActionButton: RoleGuard(
         allowedRoles: const ['coordinator', 'manager'],

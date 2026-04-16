@@ -79,16 +79,25 @@ class ZoneMapPainter extends CustomPainter {
       canvas.drawPath(path, strokePaint);
     }
 
-    // Zone name label
+    // Zone name label — white halo improves contrast over the fill.
     final centroid = _centroid(points);
     final tp = TextPainter(
       text: TextSpan(
         text: zone.name.toUpperCase(),
         style: TextStyle(
-          color: color.withOpacity(0.9),
+          // ignore: deprecated_member_use
+          color: color.withOpacity(0.95),
           fontSize: 10,
           fontWeight: FontWeight.w700,
           letterSpacing: 1.0,
+          shadows: [
+            Shadow(
+              // ignore: deprecated_member_use
+              color: Colors.white.withOpacity(0.7),
+              blurRadius: 3,
+              offset: const Offset(0, 0),
+            ),
+          ],
         ),
       ),
       textDirection: ui.TextDirection.ltr,

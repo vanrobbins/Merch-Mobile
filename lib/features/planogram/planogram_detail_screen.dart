@@ -68,24 +68,7 @@ class PlanogramDetailScreen extends ConsumerWidget {
                 padding: const EdgeInsets.all(DesignTokens.spaceMd),
                 child: Row(
                   children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: planogram.status == 'published'
-                            ? Colors.green
-                            : Colors.grey,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        planogram.status.toUpperCase(),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 11,
-                          fontWeight: DesignTokens.weightBold,
-                        ),
-                      ),
-                    ),
+                    _StatusChip(status: planogram.status),
                     const SizedBox(width: DesignTokens.spaceSm),
                     Text(
                       '${planogram.season} · ${slots.length} slots',
@@ -171,58 +154,181 @@ class _SlotCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final canEdit = role == 'coordinator' || role == 'manager';
     final hasProduct = slot.productId != null;
-    return GestureDetector(
-      onTap: canEdit ? onAssign : null,
-      onLongPress: canEdit && hasProduct ? onClear : null,
-      child: Container(
-        decoration: BoxDecoration(
-          color: hasProduct ? AppTheme.canvasBg : Colors.grey.shade100,
-          border: Border.all(
-            color: hasProduct
-                // ignore: deprecated_member_use
-                ? AppTheme.primary.withOpacity(0.4)
-                : Colors.grey.shade300,
-          ),
-          borderRadius: BorderRadius.circular(AppTheme.borderRadius),
-        ),
-        padding: const EdgeInsets.all(8),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
+    final inner = Padding(
+      padding: const EdgeInsets.all(DesignTokens.spaceSm),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: DesignTokens.spaceXs,
+              vertical: 1,
+            ),
+            decoration: BoxDecoration(
+              color: hasProduct
+                  // ignore: deprecated_member_use
+                  ? AppTheme.primary.withOpacity(0.08)
+                  : Colors.grey.shade200,
+              borderRadius: BorderRadius.circular(AppTheme.borderRadius),
+            ),
+            child: Text(
               '#${slot.position}',
+              style: const TextStyle(
+                fontSize: DesignTokens.typeXs,
+                fontWeight: DesignTokens.weightBold,
+                letterSpacing: DesignTokens.letterSpacingEyebrow,
+                color: AppTheme.textSecondary,
+              ),
+            ),
+          ),
+          const Spacer(),
+          if (hasProduct) ...[
+            Text(
+              slot.productName ?? '',
+              style: const TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 2),
+            Text(
+              slot.productSku ?? '',
               style: const TextStyle(
                 fontSize: 10,
                 color: AppTheme.textSecondary,
               ),
             ),
-            const Spacer(),
-            if (hasProduct) ...[
-              Text(
-                slot.productName ?? '',
-                style: const TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
+          ] else
+            const Text(
+              'UNASSIGNED',
+              style: TextStyle(
+                fontSize: 10,
+                color: Colors.grey,
+                fontWeight: DesignTokens.weightBold,
+                letterSpacing: DesignTokens.letterSpacingEyebrow,
               ),
-              const SizedBox(height: 2),
-              Text(
-                slot.productSku ?? '',
-                style: const TextStyle(
-                  fontSize: 10,
-                  color: AppTheme.textSecondary,
-                ),
+            ),
+        ],
+      ),
+    );
+
+    // Empty slots get a dashed border; assigned slots get a solid border.
+    final content = hasProduct
+        ? Container(
+            decoration: BoxDecoration(
+              color: AppTheme.canvasBg,
+              border: Border.all(
+                // ignore: deprecated_member_use
+                color: AppTheme.primary.withOpacity(0.4),
               ),
-            ] else
-              const Text(
-                'UNASSIGNED',
-                style: TextStyle(fontSize: 10, color: Colors.grey),
+              borderRadius: BorderRadius.circular(AppTheme.borderRadius),
+            ),
+            child: inner,
+          )
+        : CustomPaint(
+            painter: _DashedBorderPainter(
+              color: Colors.grey.shade400,
+              radius: AppTheme.borderRadius,
+            ),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(AppTheme.borderRadius),
               ),
-          ],
+              child: inner,
+            ),
+          );
+
+    return GestureDetector(
+      onTap: canEdit ? onAssign : null,
+      onLongPress: canEdit && hasProduct ? onClear : null,
+      child: content,
+    );
+  }
+}
+
+/// Colored status chip used in the planogram detail header.
+class _StatusChip extends StatelessWidget {
+  const _StatusChip({required this.status});
+  final String status;
+
+  @override
+  Widget build(BuildContext context) {
+    final lower = status.toLowerCase();
+    Color bg;
+    Color fg;
+    switch (lower) {
+      case 'published':
+      case 'approved':
+        bg = Colors.green.shade600;
+        fg = Colors.white;
+        break;
+      case 'rejected':
+        bg = Colors.red.shade600;
+        fg = Colors.white;
+        break;
+      case 'pending':
+        bg = Colors.amber.shade700;
+        fg = Colors.white;
+        break;
+      default:
+        bg = Colors.grey.shade600;
+        fg = Colors.white;
+    }
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: DesignTokens.spaceSm,
+        vertical: 3,
+      ),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(AppTheme.borderRadius),
+      ),
+      child: Text(
+        status.toUpperCase(),
+        style: TextStyle(
+          color: fg,
+          fontSize: DesignTokens.typeXs,
+          fontWeight: DesignTokens.weightBold,
+          letterSpacing: DesignTokens.letterSpacingEyebrow,
         ),
       ),
     );
   }
+}
+
+/// Paints a dashed rounded-rectangle border around the child.
+class _DashedBorderPainter extends CustomPainter {
+  _DashedBorderPainter({required this.color, required this.radius});
+  final Color color;
+  final double radius;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.2;
+    final rect = RRect.fromRectAndRadius(
+      Offset.zero & size,
+      Radius.circular(radius),
+    );
+    final path = Path()..addRRect(rect);
+    const dash = 4.0;
+    const gap = 3.0;
+    for (final metric in path.computeMetrics()) {
+      var dist = 0.0;
+      while (dist < metric.length) {
+        final end = (dist + dash).clamp(0.0, metric.length);
+        canvas.drawPath(metric.extractPath(dist, end), paint);
+        dist += dash + gap;
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _DashedBorderPainter old) =>
+      old.color != color || old.radius != radius;
 }

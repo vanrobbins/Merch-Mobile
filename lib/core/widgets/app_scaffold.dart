@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../providers/store_provider.dart';
 import '../router/app_router.dart';
+import '../theme/app_theme.dart';
+import '../theme/design_tokens.dart';
 import '../../features/store/store_switcher_sheet.dart';
 
 class AppScaffold extends ConsumerWidget {
@@ -30,26 +32,50 @@ class AppScaffold extends ConsumerWidget {
       appBar: AppBar(
         title: GestureDetector(
           onTap: () => StoreSwitcherSheet.show(context),
+          behavior: HitTestBehavior.opaque,
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(activeStore?.name ?? 'MERCH MOBILE'),
-              const SizedBox(width: 4),
-              const Icon(Icons.arrow_drop_down, size: 18),
+              Flexible(
+                child: Text(
+                  activeStore?.name.toUpperCase() ?? 'MERCH MOBILE',
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: DesignTokens.typeMd,
+                    fontWeight: DesignTokens.weightBold,
+                    letterSpacing: DesignTokens.letterSpacingAppBar,
+                  ),
+                ),
+              ),
+              const Icon(Icons.keyboard_arrow_down, size: 18),
             ],
           ),
         ),
         actions: [
           if (membership != null)
             Padding(
-              padding: const EdgeInsets.only(right: 12),
-              child: Chip(
-                label: Text(
-                  membership.role.toUpperCase(),
-                  style: const TextStyle(fontSize: 10),
+              padding: const EdgeInsets.only(right: DesignTokens.spaceMd),
+              child: Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: DesignTokens.spaceSm,
+                    vertical: 3,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppTheme.roleColor(membership.role),
+                    borderRadius:
+                        BorderRadius.circular(AppTheme.borderRadius),
+                  ),
+                  child: Text(
+                    membership.role.toUpperCase(),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: DesignTokens.typeXs,
+                      fontWeight: DesignTokens.weightBold,
+                      letterSpacing: DesignTokens.letterSpacingEyebrow,
+                    ),
+                  ),
                 ),
-                backgroundColor: Colors.white24,
-                labelStyle: const TextStyle(color: Colors.white),
               ),
             ),
         ],

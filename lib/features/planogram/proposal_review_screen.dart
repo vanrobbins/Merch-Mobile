@@ -8,6 +8,7 @@ import '../../core/providers/database_provider.dart';
 import '../../core/providers/store_provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/design_tokens.dart';
+import '../../core/widgets/mm_empty_state.dart';
 import 'planogram_slot.dart';
 
 /// Manager/coordinator-facing queue of pending planogram proposals for a
@@ -37,11 +38,10 @@ class ProposalReviewScreen extends ConsumerWidget {
       appBar: AppBar(title: const Text('PROPOSALS')),
       body: filtered.when(
         data: (proposals) => proposals.isEmpty
-            ? const Center(
-                child: Text(
-                  'No pending proposals.',
-                  style: TextStyle(color: AppTheme.textSecondary),
-                ),
+            ? const MmEmptyState(
+                icon: Icons.inbox_outlined,
+                headline: 'No Pending Proposals',
+                body: 'All clear. New proposals will appear here.',
               )
             : ListView.separated(
                 padding: const EdgeInsets.all(DesignTokens.spaceMd),
@@ -52,7 +52,57 @@ class ProposalReviewScreen extends ConsumerWidget {
                     _ProposalCard(proposal: proposals[i]),
               ),
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Error: $e')),
+        error: (e, _) => Center(
+          child: Padding(
+            padding: const EdgeInsets.all(DesignTokens.spaceLg),
+            child: Text(
+              'Error: $e',
+              style: const TextStyle(color: AppTheme.textSecondary),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Colored status chip for proposal status.
+class _ProposalStatusChip extends StatelessWidget {
+  const _ProposalStatusChip({required this.status});
+  final String status;
+
+  @override
+  Widget build(BuildContext context) {
+    Color bg;
+    switch (status.toLowerCase()) {
+      case 'approved':
+        bg = Colors.green.shade600;
+        break;
+      case 'rejected':
+        bg = Colors.red.shade600;
+        break;
+      case 'pending':
+      default:
+        bg = Colors.amber.shade700;
+    }
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: DesignTokens.spaceSm,
+        vertical: 3,
+      ),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(AppTheme.borderRadius),
+      ),
+      child: Text(
+        status.toUpperCase(),
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: DesignTokens.typeXs,
+          fontWeight: DesignTokens.weightBold,
+          letterSpacing: DesignTokens.letterSpacingEyebrow,
+        ),
       ),
     );
   }
@@ -75,23 +125,32 @@ class _ProposalCard extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Proposed by ${proposal.proposedByUid}',
-              style: const TextStyle(
-                fontWeight: FontWeight.w600,
-                fontSize: DesignTokens.typeSm,
-              ),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Proposed by ${proposal.proposedByUid}',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: DesignTokens.typeSm,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                const SizedBox(width: DesignTokens.spaceSm),
+                _ProposalStatusChip(status: proposal.status),
+              ],
             ),
             if (proposal.notes != null)
               Padding(
-                padding: const EdgeInsets.only(top: 4),
+                padding: const EdgeInsets.only(top: DesignTokens.spaceXs),
                 child: Text(
                   proposal.notes!,
                   style:
                       const TextStyle(color: AppTheme.textSecondary),
                 ),
               ),
-            const SizedBox(height: 8),
+            const SizedBox(height: DesignTokens.spaceSm),
             Text(
               '$assignedCount/${slots.length} slots assigned',
               style: const TextStyle(
@@ -106,18 +165,27 @@ class _ProposalCard extends ConsumerWidget {
                   child: ElevatedButton(
                     onPressed: () => _review(ref, 'approved'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
+                      backgroundColor: Colors.green.shade600,
                       foregroundColor: Colors.white,
+                      shape: const RoundedRectangleBorder(
+                        borderRadius: BorderRadius.all(
+                            Radius.circular(AppTheme.borderRadius)),
+                      ),
                     ),
                     child: const Text('APPROVE'),
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: DesignTokens.spaceSm),
                 Expanded(
                   child: OutlinedButton(
                     onPressed: () => _review(ref, 'rejected'),
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.red,
+                      foregroundColor: Colors.red.shade600,
+                      side: BorderSide(color: Colors.red.shade600),
+                      shape: const RoundedRectangleBorder(
+                        borderRadius: BorderRadius.all(
+                            Radius.circular(AppTheme.borderRadius)),
+                      ),
                     ),
                     child: const Text('REJECT'),
                   ),

@@ -58,13 +58,14 @@ class _ZoneShapePickerSheet extends StatelessWidget {
                   height: 80,
                   decoration: BoxDecoration(
                     border: Border.all(color: Colors.grey.shade300),
-                    borderRadius: BorderRadius.circular(4),
+                    borderRadius:
+                        BorderRadius.circular(AppTheme.borderRadius),
                   ),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Icon(s.$3, size: 32, color: AppTheme.primary),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: DesignTokens.spaceXs),
                       Text(s.$2, style: const TextStyle(fontSize: 11)),
                     ],
                   ),

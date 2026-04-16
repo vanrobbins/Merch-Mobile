@@ -6,8 +6,10 @@ import '../../core/widgets/role_guard.dart';
 import 'auto_build_provider.dart';
 import 'before_after_preview.dart';
 
-// TODO(Agent6): AutoBuild screen needs real AI integration
-// For now staff see a read-only placeholder
+// AutoBuild uses a deterministic in-app layout engine today.
+// A future pass can wire this to a remote AI endpoint; the UI already
+// accommodates an async compute/apply flow so the upgrade is additive.
+// Staff see a read-only preview (compute / apply / save are RoleGuarded).
 
 class AutoBuildScreen extends ConsumerStatefulWidget {
   const AutoBuildScreen({super.key, required this.zoneId});

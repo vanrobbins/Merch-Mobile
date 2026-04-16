@@ -118,6 +118,23 @@ class _InviteCodeDisplay extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            // Success icon
+            Container(
+              width: 72,
+              height: 72,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                // ignore: deprecated_member_use
+                color: AppTheme.accent.withOpacity(0.12),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.check_circle_outline,
+                size: 40,
+                color: AppTheme.accent,
+              ),
+            ),
+            const SizedBox(height: DesignTokens.spaceLg),
             const Text(
               'YOUR INVITE CODE',
               style: TextStyle(
@@ -129,15 +146,31 @@ class _InviteCodeDisplay extends StatelessWidget {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: DesignTokens.spaceMd),
-            Text(
-              code,
-              style: const TextStyle(
-                fontSize: 48,
-                fontWeight: DesignTokens.weightBold,
-                letterSpacing: 12,
-                color: AppTheme.primary,
+            // Warm-neutral code card
+            Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: DesignTokens.spaceMd,
+                vertical: DesignTokens.spaceLg,
               ),
-              textAlign: TextAlign.center,
+              decoration: BoxDecoration(
+                color: AppTheme.canvasBg,
+                border: Border.all(
+                  // ignore: deprecated_member_use
+                  color: AppTheme.primary.withOpacity(0.12),
+                ),
+                borderRadius:
+                    BorderRadius.circular(AppTheme.borderRadius),
+              ),
+              child: Text(
+                code,
+                style: const TextStyle(
+                  fontSize: 48,
+                  fontWeight: DesignTokens.weightBold,
+                  letterSpacing: 12,
+                  color: AppTheme.primary,
+                ),
+                textAlign: TextAlign.center,
+              ),
             ),
             const SizedBox(height: DesignTokens.spaceMd),
             const Text(
@@ -150,11 +183,26 @@ class _InviteCodeDisplay extends StatelessWidget {
               onPressed: () => Clipboard.setData(ClipboardData(text: code)),
               icon: const Icon(Icons.copy),
               label: const Text('COPY CODE'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppTheme.primary,
+                side: const BorderSide(color: AppTheme.primary),
+                shape: const RoundedRectangleBorder(
+                  borderRadius: BorderRadius.all(
+                      Radius.circular(AppTheme.borderRadius)),
+                ),
+              ),
             ),
             const SizedBox(height: DesignTokens.spaceLg),
             ElevatedButton(
               onPressed: () => context.goNamed(AppRoutes.zoneMap),
-              style: ElevatedButton.styleFrom(backgroundColor: AppTheme.accent),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.accent,
+                foregroundColor: Colors.white,
+                shape: const RoundedRectangleBorder(
+                  borderRadius: BorderRadius.all(
+                      Radius.circular(AppTheme.borderRadius)),
+                ),
+              ),
               child: const Text('GO TO STORE'),
             ),
           ],

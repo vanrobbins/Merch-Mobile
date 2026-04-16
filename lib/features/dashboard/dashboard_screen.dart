@@ -27,14 +27,20 @@ class DashboardScreen extends ConsumerWidget {
         data: (stats) => ListView(
           padding: const EdgeInsets.all(DesignTokens.spaceMd),
           children: [
-            // Role / welcome banner
+            // Role / welcome banner — subtle gradient for depth
             Container(
               padding: const EdgeInsets.all(DesignTokens.spaceMd),
               margin: const EdgeInsets.only(bottom: DesignTokens.spaceMd),
               decoration: BoxDecoration(
-                color: AppTheme.primary,
+                gradient: LinearGradient(
+                  // ignore: deprecated_member_use
+                  colors: [AppTheme.primary, AppTheme.primary.withOpacity(0.85)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
                 borderRadius:
                     BorderRadius.circular(AppTheme.borderRadius),
+                boxShadow: const [AppTheme.cardShadow],
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -47,7 +53,7 @@ class DashboardScreen extends ConsumerWidget {
                       fontSize: DesignTokens.typeLg,
                     ),
                   ),
-                  const SizedBox(height: 2),
+                  const SizedBox(height: DesignTokens.spaceXs),
                   Text(
                     role.toUpperCase(),
                     style: const TextStyle(
@@ -158,7 +164,16 @@ class DashboardScreen extends ConsumerWidget {
           ],
         ),
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Error: $e')),
+        error: (e, _) => Center(
+          child: Padding(
+            padding: const EdgeInsets.all(DesignTokens.spaceLg),
+            child: Text(
+              'Error: $e',
+              style: const TextStyle(color: AppTheme.textSecondary),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -203,51 +218,70 @@ class _StatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: item.onTap,
-      child: Container(
-        padding: const EdgeInsets.all(DesignTokens.spaceMd),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          border: Border.all(color: Colors.grey.shade200),
-          borderRadius: BorderRadius.circular(AppTheme.borderRadius),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(item.icon,
+    final highlighted = item.badge && item.value > 0;
+    final borderRadius = BorderRadius.circular(AppTheme.borderRadius);
+
+    return Material(
+      color: Colors.white,
+      borderRadius: borderRadius,
+      elevation: 0,
+      child: InkWell(
+        onTap: item.onTap,
+        borderRadius: borderRadius,
+        child: Ink(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            border: Border.all(
+              color: highlighted
+                  ? AppTheme.accent
+                  : Colors.grey.shade200,
+              width: highlighted ? 1.5 : 1.0,
+            ),
+            borderRadius: borderRadius,
+            boxShadow: const [AppTheme.cardShadow],
+          ),
+          padding: const EdgeInsets.all(DesignTokens.spaceMd),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    item.icon,
                     size: DesignTokens.iconMd,
-                    color: AppTheme.textSecondary),
-                const Spacer(),
-                if (item.badge && item.value > 0)
-                  Container(
-                    width: 8,
-                    height: 8,
-                    decoration: const BoxDecoration(
-                      color: AppTheme.accent,
-                      shape: BoxShape.circle,
-                    ),
+                    color: highlighted
+                        ? AppTheme.accent
+                        : AppTheme.textSecondary,
                   ),
-              ],
-            ),
-            const Spacer(),
-            Text(
-              '${item.value}',
-              style: const TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.w700,
+                  const Spacer(),
+                  if (highlighted)
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: const BoxDecoration(
+                        color: AppTheme.accent,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                ],
               ),
-            ),
-            Text(
-              item.label,
-              style: const TextStyle(
-                fontSize: DesignTokens.typeXs,
-                color: AppTheme.textSecondary,
+              const Spacer(),
+              Text(
+                '${item.value}',
+                style: const TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
-            ),
-          ],
+              Text(
+                item.label,
+                style: const TextStyle(
+                  fontSize: DesignTokens.typeXs,
+                  color: AppTheme.textSecondary,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

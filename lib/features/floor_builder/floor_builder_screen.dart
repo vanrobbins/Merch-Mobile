@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/theme/design_tokens.dart';
 import 'builder_canvas_painter.dart';
 import 'element_library_panel.dart';
 import 'floor_builder_provider.dart';
@@ -174,7 +175,7 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
             backgroundColor: state.selectedFixtureId != null ? AppTheme.primary : Colors.grey,
             child: const Icon(Icons.rotate_right),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: DesignTokens.spaceSm),
           FloatingActionButton.extended(
             heroTag: 'library',
             onPressed: _showElementLibrary,
@@ -228,17 +229,23 @@ class _FixtureActionsSheetState extends State<_FixtureActionsSheet> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Text('FIXTURE OPTIONS', style: TextStyle(
-            fontWeight: FontWeight.w700,
-            fontSize: 14,
-            letterSpacing: 1.2,
-          )),
-          const SizedBox(height: 16),
+          const Text(
+            'FIXTURE OPTIONS',
+            style: TextStyle(
+              fontWeight: DesignTokens.weightBold,
+              fontSize: DesignTokens.typeMd,
+              letterSpacing: DesignTokens.letterSpacingEyebrow,
+            ),
+          ),
+          const SizedBox(height: DesignTokens.spaceMd),
           TextField(
             controller: _ctrl,
-            decoration: const InputDecoration(labelText: 'Label', border: UnderlineInputBorder()),
+            decoration: const InputDecoration(
+              labelText: 'Label',
+              border: UnderlineInputBorder(),
+            ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: DesignTokens.spaceMd),
           Row(
             children: [
               Expanded(
@@ -247,18 +254,31 @@ class _FixtureActionsSheetState extends State<_FixtureActionsSheet> {
                     widget.notifier.renameFixture(widget.fixtureId, _ctrl.text);
                     Navigator.pop(context);
                   },
+                  style: OutlinedButton.styleFrom(
+                    shape: const RoundedRectangleBorder(
+                      borderRadius: BorderRadius.all(
+                          Radius.circular(AppTheme.borderRadius)),
+                    ),
+                  ),
                   child: const Text('RENAME'),
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: DesignTokens.spaceSm),
               Expanded(
                 child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red.shade600,
+                    foregroundColor: Colors.white,
+                    shape: const RoundedRectangleBorder(
+                      borderRadius: BorderRadius.all(
+                          Radius.circular(AppTheme.borderRadius)),
+                    ),
+                  ),
                   onPressed: () {
                     widget.notifier.deleteFixture(widget.fixtureId);
                     Navigator.pop(context);
                   },
-                  child: const Text('DELETE', style: TextStyle(color: Colors.white)),
+                  child: const Text('DELETE'),
                 ),
               ),
             ],

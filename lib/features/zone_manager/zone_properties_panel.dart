@@ -60,15 +60,16 @@ class _ZonePropertiesPanelState extends ConsumerState<ZonePropertiesPanel> {
     return Container(
       decoration: const BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+        borderRadius: BorderRadius.vertical(
+            top: Radius.circular(DesignTokens.radiusLg)),
       ),
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).viewInsets.bottom +
             MediaQuery.of(context).padding.bottom +
-            16,
-        left: 16,
-        right: 16,
-        top: 8,
+            DesignTokens.spaceMd,
+        left: DesignTokens.spaceMd,
+        right: DesignTokens.spaceMd,
+        top: DesignTokens.spaceSm,
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -81,11 +82,12 @@ class _ZonePropertiesPanelState extends ConsumerState<ZonePropertiesPanel> {
               height: 4,
               decoration: BoxDecoration(
                 color: Colors.grey.shade300,
-                borderRadius: BorderRadius.circular(2),
+                borderRadius:
+                    BorderRadius.circular(AppTheme.borderRadius),
               ),
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: DesignTokens.spaceSm),
           const Text(
             'EDIT ZONE',
             style: TextStyle(
@@ -114,10 +116,10 @@ class _ZonePropertiesPanelState extends ConsumerState<ZonePropertiesPanel> {
               color: AppTheme.textSecondary,
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: DesignTokens.spaceSm),
           Wrap(
-            spacing: 6,
-            runSpacing: 6,
+            spacing: DesignTokens.spaceXs,
+            runSpacing: DesignTokens.spaceXs,
             children: _zoneTypes.map(((String, String) t) {
               final isSelected = widget.zone.zoneType == t.$1;
               return ChoiceChip(
@@ -145,10 +147,10 @@ class _ZonePropertiesPanelState extends ConsumerState<ZonePropertiesPanel> {
               color: AppTheme.textSecondary,
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: DesignTokens.spaceSm),
           Wrap(
-            spacing: 8,
-            runSpacing: 8,
+            spacing: DesignTokens.spaceSm,
+            runSpacing: DesignTokens.spaceSm,
             children: _swatches.map((c) {
               final isSelected = widget.zone.colorValue == c;
               return GestureDetector(
@@ -214,14 +216,20 @@ class _ZonePropertiesPanelState extends ConsumerState<ZonePropertiesPanel> {
                     ),
                   ),
                 if (widget.zone.zoneType == 'display')
-                  const SizedBox(width: 8),
+                  const SizedBox(width: DesignTokens.spaceSm),
                 OutlinedButton(
                   onPressed: () {
                     Navigator.pop(context);
                     notifier.deleteZone(widget.zone.id);
                   },
                   style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.red),
+                    foregroundColor: Colors.red.shade600,
+                    side: BorderSide(color: Colors.red.shade600),
+                    shape: const RoundedRectangleBorder(
+                      borderRadius: BorderRadius.all(
+                          Radius.circular(AppTheme.borderRadius)),
+                    ),
+                  ),
                   child: const Text('DELETE'),
                 ),
               ],

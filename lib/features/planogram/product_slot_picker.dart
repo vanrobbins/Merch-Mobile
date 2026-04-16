@@ -63,18 +63,20 @@ class _ProductSlotPickerState extends ConsumerState<ProductSlotPicker> {
       builder: (ctx, scrollCtrl) => Container(
         decoration: const BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+          borderRadius: BorderRadius.vertical(
+              top: Radius.circular(DesignTokens.radiusLg)),
         ),
         child: Column(
           children: [
             // Drag handle
             Container(
-              margin: const EdgeInsets.only(top: 8),
+              margin: const EdgeInsets.only(top: DesignTokens.spaceSm),
               width: 40,
               height: 4,
               decoration: BoxDecoration(
                 color: Colors.grey.shade300,
-                borderRadius: BorderRadius.circular(2),
+                borderRadius:
+                    BorderRadius.circular(AppTheme.borderRadius),
               ),
             ),
             Padding(
@@ -85,7 +87,7 @@ class _ProductSlotPickerState extends ConsumerState<ProductSlotPicker> {
                   prefixIcon: const Icon(Icons.search),
                   border: OutlineInputBorder(
                     borderRadius:
-                        BorderRadius.circular(DesignTokens.radiusLg),
+                        BorderRadius.circular(AppTheme.borderRadius),
                   ),
                 ),
                 onChanged: (v) => setState(() => _query = v),
@@ -133,6 +135,10 @@ class _ProductSlotPickerState extends ConsumerState<ProductSlotPicker> {
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppTheme.accent,
                             foregroundColor: Colors.white,
+                            shape: const RoundedRectangleBorder(
+                              borderRadius: BorderRadius.all(
+                                  Radius.circular(AppTheme.borderRadius)),
+                            ),
                           ),
                           child: const Text('ASSIGN'),
                         ),

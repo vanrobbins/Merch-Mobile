@@ -127,7 +127,8 @@ class _ZoneEditSheetState extends ConsumerState<_ZoneEditSheet> {
     return Container(
       decoration: const BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+        borderRadius: BorderRadius.vertical(
+            top: Radius.circular(DesignTokens.radiusLg)),
       ),
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).viewInsets.bottom +
@@ -140,12 +141,13 @@ class _ZoneEditSheetState extends ConsumerState<_ZoneEditSheet> {
           // Handle
           Center(
             child: Container(
-              margin: const EdgeInsets.only(top: 8),
+              margin: const EdgeInsets.only(top: DesignTokens.spaceSm),
               width: 40,
               height: 4,
               decoration: BoxDecoration(
                 color: Colors.grey.shade300,
-                borderRadius: BorderRadius.circular(2),
+                borderRadius:
+                    BorderRadius.circular(AppTheme.borderRadius),
               ),
             ),
           ),
@@ -183,8 +185,8 @@ class _ZoneEditSheetState extends ConsumerState<_ZoneEditSheet> {
                 ),
                 const SizedBox(height: DesignTokens.spaceSm),
                 Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
+                  spacing: DesignTokens.spaceSm,
+                  runSpacing: DesignTokens.spaceSm,
                   children: _swatches.map((c) {
                     final isSelected = widget.zone.colorValue == c;
                     return GestureDetector(

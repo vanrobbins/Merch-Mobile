@@ -6,6 +6,7 @@ import '../../core/providers/database_provider.dart';
 import '../../core/providers/store_provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/design_tokens.dart';
+import '../../core/widgets/mm_empty_state.dart';
 
 class MembersScreen extends ConsumerWidget {
   const MembersScreen({super.key});
@@ -30,37 +31,77 @@ class MembersScreen extends ConsumerWidget {
           // Pending requests — visible to coordinator and manager
           if (myRole == 'coordinator' || myRole == 'manager') ...[
             pending.when(
-              data: (list) {
-                final pendingList = list;
-                if (pendingList.isEmpty) return const SizedBox();
+              data: (pendingList) {
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                      child: Row(children: [
-                        const Text('PENDING REQUESTS',
+                      padding: const EdgeInsets.fromLTRB(
+                        DesignTokens.spaceMd,
+                        DesignTokens.spaceMd,
+                        DesignTokens.spaceMd,
+                        DesignTokens.spaceSm,
+                      ),
+                      child: Row(
+                        children: [
+                          const Text(
+                            'PENDING REQUESTS',
                             style: TextStyle(
                                 fontSize: DesignTokens.typeXs,
                                 fontWeight: DesignTokens.weightBold,
-                                letterSpacing: DesignTokens.letterSpacingEyebrow,
-                                color: AppTheme.textSecondary)),
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: AppTheme.accent,
-                            borderRadius: BorderRadius.circular(10),
+                                letterSpacing:
+                                    DesignTokens.letterSpacingEyebrow,
+                                color: AppTheme.textSecondary),
                           ),
-                          child: Text('${pendingList.length}',
-                              style: const TextStyle(color: Colors.white, fontSize: 11)),
-                        ),
-                      ]),
+                          if (pendingList.isNotEmpty) ...[
+                            const SizedBox(width: DesignTokens.spaceSm),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: DesignTokens.spaceSm,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppTheme.accent,
+                                borderRadius: BorderRadius.circular(
+                                    AppTheme.borderRadius),
+                              ),
+                              child: Text(
+                                '${pendingList.length}',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 11,
+                                  fontWeight: DesignTokens.weightBold,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
                     ),
-                    ...pendingList.map((m) => _PendingMemberTile(
-                          membership: m,
+                    if (pendingList.isEmpty)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: DesignTokens.spaceMd,
+                          vertical: DesignTokens.spaceSm,
+                        ),
+                        child: Text(
+                          'No pending requests.',
+                          style: TextStyle(
+                            color: AppTheme.textSecondary,
+                            fontSize: DesignTokens.typeSm,
+                          ),
+                        ),
+                      )
+                    else
+                      for (var i = 0; i < pendingList.length; i++) ...[
+                        _PendingMemberTile(
+                          membership: pendingList[i],
                           myRole: myRole,
-                        )),
+                        ),
+                        if (i < pendingList.length - 1)
+                          const Divider(
+                              height: 1, indent: DesignTokens.spaceMd),
+                      ],
                   ],
                 );
               },
@@ -70,7 +111,12 @@ class MembersScreen extends ConsumerWidget {
           ],
           // Active members
           const Padding(
-            padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
+            padding: EdgeInsets.fromLTRB(
+              DesignTokens.spaceMd,
+              DesignTokens.spaceMd,
+              DesignTokens.spaceMd,
+              DesignTokens.spaceSm,
+            ),
             child: Text('ACTIVE MEMBERS',
                 style: TextStyle(
                     fontSize: DesignTokens.typeXs,
@@ -80,16 +126,40 @@ class MembersScreen extends ConsumerWidget {
           ),
           members.when(
             data: (list) {
-              final active = list.where((m) => m.status == 'active').toList();
+              final active =
+                  list.where((m) => m.status == 'active').toList();
+              if (active.isEmpty) {
+                return const MmEmptyState(
+                  icon: Icons.people_outline,
+                  headline: 'No Active Members',
+                  body: 'Approved members will appear here.',
+                );
+              }
               return Column(
-                children: active.map((m) => _ActiveMemberTile(
-                      membership: m,
+                children: [
+                  for (var i = 0; i < active.length; i++) ...[
+                    _ActiveMemberTile(
+                      membership: active[i],
                       myRole: myRole,
-                    )).toList(),
+                    ),
+                    if (i < active.length - 1)
+                      const Divider(
+                          height: 1, indent: DesignTokens.spaceMd),
+                  ],
+                ],
               );
             },
-            loading: () => const CircularProgressIndicator(),
-            error: (e, _) => Text('Error: $e'),
+            loading: () => const Padding(
+              padding: EdgeInsets.all(DesignTokens.spaceLg),
+              child: Center(child: CircularProgressIndicator()),
+            ),
+            error: (e, _) => Padding(
+              padding: const EdgeInsets.all(DesignTokens.spaceLg),
+              child: Text(
+                'Error: $e',
+                style: const TextStyle(color: AppTheme.textSecondary),
+              ),
+            ),
           ),
         ],
       ),
@@ -105,7 +175,10 @@ class _PendingMemberTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return ListTile(
-      title: Text(membership.displayName),
+      title: Text(
+        membership.displayName,
+        style: const TextStyle(fontWeight: DesignTokens.weightMedium),
+      ),
       subtitle: Text('Requested ${_timeAgo(membership.joinedAt)}'),
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
@@ -113,13 +186,24 @@ class _PendingMemberTile extends ConsumerWidget {
           ElevatedButton(
             onPressed: () => _showApproveDialog(context, ref),
             style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.primary,
-                foregroundColor: Colors.white),
+              backgroundColor: AppTheme.primary,
+              foregroundColor: Colors.white,
+              shape: const RoundedRectangleBorder(
+                borderRadius: BorderRadius.all(
+                    Radius.circular(AppTheme.borderRadius)),
+              ),
+            ),
             child: const Text('APPROVE'),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: DesignTokens.spaceSm),
           OutlinedButton(
             onPressed: () => _deny(ref),
+            style: OutlinedButton.styleFrom(
+              shape: const RoundedRectangleBorder(
+                borderRadius: BorderRadius.all(
+                    Radius.circular(AppTheme.borderRadius)),
+              ),
+            ),
             child: const Text('DENY'),
           ),
         ],
