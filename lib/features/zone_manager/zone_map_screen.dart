@@ -56,14 +56,9 @@ class _ZoneMapScreenState extends ConsumerState<ZoneMapScreen> {
                     boundaryMargin: const EdgeInsets.all(80),
                     minScale: 0.5,
                     maxScale: 4.0,
-                    child: CustomPaint(
-                      painter: ZoneMapPainter(
-                        zones: state.zones,
-                        canvasSize: const Size(800, 600),
-                        selectedZoneId: state.selectedZoneId,
-                        onZoneTap: _onZoneTap,
-                      ),
-                      size: const Size(800, 600),
+                    child: _ZoneCanvas(
+                      state: state,
+                      onZoneTap: _onZoneTap,
                     ),
                   ),
           ),
@@ -79,6 +74,41 @@ class _ZoneMapScreenState extends ConsumerState<ZoneMapScreen> {
           icon: const Icon(Icons.add),
           backgroundColor: AppTheme.accent,
         ),
+      ),
+    );
+  }
+}
+
+// Wraps CustomPaint with a GestureDetector so taps hit-test against zone paths.
+class _ZoneCanvas extends StatefulWidget {
+  const _ZoneCanvas({required this.state, required this.onZoneTap});
+  final ZoneMapState state;
+  final void Function(String zoneId) onZoneTap;
+
+  @override
+  State<_ZoneCanvas> createState() => _ZoneCanvasState();
+}
+
+class _ZoneCanvasState extends State<_ZoneCanvas> {
+  static const _canvasSize = Size(800, 600);
+  ZoneMapPainter? _painter;
+
+  @override
+  Widget build(BuildContext context) {
+    _painter = ZoneMapPainter(
+      zones: widget.state.zones,
+      canvasSize: _canvasSize,
+      selectedZoneId: widget.state.selectedZoneId,
+      onZoneTap: widget.onZoneTap,
+    );
+    return GestureDetector(
+      onTapUp: (details) {
+        final id = _painter?.zoneIdAt(details.localPosition);
+        if (id != null) widget.onZoneTap(id);
+      },
+      child: CustomPaint(
+        painter: _painter,
+        size: _canvasSize,
       ),
     );
   }
