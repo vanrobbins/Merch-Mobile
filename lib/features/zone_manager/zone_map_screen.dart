@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../core/models/store_zone.dart';
-import '../../core/providers/auth_provider.dart';
+import '../../core/database/app_database.dart';
 import '../../core/router/app_router.dart';
+import '../../core/widgets/role_guard.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/design_tokens.dart';
 import 'zone_map_painter.dart';
 import 'zone_map_provider.dart';
 import 'zone_legend_panel.dart';
+import 'zone_shape.dart';
 
 class ZoneMapScreen extends ConsumerStatefulWidget {
   const ZoneMapScreen({super.key});
@@ -21,9 +22,6 @@ class _ZoneMapScreenState extends ConsumerState<ZoneMapScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(zoneMapNotifierProvider.notifier).createDefaultZones();
-    });
   }
 
   void _onZoneTap(String zoneId) {
@@ -35,7 +33,7 @@ class _ZoneMapScreenState extends ConsumerState<ZoneMapScreen> {
     _showZoneSheet(zone);
   }
 
-  void _showZoneSheet(StoreZone zone) {
+  void _showZoneSheet(ZonesTableData zone) {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -47,7 +45,6 @@ class _ZoneMapScreenState extends ConsumerState<ZoneMapScreen> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(zoneMapNotifierProvider);
-    final user = ref.watch(currentUserProvider).value;
 
     return Scaffold(
       appBar: AppBar(title: const Text('ZONE MAP')),
@@ -60,35 +57,196 @@ class _ZoneMapScreenState extends ConsumerState<ZoneMapScreen> {
                     boundaryMargin: const EdgeInsets.all(80),
                     minScale: 0.5,
                     maxScale: 4.0,
-                    child: CustomPaint(
-                      painter: ZoneMapPainter(
-                        zones: state.zones,
-                        selectedZoneId: state.selectedZoneId,
-                        onZoneTap: _onZoneTap,
-                      ),
-                      size: const Size(800, 600),
+                    child: _ZoneCanvas(
+                      onZoneTap: _onZoneTap,
                     ),
                   ),
           ),
+          _SelectedZoneBanner(state: state),
           const ZoneLegendPanel(),
         ],
       ),
-      floatingActionButton: user?.role == 'coordinator'
-          ? FloatingActionButton.extended(
-              onPressed: () =>
-                  ref.read(zoneMapNotifierProvider.notifier).addZone(),
-              label: const Text('ADD ZONE'),
-              icon: const Icon(Icons.add),
-              backgroundColor: AppTheme.accent,
-            )
-          : null,
+      floatingActionButton: RoleGuard(
+        allowedRoles: const ['coordinator', 'manager'],
+        child: FloatingActionButton.extended(
+          onPressed: () =>
+              ref.read(zoneMapNotifierProvider.notifier).addZone(),
+          label: const Text('ADD ZONE'),
+          icon: const Icon(Icons.add),
+          backgroundColor: AppTheme.accent,
+        ),
+      ),
+    );
+  }
+}
+
+// Shows the name + type of the currently selected zone above the legend.
+class _SelectedZoneBanner extends StatelessWidget {
+  const _SelectedZoneBanner({required this.state});
+  final ZoneMapState state;
+
+  @override
+  Widget build(BuildContext context) {
+    if (state.selectedZoneId == null) return const SizedBox.shrink();
+    final zone = state.zones.where((z) => z.id == state.selectedZoneId).firstOrNull;
+    if (zone == null) return const SizedBox.shrink();
+    final color = Color(zone.colorValue);
+    return Container(
+      width: double.infinity,
+      color: color.withOpacity(0.12),
+      padding: const EdgeInsets.symmetric(
+        horizontal: DesignTokens.spaceMd,
+        vertical: DesignTokens.spaceXs,
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 10,
+            height: 10,
+            decoration: BoxDecoration(
+              color: color,
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: DesignTokens.spaceSm),
+          Text(
+            zone.name.toUpperCase(),
+            style: TextStyle(
+              fontSize: DesignTokens.typeSm,
+              fontWeight: DesignTokens.weightBold,
+              letterSpacing: DesignTokens.letterSpacingEyebrow,
+              color: color,
+            ),
+          ),
+          const SizedBox(width: DesignTokens.spaceXs),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.18),
+              borderRadius: BorderRadius.circular(AppTheme.borderRadius),
+            ),
+            child: Text(
+              zone.zoneType.toUpperCase().replaceAll('_', ' '),
+              style: TextStyle(
+                fontSize: DesignTokens.typeXs,
+                fontWeight: DesignTokens.weightBold,
+                color: color,
+              ),
+            ),
+          ),
+          const Spacer(),
+          Text(
+            'TAP TO EDIT',
+            style: TextStyle(
+              fontSize: DesignTokens.typeXs,
+              color: AppTheme.textSecondary,
+              letterSpacing: DesignTokens.letterSpacingEyebrow,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// Handles tap (zone select) and pan (vertex drag) on the zone canvas.
+class _ZoneCanvas extends ConsumerStatefulWidget {
+  const _ZoneCanvas({required this.onZoneTap});
+  final void Function(String zoneId) onZoneTap;
+
+  @override
+  ConsumerState<_ZoneCanvas> createState() => _ZoneCanvasState();
+}
+
+class _ZoneCanvasState extends ConsumerState<_ZoneCanvas> {
+  static const _canvasSize = Size(800, 600);
+  static const _vertexHitRadius = 20.0;
+
+  ZoneMapPainter? _painter;
+
+  // Vertex drag state
+  String? _dragZoneId;
+  int? _dragVertexIdx;
+  List<Offset>? _dragPoints; // normalized 0..1
+
+  void _onPanStart(DragStartDetails d) {
+    final state = ref.read(zoneMapNotifierProvider);
+    final selectedId = state.selectedZoneId;
+    if (selectedId == null) return;
+    final zone = state.zones.firstWhere((z) => z.id == selectedId,
+        orElse: () => throw StateError('not found'));
+    final pts = ZoneShape.decode(zone.shapePoints);
+    if (pts.isEmpty) return;
+
+    // Convert normalized pts → screen px
+    final screenPts = pts
+        .map((p) => Offset(p.dx * _canvasSize.width, p.dy * _canvasSize.height))
+        .toList();
+
+    for (var i = 0; i < screenPts.length; i++) {
+      if ((screenPts[i] - d.localPosition).distance < _vertexHitRadius) {
+        setState(() {
+          _dragZoneId = selectedId;
+          _dragVertexIdx = i;
+          _dragPoints = List.of(pts);
+        });
+        return;
+      }
+    }
+  }
+
+  void _onPanUpdate(DragUpdateDetails d) {
+    if (_dragZoneId == null || _dragVertexIdx == null || _dragPoints == null) return;
+    final norm = Offset(
+      (d.localPosition.dx / _canvasSize.width).clamp(0.0, 1.0),
+      (d.localPosition.dy / _canvasSize.height).clamp(0.0, 1.0),
+    );
+    final updated = List.of(_dragPoints!)..[_dragVertexIdx!] = norm;
+    setState(() => _dragPoints = updated);
+    ref.read(zoneMapNotifierProvider.notifier)
+        .updateZoneShapeLocal(_dragZoneId!, updated);
+  }
+
+  void _onPanEnd(DragEndDetails _) {
+    if (_dragZoneId != null && _dragPoints != null) {
+      ref.read(zoneMapNotifierProvider.notifier)
+          .updateZoneShape(_dragZoneId!, _dragPoints!);
+    }
+    setState(() {
+      _dragZoneId = null;
+      _dragVertexIdx = null;
+      _dragPoints = null;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final state = ref.watch(zoneMapNotifierProvider);
+    _painter = ZoneMapPainter(
+      zones: state.zones,
+      canvasSize: _canvasSize,
+      selectedZoneId: state.selectedZoneId,
+      onZoneTap: widget.onZoneTap,
+    );
+    return GestureDetector(
+      onTapUp: (d) {
+        final id = _painter?.zoneIdAt(d.localPosition);
+        if (id != null) widget.onZoneTap(id);
+      },
+      onPanStart: _onPanStart,
+      onPanUpdate: _onPanUpdate,
+      onPanEnd: _onPanEnd,
+      child: CustomPaint(
+        painter: _painter,
+        size: _canvasSize,
+      ),
     );
   }
 }
 
 class _ZoneEditSheet extends ConsumerStatefulWidget {
   const _ZoneEditSheet({required this.zone});
-  final StoreZone zone;
+  final ZonesTableData zone;
 
   @override
   ConsumerState<_ZoneEditSheet> createState() => _ZoneEditSheetState();
@@ -129,7 +287,8 @@ class _ZoneEditSheetState extends ConsumerState<_ZoneEditSheet> {
     return Container(
       decoration: const BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+        borderRadius: BorderRadius.vertical(
+            top: Radius.circular(DesignTokens.radiusLg)),
       ),
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).viewInsets.bottom +
@@ -142,12 +301,13 @@ class _ZoneEditSheetState extends ConsumerState<_ZoneEditSheet> {
           // Handle
           Center(
             child: Container(
-              margin: const EdgeInsets.only(top: 8),
+              margin: const EdgeInsets.only(top: DesignTokens.spaceSm),
               width: 40,
               height: 4,
               decoration: BoxDecoration(
                 color: Colors.grey.shade300,
-                borderRadius: BorderRadius.circular(2),
+                borderRadius:
+                    BorderRadius.circular(AppTheme.borderRadius),
               ),
             ),
           ),
@@ -185,8 +345,8 @@ class _ZoneEditSheetState extends ConsumerState<_ZoneEditSheet> {
                 ),
                 const SizedBox(height: DesignTokens.spaceSm),
                 Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
+                  spacing: DesignTokens.spaceSm,
+                  runSpacing: DesignTokens.spaceSm,
                   children: _swatches.map((c) {
                     final isSelected = widget.zone.colorValue == c;
                     return GestureDetector(

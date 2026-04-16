@@ -2,9 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/design_tokens.dart';
-import '../../core/providers/auth_provider.dart';
+import '../../core/widgets/role_guard.dart';
 import 'auto_build_provider.dart';
 import 'before_after_preview.dart';
+
+// AutoBuild uses a deterministic in-app layout engine today.
+// A future pass can wire this to a remote AI endpoint; the UI already
+// accommodates an async compute/apply flow so the upgrade is additive.
+// Staff see a read-only preview (compute / apply / save are RoleGuarded).
 
 class AutoBuildScreen extends ConsumerStatefulWidget {
   const AutoBuildScreen({super.key, required this.zoneId});
@@ -98,9 +103,6 @@ class _AutoBuildScreenState extends ConsumerState<AutoBuildScreen> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(autoBuildNotifierProvider);
-    final userAsync = ref.watch(currentUserProvider);
-    final isCoordinator =
-        userAsync.valueOrNull?.role == 'coordinator';
 
     return Scaffold(
       appBar: AppBar(
@@ -146,27 +148,30 @@ class _AutoBuildScreenState extends ConsumerState<AutoBuildScreen> {
                   ),
                 ),
                 const SizedBox(height: DesignTokens.spaceMd),
-                ElevatedButton.icon(
-                  onPressed: state.isComputing ? null : _compute,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.primary,
-                    foregroundColor: Colors.white,
-                    shape: const RoundedRectangleBorder(
-                      borderRadius: BorderRadius.all(
-                          Radius.circular(DesignTokens.radiusSm)),
+                RoleGuard(
+                  allowedRoles: const ['coordinator', 'manager'],
+                  child: ElevatedButton.icon(
+                    onPressed: state.isComputing ? null : _compute,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.primary,
+                      foregroundColor: Colors.white,
+                      shape: const RoundedRectangleBorder(
+                        borderRadius: BorderRadius.all(
+                            Radius.circular(DesignTokens.radiusSm)),
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                          vertical: DesignTokens.spaceSm),
                     ),
-                    padding: const EdgeInsets.symmetric(
-                        vertical: DesignTokens.spaceSm),
+                    icon: state.isComputing
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2, color: Colors.white),
+                          )
+                        : const Icon(Icons.auto_fix_high),
+                    label: Text(state.isComputing ? 'COMPUTING…' : 'COMPUTE'),
                   ),
-                  icon: state.isComputing
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(
-                              strokeWidth: 2, color: Colors.white),
-                        )
-                      : const Icon(Icons.auto_fix_high),
-                  label: Text(state.isComputing ? 'COMPUTING…' : 'COMPUTE'),
                 ),
               ],
             ),
@@ -178,15 +183,17 @@ class _AutoBuildScreenState extends ConsumerState<AutoBuildScreen> {
               suggestedFixtures: state.suggestedFixtures,
             ),
           ),
-          // Action buttons
-          Padding(
-            padding: const EdgeInsets.all(DesignTokens.spaceMd),
-            child: Row(
-              children: [
-                if (isCoordinator) ...[
+          // Action buttons — coordinator/manager only
+          RoleGuard(
+            allowedRoles: const ['coordinator', 'manager'],
+            child: Padding(
+              padding: const EdgeInsets.all(DesignTokens.spaceMd),
+              child: Row(
+                children: [
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: state.suggestedFixtures.isEmpty ? null : _apply,
+                      onPressed:
+                          state.suggestedFixtures.isEmpty ? null : _apply,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppTheme.accent,
                         foregroundColor: Colors.white,
@@ -199,23 +206,24 @@ class _AutoBuildScreenState extends ConsumerState<AutoBuildScreen> {
                     ),
                   ),
                   const SizedBox(width: DesignTokens.spaceSm),
-                ],
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed:
-                        state.suggestedFixtures.isEmpty ? null : _savePresetDialog,
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppTheme.primary,
-                      side: const BorderSide(color: AppTheme.primary),
-                      shape: const RoundedRectangleBorder(
-                        borderRadius: BorderRadius.all(
-                            Radius.circular(DesignTokens.radiusSm)),
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: state.suggestedFixtures.isEmpty
+                          ? null
+                          : _savePresetDialog,
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppTheme.primary,
+                        side: const BorderSide(color: AppTheme.primary),
+                        shape: const RoundedRectangleBorder(
+                          borderRadius: BorderRadius.all(
+                              Radius.circular(DesignTokens.radiusSm)),
+                        ),
                       ),
+                      child: const Text('SAVE PRESET'),
                     ),
-                    child: const Text('SAVE PRESET'),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ],

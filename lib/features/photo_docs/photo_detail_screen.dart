@@ -4,10 +4,10 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import '../../core/providers/auth_provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/design_tokens.dart';
 import '../../core/widgets/mm_empty_state.dart';
+import '../../core/widgets/role_guard.dart';
 import 'approval_status_chip.dart';
 import 'photo_provider.dart';
 
@@ -24,8 +24,6 @@ class _PhotoDetailScreenState extends ConsumerState<PhotoDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final photoAsync = ref.watch(photoNotifierProvider);
-    final userAsync = ref.watch(currentUserProvider);
-    final isCoordinator = userAsync.valueOrNull?.role == 'coordinator';
 
     return photoAsync.when(
       loading: () => Scaffold(
@@ -116,59 +114,68 @@ class _PhotoDetailScreenState extends ConsumerState<PhotoDetailScreen> {
                     const SizedBox(height: DesignTokens.spaceSm),
                     // Approval status chip
                     ApprovalStatusChip(status: photo.approvalStatus),
-                    // Approve / Reject buttons for coordinator
-                    if (isCoordinator) ...[
-                      const SizedBox(height: DesignTokens.spaceMd),
-                      Row(
+                    // Approve / Reject buttons for coordinator/manager only
+                    RoleGuard(
+                      allowedRoles: const ['coordinator', 'manager'],
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          Expanded(
-                            child: ElevatedButton(
-                              onPressed: photo.approvalStatus == 'approved'
-                                  ? null
-                                  : () async {
-                                      await ref
-                                          .read(photoNotifierProvider.notifier)
-                                          .approvePhoto(widget.photoId);
-                                    },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.green.shade600,
-                                foregroundColor: Colors.white,
-                                disabledBackgroundColor:
-                                    Colors.green.shade900,
-                                shape: const RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.all(
-                                      Radius.circular(DesignTokens.radiusSm)),
+                          const SizedBox(height: DesignTokens.spaceMd),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: ElevatedButton(
+                                  onPressed: photo.approvalStatus == 'approved'
+                                      ? null
+                                      : () async {
+                                          await ref
+                                              .read(
+                                                  photoNotifierProvider.notifier)
+                                              .approvePhoto(widget.photoId);
+                                        },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.green.shade600,
+                                    foregroundColor: Colors.white,
+                                    disabledBackgroundColor:
+                                        Colors.green.shade900,
+                                    shape: const RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.all(
+                                          Radius.circular(
+                                              DesignTokens.radiusSm)),
+                                    ),
+                                  ),
+                                  child: const Text('APPROVE'),
                                 ),
                               ),
-                              child: const Text('APPROVE'),
-                            ),
-                          ),
-                          const SizedBox(width: DesignTokens.spaceSm),
-                          Expanded(
-                            child: ElevatedButton(
-                              onPressed: photo.approvalStatus == 'rejected'
-                                  ? null
-                                  : () async {
-                                      await ref
-                                          .read(photoNotifierProvider.notifier)
-                                          .rejectPhoto(widget.photoId);
-                                    },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.red.shade600,
-                                foregroundColor: Colors.white,
-                                disabledBackgroundColor:
-                                    Colors.red.shade900,
-                                shape: const RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.all(
-                                      Radius.circular(DesignTokens.radiusSm)),
+                              const SizedBox(width: DesignTokens.spaceSm),
+                              Expanded(
+                                child: ElevatedButton(
+                                  onPressed: photo.approvalStatus == 'rejected'
+                                      ? null
+                                      : () async {
+                                          await ref
+                                              .read(
+                                                  photoNotifierProvider.notifier)
+                                              .rejectPhoto(widget.photoId);
+                                        },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.red.shade600,
+                                    foregroundColor: Colors.white,
+                                    disabledBackgroundColor: Colors.red.shade900,
+                                    shape: const RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.all(
+                                          Radius.circular(
+                                              DesignTokens.radiusSm)),
+                                    ),
+                                  ),
+                                  child: const Text('REJECT'),
                                 ),
                               ),
-                              child: const Text('REJECT'),
-                            ),
+                            ],
                           ),
                         ],
                       ),
-                    ],
+                    ),
                   ],
                 ),
               ),

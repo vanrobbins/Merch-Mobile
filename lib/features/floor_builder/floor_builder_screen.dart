@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/theme/design_tokens.dart';
+import '../zone_manager/zone_shape.dart';
 import 'builder_canvas_painter.dart';
 import 'element_library_panel.dart';
 import 'floor_builder_provider.dart';
 import 'snap_grid.dart';
+import 'zone_edge_helper.dart';
 
 class FloorBuilderScreen extends ConsumerStatefulWidget {
   const FloorBuilderScreen({super.key, required this.zoneId});
@@ -21,6 +24,9 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
   Offset? _ghostPos;
   String? _ghostType;
 
+  // Wall placement mode
+  List<ZoneEdge>? _wallEdges;
+
   @override
   void initState() {
     super.initState();
@@ -33,13 +39,51 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
     showModalBottomSheet<void>(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (_) => ElementLibraryPanel(
+      builder: (sheetCtx) => ElementLibraryPanel(
         onFixtureSelected: (type) {
-          // Add fixture at center of canvas
-          ref.read(floorBuilderNotifierProvider.notifier).addFixture(type, const Offset(10, 10));
+          ref.read(floorBuilderNotifierProvider.notifier)
+              .addFixture(type, const Offset(2, 2));
         },
+        onWallSelected: _enterWallMode,
+        onDragStarted: () => Navigator.of(sheetCtx).pop(),
       ),
     );
+  }
+
+  void _enterWallMode() {
+    final zone = ref.read(zoneByIdProvider(widget.zoneId)).valueOrNull;
+    if (zone == null) return;
+    final zonePts = ZoneShape.decode(zone.shapePoints);
+    if (zonePts.length < 3) return;
+    const canvasSize = Size(800, 600);
+    final edges = ZoneEdge.compute(zonePts, canvasSize, _pixelsPerFt);
+    if (edges.isEmpty) return;
+    setState(() => _wallEdges = edges);
+    _showWallPlacementSheet(edges);
+  }
+
+  void _showWallPlacementSheet(List<ZoneEdge> edges) {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (_) => _WallPlacementSheet(
+        edges: edges,
+        pixelsPerFt: _pixelsPerFt,
+        onPlace: (edge, lengthFt) {
+          final centerFt = Offset(
+            edge.midPx.dx / _pixelsPerFt,
+            edge.midPx.dy / _pixelsPerFt,
+          );
+          ref.read(floorBuilderNotifierProvider.notifier).addWallFixture(
+            centerFt: centerFt,
+            lengthFt: lengthFt,
+            angleDeg: edge.angleDeg,
+          );
+          setState(() => _wallEdges = null);
+        },
+      ),
+    ).whenComplete(() => setState(() => _wallEdges = null));
   }
 
   void _onCanvasTap(TapUpDetails details) {
@@ -79,12 +123,19 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(floorBuilderNotifierProvider);
+    final zoneAsync = ref.watch(zoneByIdProvider(widget.zoneId));
+    final zone = zoneAsync.valueOrNull;
+    final zonePts = zone != null ? ZoneShape.decode(zone.shapePoints) : null;
     final painter = BuilderCanvasPainter(
       fixtures: state.fixtures,
       selectedFixtureId: state.selectedFixtureId,
       ghostPos: _ghostPos,
       ghostType: _ghostType,
       pixelsPerFt: _pixelsPerFt,
+      zoneNormalizedPts: (zonePts != null && zonePts.length >= 3) ? zonePts : null,
+      zoneColor: zone != null ? Color(zone.colorValue) : null,
+      zoneName: zone?.name,
+      wallEdges: _wallEdges,
     );
 
     return Scaffold(
@@ -174,13 +225,207 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
             backgroundColor: state.selectedFixtureId != null ? AppTheme.primary : Colors.grey,
             child: const Icon(Icons.rotate_right),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: DesignTokens.spaceSm),
           FloatingActionButton.extended(
             heroTag: 'library',
             onPressed: _showElementLibrary,
             label: const Text('ELEMENT LIBRARY'),
             icon: const Icon(Icons.add),
             backgroundColor: AppTheme.accent,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _WallPlacementSheet extends StatefulWidget {
+  const _WallPlacementSheet({
+    required this.edges,
+    required this.pixelsPerFt,
+    required this.onPlace,
+  });
+  final List<ZoneEdge> edges;
+  final double pixelsPerFt;
+  final void Function(ZoneEdge edge, double lengthFt) onPlace;
+
+  @override
+  State<_WallPlacementSheet> createState() => _WallPlacementSheetState();
+}
+
+class _WallPlacementSheetState extends State<_WallPlacementSheet> {
+  ZoneEdge? _selectedEdge;
+  late TextEditingController _lengthCtrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _lengthCtrl = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _lengthCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(DesignTokens.radiusLg)),
+      ),
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom +
+            MediaQuery.of(context).padding.bottom,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Center(
+            child: Container(
+              margin: const EdgeInsets.only(top: DesignTokens.spaceSm),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(AppTheme.borderRadius),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(DesignTokens.spaceMd),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Text(
+                  'PLACE WALL',
+                  style: TextStyle(
+                    fontSize: DesignTokens.typeLg,
+                    fontWeight: DesignTokens.weightBold,
+                    letterSpacing: DesignTokens.letterSpacingEyebrow,
+                  ),
+                ),
+                const SizedBox(height: DesignTokens.spaceXs),
+                Text(
+                  _selectedEdge == null ? 'SELECT A ZONE EDGE' : 'ENTER WALL LENGTH',
+                  style: const TextStyle(
+                    fontSize: DesignTokens.typeXs,
+                    color: AppTheme.textSecondary,
+                    letterSpacing: DesignTokens.letterSpacingEyebrow,
+                  ),
+                ),
+                const SizedBox(height: DesignTokens.spaceMd),
+                if (_selectedEdge == null) ...[
+                  ...widget.edges.asMap().entries.map((entry) {
+                    final edge = entry.value;
+                    final num = entry.key + 1;
+                    return ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: CircleAvatar(
+                        radius: 14,
+                        backgroundColor: AppTheme.accent,
+                        child: Text(
+                          '$num',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: DesignTokens.typeXs,
+                            fontWeight: DesignTokens.weightBold,
+                          ),
+                        ),
+                      ),
+                      title: Text(
+                        'EDGE $num',
+                        style: const TextStyle(
+                          fontWeight: DesignTokens.weightBold,
+                          fontSize: DesignTokens.typeSm,
+                          letterSpacing: DesignTokens.letterSpacingEyebrow,
+                        ),
+                      ),
+                      subtitle: Text(
+                        '${edge.lengthFt.toStringAsFixed(1)} ft',
+                        style: const TextStyle(
+                          fontSize: DesignTokens.typeXs,
+                          color: AppTheme.textSecondary,
+                        ),
+                      ),
+                      trailing: const Icon(Icons.chevron_right, color: AppTheme.textSecondary),
+                      onTap: () => setState(() {
+                        _selectedEdge = edge;
+                        _lengthCtrl.text = edge.lengthFt.toStringAsFixed(1);
+                      }),
+                    );
+                  }),
+                ] else ...[
+                  Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 14,
+                        backgroundColor: AppTheme.accent,
+                        child: Text(
+                          '${_selectedEdge!.index + 1}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: DesignTokens.typeXs,
+                            fontWeight: DesignTokens.weightBold,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: DesignTokens.spaceSm),
+                      Text(
+                        'EDGE ${_selectedEdge!.index + 1}  \u2022  ${_selectedEdge!.lengthFt.toStringAsFixed(1)} ft',
+                        style: const TextStyle(
+                          fontWeight: DesignTokens.weightBold,
+                          fontSize: DesignTokens.typeSm,
+                          letterSpacing: DesignTokens.letterSpacingEyebrow,
+                        ),
+                      ),
+                      const Spacer(),
+                      GestureDetector(
+                        onTap: () => setState(() => _selectedEdge = null),
+                        child: const Text(
+                          'CHANGE',
+                          style: TextStyle(
+                            fontSize: DesignTokens.typeXs,
+                            color: AppTheme.accent,
+                            fontWeight: DesignTokens.weightBold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: DesignTokens.spaceMd),
+                  TextField(
+                    controller: _lengthCtrl,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    decoration: const InputDecoration(
+                      labelText: 'Wall length',
+                      border: UnderlineInputBorder(),
+                      suffixText: 'ft',
+                    ),
+                  ),
+                  const SizedBox(height: DesignTokens.spaceLg),
+                  ElevatedButton(
+                    onPressed: () {
+                      final parsed = double.tryParse(_lengthCtrl.text) ?? 4.0;
+                      final lengthFt = parsed < 0.5 ? 0.5 : parsed;
+                      widget.onPlace(_selectedEdge!, lengthFt);
+                      Navigator.pop(context);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.accent,
+                      foregroundColor: Colors.white,
+                      shape: const RoundedRectangleBorder(
+                        borderRadius: BorderRadius.all(Radius.circular(AppTheme.borderRadius)),
+                      ),
+                    ),
+                    child: const Text('PLACE WALL'),
+                  ),
+                ],
+              ],
+            ),
           ),
         ],
       ),
@@ -228,17 +473,23 @@ class _FixtureActionsSheetState extends State<_FixtureActionsSheet> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Text('FIXTURE OPTIONS', style: TextStyle(
-            fontWeight: FontWeight.w700,
-            fontSize: 14,
-            letterSpacing: 1.2,
-          )),
-          const SizedBox(height: 16),
+          const Text(
+            'FIXTURE OPTIONS',
+            style: TextStyle(
+              fontWeight: DesignTokens.weightBold,
+              fontSize: DesignTokens.typeMd,
+              letterSpacing: DesignTokens.letterSpacingEyebrow,
+            ),
+          ),
+          const SizedBox(height: DesignTokens.spaceMd),
           TextField(
             controller: _ctrl,
-            decoration: const InputDecoration(labelText: 'Label', border: UnderlineInputBorder()),
+            decoration: const InputDecoration(
+              labelText: 'Label',
+              border: UnderlineInputBorder(),
+            ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: DesignTokens.spaceMd),
           Row(
             children: [
               Expanded(
@@ -247,18 +498,31 @@ class _FixtureActionsSheetState extends State<_FixtureActionsSheet> {
                     widget.notifier.renameFixture(widget.fixtureId, _ctrl.text);
                     Navigator.pop(context);
                   },
+                  style: OutlinedButton.styleFrom(
+                    shape: const RoundedRectangleBorder(
+                      borderRadius: BorderRadius.all(
+                          Radius.circular(AppTheme.borderRadius)),
+                    ),
+                  ),
                   child: const Text('RENAME'),
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: DesignTokens.spaceSm),
               Expanded(
                 child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red.shade600,
+                    foregroundColor: Colors.white,
+                    shape: const RoundedRectangleBorder(
+                      borderRadius: BorderRadius.all(
+                          Radius.circular(AppTheme.borderRadius)),
+                    ),
+                  ),
                   onPressed: () {
                     widget.notifier.deleteFixture(widget.fixtureId);
                     Navigator.pop(context);
                   },
-                  child: const Text('DELETE', style: TextStyle(color: Colors.white)),
+                  child: const Text('DELETE'),
                 ),
               ),
             ],

@@ -3,8 +3,15 @@ import '../../core/theme/app_theme.dart';
 import '../../core/theme/design_tokens.dart';
 
 class ElementLibraryPanel extends StatelessWidget {
-  const ElementLibraryPanel({super.key, required this.onFixtureSelected});
+  const ElementLibraryPanel({
+    super.key,
+    required this.onFixtureSelected,
+    required this.onWallSelected,
+    this.onDragStarted,
+  });
   final void Function(String fixtureType) onFixtureSelected;
+  final VoidCallback onWallSelected;
+  final VoidCallback? onDragStarted;
 
   static const _types = [
     _FixtureTile('rack', Icons.view_column_outlined, 'RACK'),
@@ -18,7 +25,8 @@ class ElementLibraryPanel extends StatelessWidget {
     return Container(
       decoration: const BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+        borderRadius: BorderRadius.vertical(
+            top: Radius.circular(DesignTokens.radiusLg)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -26,9 +34,14 @@ class ElementLibraryPanel extends StatelessWidget {
           // Handle
           Center(
             child: Container(
-              margin: const EdgeInsets.only(top: 8),
-              width: 40, height: 4,
-              decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2)),
+              margin: const EdgeInsets.only(top: DesignTokens.spaceSm),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade300,
+                borderRadius:
+                    BorderRadius.circular(AppTheme.borderRadius),
+              ),
             ),
           ),
           const Padding(
@@ -46,7 +59,16 @@ class ElementLibraryPanel extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: _types.map((t) => _DraggableTile(
                 tile: t,
-                onDragStarted: () => Navigator.pop(context),
+                draggable: t.type != 'wall',
+                onTap: () {
+                  Navigator.pop(context);
+                  if (t.type == 'wall') {
+                    onWallSelected();
+                  } else {
+                    onFixtureSelected(t.type);
+                  }
+                },
+                onDragStarted: t.type == 'wall' ? null : onDragStarted,
               )).toList(),
             ),
           ),
@@ -58,9 +80,16 @@ class ElementLibraryPanel extends StatelessWidget {
 }
 
 class _DraggableTile extends StatelessWidget {
-  const _DraggableTile({required this.tile, required this.onDragStarted});
+  const _DraggableTile({
+    required this.tile,
+    required this.onTap,
+    this.onDragStarted,
+    this.draggable = true,
+  });
   final _FixtureTile tile;
-  final VoidCallback onDragStarted;
+  final VoidCallback onTap;
+  final VoidCallback? onDragStarted;
+  final bool draggable;
 
   Widget _tileBox({double opacity = 1.0}) {
     return Column(
@@ -75,7 +104,7 @@ class _DraggableTile extends StatelessWidget {
           ),
           child: Icon(tile.icon, size: 32, color: AppTheme.primary.withValues(alpha: opacity)),
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: DesignTokens.spaceXs),
         Text(tile.label, style: TextStyle(
           fontSize: DesignTokens.typeXs,
           fontWeight: DesignTokens.weightBold,
@@ -88,6 +117,13 @@ class _DraggableTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: draggable ? _buildDraggable() : _tileBox(),
+    );
+  }
+
+  Widget _buildDraggable() {
     return Draggable<String>(
       data: tile.type,
       onDragStarted: onDragStarted,

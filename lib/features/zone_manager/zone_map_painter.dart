@@ -1,31 +1,43 @@
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
-import '../../core/models/store_zone.dart';
-import '../../core/theme/app_theme.dart';
-import '../../core/theme/design_tokens.dart';
+import '../../core/database/app_database.dart';
+import 'zone_shape.dart';
 
 class ZoneMapPainter extends CustomPainter {
   ZoneMapPainter({
     required this.zones,
+    required this.canvasSize,
     this.selectedZoneId,
-    required this.onZoneTap,
+    this.onZoneTap,
   });
 
-  final List<StoreZone> zones;
+  final List<ZonesTableData> zones;
+  final Size canvasSize;
   final String? selectedZoneId;
-  final void Function(String zoneId) onZoneTap;
+  final void Function(String zoneId)? onZoneTap;
 
-  final Map<String, Rect> _zoneRects = {};
+  // Cache hit-test paths for tap detection
+  final Map<String, Path> _zonePaths = {};
 
   @override
   void paint(Canvas canvas, Size size) {
-    _zoneRects.clear();
+    _zonePaths.clear();
     _drawGrid(canvas, size);
-    _drawZones(canvas, size);
+    for (final zone in zones) {
+      _drawZone(canvas, size, zone);
+    }
+    // Draw vertex handles on selected zone
+    if (selectedZoneId != null) {
+      final selected = zones.where((z) => z.id == selectedZoneId).firstOrNull;
+      if (selected != null) {
+        _drawVertexHandles(canvas, size, selected);
+      }
+    }
   }
 
   void _drawGrid(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = Colors.grey.withValues(alpha: 0.2)
+      ..color = Colors.grey.withOpacity(0.15)
       ..strokeWidth = 0.5;
     const step = 40.0;
     for (double x = 0; x < size.width; x += step) {
@@ -36,68 +48,133 @@ class ZoneMapPainter extends CustomPainter {
     }
   }
 
-  void _drawZones(Canvas canvas, Size size) {
-    for (final zone in zones) {
-      final rect = Rect.fromLTWH(
-        zone.posX * size.width,
-        zone.posY * size.height,
-        zone.width * size.width,
-        zone.height * size.height,
-      );
-      _zoneRects[zone.id] = rect;
+  void _drawZone(Canvas canvas, Size size, ZonesTableData zone) {
+    final points = _getPoints(zone, size);
+    if (points.length < 3) return;
 
-      final rrect = RRect.fromRectAndRadius(rect, const Radius.circular(AppTheme.borderRadius));
-      final isSelected = zone.id == selectedZoneId;
+    final path = Path()..addPolygon(points, true);
+    _zonePaths[zone.id] = path;
 
-      // Fill
-      final fillPaint = Paint()
-        ..color = Color(zone.colorValue).withValues(alpha: 0.35)
-        ..style = PaintingStyle.fill;
-      canvas.drawRRect(rrect, fillPaint);
+    final color = Color(zone.colorValue);
+    final isSelected = zone.id == selectedZoneId;
+    final isDisplay = zone.zoneType == 'display';
 
-      // Border
-      final borderPaint = Paint()
-        ..color = isSelected ? AppTheme.accent : Color(zone.colorValue)
-        ..strokeWidth = isSelected ? 2.0 : 1.0
-        ..style = PaintingStyle.stroke;
-      canvas.drawRRect(rrect, borderPaint);
+    // Fill — selected zones are noticeably brighter
+    canvas.drawPath(
+      path,
+      Paint()
+        ..color = color.withOpacity(isSelected ? 0.45 : 0.20)
+        ..style = PaintingStyle.fill,
+    );
 
-      // Label
-      _drawLabel(canvas, zone.name, rect);
+    // Stroke — selected uses accent + thick border; unselected uses zone color
+    final strokePaint = Paint()
+      ..color = isSelected ? const Color(0xFFBF5534) : color.withOpacity(0.7)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = isSelected ? 3.5 : 1.5
+      ..strokeJoin = StrokeJoin.round;
+
+    if (!isDisplay) {
+      _drawDashedPath(canvas, path, strokePaint);
+    } else {
+      canvas.drawPath(path, strokePaint);
+    }
+
+    // Zone name label — white halo improves contrast over the fill.
+    final centroid = _centroid(points);
+    final tp = TextPainter(
+      text: TextSpan(
+        text: zone.name.toUpperCase(),
+        style: TextStyle(
+          // ignore: deprecated_member_use
+          color: color.withOpacity(0.95),
+          fontSize: 10,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 1.0,
+          shadows: [
+            Shadow(
+              // ignore: deprecated_member_use
+              color: Colors.white.withOpacity(0.7),
+              blurRadius: 3,
+              offset: const Offset(0, 0),
+            ),
+          ],
+        ),
+      ),
+      textDirection: ui.TextDirection.ltr,
+    )..layout();
+    tp.paint(canvas, centroid - Offset(tp.width / 2, tp.height / 2));
+  }
+
+  void _drawVertexHandles(Canvas canvas, Size size, ZonesTableData zone) {
+    final points = _getPoints(zone, size);
+    final color = Color(zone.colorValue);
+    final fillPaint = Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.fill;
+    final strokePaint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.0;
+
+    for (final p in points) {
+      canvas.drawCircle(p, 8.0, fillPaint);
+      canvas.drawCircle(p, 8.0, strokePaint);
     }
   }
 
-  void _drawLabel(Canvas canvas, String text, Rect rect) {
-    final span = TextSpan(
-      text: text.toUpperCase(),
-      style: const TextStyle(
-        fontSize: DesignTokens.typeXs,
-        fontWeight: DesignTokens.weightBold,
-        letterSpacing: DesignTokens.letterSpacingEyebrow,
-        color: AppTheme.textPrimary,
-      ),
-    );
-    final tp = TextPainter(
-      text: span,
-      textDirection: TextDirection.ltr,
-    )..layout(maxWidth: rect.width - 8);
-
-    final offset = Offset(
-      rect.left + (rect.width - tp.width) / 2,
-      rect.top + (rect.height - tp.height) / 2,
-    );
-    tp.paint(canvas, offset);
+  List<Offset> _getPoints(ZonesTableData zone, Size size) {
+    final decoded = ZoneShape.decode(zone.shapePoints);
+    if (decoded.isNotEmpty) {
+      // shapePoints stores normalized 0..1 coords — scale to canvas
+      return decoded
+          .map((p) => Offset(p.dx * size.width, p.dy * size.height))
+          .toList();
+    }
+    // Fallback to posX/posY/width/height (legacy)
+    final x = zone.posX * size.width;
+    final y = zone.posY * size.height;
+    final w = zone.width * size.width;
+    final h = zone.height * size.height;
+    return [
+      Offset(x, y),
+      Offset(x + w, y),
+      Offset(x + w, y + h),
+      Offset(x, y + h),
+    ];
   }
 
-  @override
-  bool? hitTest(Offset position) {
-    for (final entry in _zoneRects.entries) {
-      if (entry.value.contains(position)) {
-        onZoneTap(entry.key);
-        return true;
+  void _drawDashedPath(Canvas canvas, Path path, Paint paint) {
+    const dashLen = 8.0;
+    const gapLen = 5.0;
+    final metrics = path.computeMetrics();
+    for (final metric in metrics) {
+      double dist = 0;
+      while (dist < metric.length) {
+        final end = (dist + dashLen).clamp(0.0, metric.length);
+        canvas.drawPath(metric.extractPath(dist, end), paint);
+        dist += dashLen + gapLen;
       }
     }
-    return false;
+  }
+
+  Offset _centroid(List<Offset> pts) {
+    var x = 0.0, y = 0.0;
+    for (final p in pts) {
+      x += p.dx;
+      y += p.dy;
+    }
+    return Offset(x / pts.length, y / pts.length);
+  }
+
+  /// Returns the zone ID at [position], or null. Not an override of CustomPainter.hitTest.
+  String? zoneIdAt(Offset position) {
+    // Iterate in reverse so topmost zone is hit first
+    for (final zone in zones.reversed) {
+      final path = _zonePaths[zone.id];
+      if (path != null && path.contains(position)) return zone.id;
+    }
+    return null;
   }
 
   @override

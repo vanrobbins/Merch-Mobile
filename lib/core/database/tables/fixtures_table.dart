@@ -10,6 +10,7 @@ class FixturesTable extends Table {
   RealColumn get widthFt => real().withDefault(const Constant(4.0))();
   RealColumn get depthFt => real().withDefault(const Constant(2.0))();
   TextColumn get label => text().withDefault(const Constant(''))();
+  TextColumn get storeId => text().withDefault(const Constant(''))();
   DateTimeColumn get updatedAt => dateTime()();
 
   @override
