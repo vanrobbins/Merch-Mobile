@@ -163,28 +163,30 @@ class _ZoneCanvasState extends ConsumerState<_ZoneCanvas> {
   static const _vertexHitRadius = 20.0;
 
   ZoneMapPainter? _painter;
+  int? _primaryPointer;
 
   // Vertex drag state
   String? _dragZoneId;
   int? _dragVertexIdx;
   List<Offset>? _dragPoints; // normalized 0..1
 
-  void _onPanStart(DragStartDetails d) {
+  void _onPointerDown(PointerDownEvent event) {
+    if (_primaryPointer != null) return;
     final state = ref.read(zoneMapNotifierProvider);
     final selectedId = state.selectedZoneId;
     if (selectedId == null) return;
-    final zone = state.zones.firstWhere((z) => z.id == selectedId,
-        orElse: () => throw StateError('not found'));
+    final zone = state.zones.where((z) => z.id == selectedId).firstOrNull;
+    if (zone == null) return;
     final pts = ZoneShape.decode(zone.shapePoints);
     if (pts.isEmpty) return;
 
-    // Convert normalized pts → screen px
     final screenPts = pts
         .map((p) => Offset(p.dx * _canvasSize.width, p.dy * _canvasSize.height))
         .toList();
 
     for (var i = 0; i < screenPts.length; i++) {
-      if ((screenPts[i] - d.localPosition).distance < _vertexHitRadius) {
+      if ((screenPts[i] - event.localPosition).distance < _vertexHitRadius) {
+        _primaryPointer = event.pointer;
         setState(() {
           _dragZoneId = selectedId;
           _dragVertexIdx = i;
@@ -195,22 +197,23 @@ class _ZoneCanvasState extends ConsumerState<_ZoneCanvas> {
     }
   }
 
-  void _onPanUpdate(DragUpdateDetails d) {
+  void _onPointerMove(PointerMoveEvent event) {
+    if (event.pointer != _primaryPointer) return;
     if (_dragZoneId == null || _dragVertexIdx == null || _dragPoints == null) return;
     final norm = Offset(
-      (d.localPosition.dx / _canvasSize.width).clamp(0.0, 1.0),
-      (d.localPosition.dy / _canvasSize.height).clamp(0.0, 1.0),
+      (event.localPosition.dx / _canvasSize.width).clamp(0.0, 1.0),
+      (event.localPosition.dy / _canvasSize.height).clamp(0.0, 1.0),
     );
     final updated = List.of(_dragPoints!)..[_dragVertexIdx!] = norm;
     setState(() => _dragPoints = updated);
-    ref.read(zoneMapNotifierProvider.notifier)
-        .updateZoneShapeLocal(_dragZoneId!, updated);
+    ref.read(zoneMapNotifierProvider.notifier).updateZoneShapeLocal(_dragZoneId!, updated);
   }
 
-  void _onPanEnd(DragEndDetails _) {
+  void _onPointerUp(PointerUpEvent event) {
+    if (event.pointer != _primaryPointer) return;
+    _primaryPointer = null;
     if (_dragZoneId != null && _dragPoints != null) {
-      ref.read(zoneMapNotifierProvider.notifier)
-          .updateZoneShape(_dragZoneId!, _dragPoints!);
+      ref.read(zoneMapNotifierProvider.notifier).updateZoneShape(_dragZoneId!, _dragPoints!);
     }
     setState(() {
       _dragZoneId = null;
@@ -228,17 +231,19 @@ class _ZoneCanvasState extends ConsumerState<_ZoneCanvas> {
       selectedZoneId: state.selectedZoneId,
       onZoneTap: widget.onZoneTap,
     );
-    return GestureDetector(
-      onTapUp: (d) {
-        final id = _painter?.zoneIdAt(d.localPosition);
-        if (id != null) widget.onZoneTap(id);
-      },
-      onPanStart: _onPanStart,
-      onPanUpdate: _onPanUpdate,
-      onPanEnd: _onPanEnd,
-      child: CustomPaint(
-        painter: _painter,
-        size: _canvasSize,
+    return Listener(
+      onPointerDown: _onPointerDown,
+      onPointerMove: _onPointerMove,
+      onPointerUp: _onPointerUp,
+      child: GestureDetector(
+        onTapUp: (d) {
+          final id = _painter?.zoneIdAt(d.localPosition);
+          if (id != null) widget.onZoneTap(id);
+        },
+        child: CustomPaint(
+          painter: _painter,
+          size: _canvasSize,
+        ),
       ),
     );
   }

@@ -178,6 +178,8 @@ class BuilderCanvasPainter extends CustomPainter {
         _drawShelf(canvas, rect, fillPaint, borderPaint);
       case 'wall':
         _drawWall(canvas, rect, fillPaint, borderPaint);
+      case 'partition':
+        _drawPartition(canvas, rect, fillPaint, borderPaint);
       default:
         canvas.drawRect(rect, fillPaint);
         canvas.drawRect(rect, borderPaint);
@@ -223,10 +225,35 @@ class BuilderCanvasPainter extends CustomPainter {
   }
 
   void _drawWall(Canvas canvas, Rect rect, Paint fill, Paint border) {
-    // Thick filled rect
     final wallPaint = Paint()..color = AppTheme.primary.withValues(alpha: 0.35)..style = PaintingStyle.fill;
     canvas.drawRect(rect, wallPaint);
     canvas.drawRect(rect, border);
+  }
+
+  void _drawPartition(Canvas canvas, Rect rect, Paint fill, Paint border) {
+    // Interior divider — dashed centre line with light fill
+    canvas.drawRect(rect, Paint()..color = AppTheme.accent.withValues(alpha: 0.12)..style = PaintingStyle.fill);
+    canvas.drawRect(rect, Paint()..color = AppTheme.accent..strokeWidth = 1.5..style = PaintingStyle.stroke);
+    // Dashed centre line along long axis
+    final isWide = rect.width >= rect.height;
+    final dashPaint = Paint()..color = AppTheme.accent..strokeWidth = 1.0;
+    const dashLen = 4.0;
+    const gap = 3.0;
+    if (isWide) {
+      double x = rect.left + 4;
+      final y = rect.center.dy;
+      while (x < rect.right - 4) {
+        canvas.drawLine(Offset(x, y), Offset((x + dashLen).clamp(rect.left, rect.right - 4), y), dashPaint);
+        x += dashLen + gap;
+      }
+    } else {
+      double y = rect.top + 4;
+      final x = rect.center.dx;
+      while (y < rect.bottom - 4) {
+        canvas.drawLine(Offset(x, y), Offset(x, (y + dashLen).clamp(rect.top, rect.bottom - 4)), dashPaint);
+        y += dashLen + gap;
+      }
+    }
   }
 
   void _drawGhost(Canvas canvas, Offset pos, String type) {

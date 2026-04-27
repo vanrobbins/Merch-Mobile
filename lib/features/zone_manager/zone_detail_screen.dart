@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../core/database/app_database.dart';
 import '../../core/providers/database_provider.dart';
 import '../../core/providers/store_provider.dart';
@@ -9,24 +10,31 @@ import '../../core/theme/app_theme.dart';
 import '../../core/theme/design_tokens.dart';
 import '../../core/widgets/role_guard.dart';
 
+part 'zone_detail_screen.g.dart';
+
+@riverpod
+Stream<List<ZonesTableData>> zoneDetailZones(Ref ref, String storeId) =>
+    ref.watch(appDatabaseProvider).zonesDao.watchByStore(storeId);
+
+@riverpod
+Stream<List<FixturesTableData>> zoneDetailFixtures(Ref ref, String zoneId) =>
+    ref.watch(appDatabaseProvider).fixturesDao.watchByParentId(zoneId);
+
+@riverpod
+Stream<List<PlanogramsTableData>> zoneDetailPlanograms(Ref ref) =>
+    ref.watch(appDatabaseProvider).planogramsDao.watchAll();
+
 class ZoneDetailScreen extends ConsumerWidget {
   const ZoneDetailScreen({super.key, required this.zoneId});
   final String zoneId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final db = ref.watch(appDatabaseProvider);
     final storeId = ref.watch(activeStoreIdProvider).value ?? '';
 
-    final zonesAsync = ref.watch(
-      StreamProvider((r) => db.zonesDao.watchByStore(storeId)),
-    );
-    final fixturesAsync = ref.watch(
-      StreamProvider((r) => db.fixturesDao.watchByParentId(zoneId)),
-    );
-    final planogramsAsync = ref.watch(
-      StreamProvider((r) => db.planogramsDao.watchAll()),
-    );
+    final zonesAsync = ref.watch(zoneDetailZonesProvider(storeId));
+    final fixturesAsync = ref.watch(zoneDetailFixturesProvider(zoneId));
+    final planogramsAsync = ref.watch(zoneDetailPlanogramsProvider);
 
     final zone = zonesAsync.value?.where((z) => z.id == zoneId).firstOrNull;
 

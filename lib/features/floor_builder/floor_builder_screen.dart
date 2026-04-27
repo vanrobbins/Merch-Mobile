@@ -27,6 +27,11 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
   // Wall placement mode
   List<ZoneEdge>? _wallEdges;
 
+  // Fixture drag state
+  BuilderCanvasPainter? _painter;
+  String? _dragFixtureId;
+  int? _primaryPointer;
+
   @override
   void initState() {
     super.initState();
@@ -86,11 +91,6 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
     ).whenComplete(() => setState(() => _wallEdges = null));
   }
 
-  void _onCanvasTap(TapUpDetails details) {
-    // Deselect on background tap
-    ref.read(floorBuilderNotifierProvider.notifier).selectFixture(null);
-  }
-
   void _onFixtureLongPress(String fixtureId, String currentLabel) {
     showModalBottomSheet<void>(
       context: context,
@@ -102,10 +102,10 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
     );
   }
 
-  void _handleLongPressStart(LongPressStartDetails details, BuilderCanvasPainter painter) {
-    final pos = details.localPosition;
-    for (final entry in painter.fixtureRects.entries) {
-      if (entry.value.contains(pos)) {
+  void _handleLongPressInCanvas(LongPressStartDetails details) {
+    if (_painter == null) return;
+    for (final entry in _painter!.fixtureRects.entries) {
+      if (entry.value.contains(details.localPosition)) {
         final fixture = ref
             .read(floorBuilderNotifierProvider)
             .fixtures
@@ -113,6 +113,34 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
         _onFixtureLongPress(fixture.id, fixture.label.isNotEmpty ? fixture.label : fixture.fixtureType.toUpperCase());
         return;
       }
+    }
+  }
+
+  void _onPointerDown(PointerDownEvent event) {
+    if (_painter == null || _primaryPointer != null) return;
+    for (final entry in _painter!.fixtureRects.entries) {
+      if (entry.value.contains(event.localPosition)) {
+        _primaryPointer = event.pointer;
+        ref.read(floorBuilderNotifierProvider.notifier).selectFixture(entry.key);
+        setState(() => _dragFixtureId = entry.key);
+        return;
+      }
+    }
+    ref.read(floorBuilderNotifierProvider.notifier).selectFixture(null);
+  }
+
+  void _onPointerMove(PointerMoveEvent event) {
+    if (_dragFixtureId == null || event.pointer != _primaryPointer) return;
+    ref.read(floorBuilderNotifierProvider.notifier).moveFixture(
+      _dragFixtureId!,
+      Offset(event.localPosition.dx / _pixelsPerFt, event.localPosition.dy / _pixelsPerFt),
+    );
+  }
+
+  void _onPointerUp(PointerUpEvent event) {
+    if (event.pointer == _primaryPointer) {
+      _primaryPointer = null;
+      if (_dragFixtureId != null) setState(() => _dragFixtureId = null);
     }
   }
 
@@ -126,7 +154,7 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
     final zoneAsync = ref.watch(zoneByIdProvider(widget.zoneId));
     final zone = zoneAsync.valueOrNull;
     final zonePts = zone != null ? ZoneShape.decode(zone.shapePoints) : null;
-    final painter = BuilderCanvasPainter(
+    _painter = BuilderCanvasPainter(
       fixtures: state.fixtures,
       selectedFixtureId: state.selectedFixtureId,
       ghostPos: _ghostPos,
@@ -185,31 +213,36 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
                 });
               },
               builder: (context, candidateData, rejectedData) {
-                return GestureDetector(
-                  onTapUp: _onCanvasTap,
-                  onLongPressStart: (details) => _handleLongPressStart(details, painter),
-                  child: Stack(
-                    children: [
-                      // Grid layer
-                      if (state.snapGridEnabled)
-                        Positioned.fill(
-                          child: SnapGrid(
-                            gridSizeFt: state.gridSizeFt,
-                            pixelsPerFt: _pixelsPerFt,
-                          ),
-                        ),
-                      // Canvas layer
-                      InteractiveViewer(
-                        boundaryMargin: const EdgeInsets.all(100),
-                        minScale: 0.5,
-                        maxScale: 4.0,
-                        child: CustomPaint(
-                          painter: painter,
-                          size: const Size(800, 600),
+                return Stack(
+                  children: [
+                    // Grid layer
+                    if (state.snapGridEnabled)
+                      Positioned.fill(
+                        child: SnapGrid(
+                          gridSizeFt: state.gridSizeFt,
+                          pixelsPerFt: _pixelsPerFt,
                         ),
                       ),
-                    ],
-                  ),
+                    // Canvas layer — gestures inside IV so coords match canvas space
+                    InteractiveViewer(
+                      panEnabled: _dragFixtureId == null,
+                      boundaryMargin: const EdgeInsets.all(100),
+                      minScale: 0.5,
+                      maxScale: 4.0,
+                      child: GestureDetector(
+                        onLongPressStart: _handleLongPressInCanvas,
+                        child: Listener(
+                          onPointerDown: _onPointerDown,
+                          onPointerMove: _onPointerMove,
+                          onPointerUp: _onPointerUp,
+                          child: CustomPaint(
+                            painter: _painter,
+                            size: const Size(800, 600),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 );
               },
             ),

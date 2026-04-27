@@ -17,6 +17,7 @@ class ElementLibraryPanel extends StatelessWidget {
     _FixtureTile('rack', Icons.view_column_outlined, 'RACK'),
     _FixtureTile('table', Icons.table_restaurant_outlined, 'TABLE'),
     _FixtureTile('shelf', Icons.horizontal_split_outlined, 'SHELF'),
+    _FixtureTile('partition', Icons.horizontal_rule, 'PARTITION'),
     _FixtureTile('wall', Icons.crop_square_outlined, 'WALL'),
   ];
 
@@ -68,7 +69,7 @@ class ElementLibraryPanel extends StatelessWidget {
                     onFixtureSelected(t.type);
                   }
                 },
-                onDragStarted: t.type == 'wall' ? null : onDragStarted,
+                onDragStarted: (t.type == 'wall') ? null : onDragStarted,
               )).toList(),
             ),
           ),
