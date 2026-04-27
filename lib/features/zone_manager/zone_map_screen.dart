@@ -237,6 +237,7 @@ class _ZoneCanvasState extends ConsumerState<_ZoneCanvas> {
     final vIdx = _hitVertex(zone, canvas);
     if (vIdx >= 0) {
       _notifier.removeVertex(selectedId, vIdx);
+      setState(_resetGesture); // prevent _onPointerUp from restoring old shape
       return;
     }
 
@@ -244,6 +245,7 @@ class _ZoneCanvasState extends ConsumerState<_ZoneCanvas> {
     final eIdx = _hitEdge(zone, canvas);
     if (eIdx >= 0) {
       _notifier.addVertex(selectedId, eIdx, _normalize(canvas));
+      setState(_resetGesture);
     }
   }
 
