@@ -249,24 +249,24 @@ class _ZoneCanvasState extends ConsumerState<_ZoneCanvas> {
     }
   }
 
-  /// Snaps the move delta so the closest vertex pair aligns with another zone.
-  /// [startPts] must be the original vertex positions at move-start so the
-  /// delta and positions stay in the same coordinate frame across frames.
+  /// Snaps the move delta so the closest vertex pair aligns with another zone
+  /// or a store boundary wall. [startPts] must be the original vertex positions
+  /// at move-start so the delta and positions stay in the same coordinate frame.
   Offset _trySnapZoneMove(String zoneId, Offset normDelta, List<Offset> startPts) {
     final st = ref.read(zoneMapNotifierProvider);
-    final movingPts = startPts;
     final threshold = _snapScreenPx / _viewScale;
+
+    // Zone-to-zone vertex snap (XY together).
     Offset? bestDelta;
     double bestDist = threshold;
-    for (final pt in movingPts) {
+    for (final pt in startPts) {
       final movedX = (pt.dx + normDelta.dx) * _canvasSize.width;
       final movedY = (pt.dy + normDelta.dy) * _canvasSize.height;
       for (final other in st.zones) {
         if (other.id == zoneId) continue;
         for (final otherPt in ZoneShape.decode(other.shapePoints)) {
-          final ox = otherPt.dx * _canvasSize.width;
-          final oy = otherPt.dy * _canvasSize.height;
-          final d = Offset(movedX - ox, movedY - oy).distance;
+          final d = Offset(movedX - otherPt.dx * _canvasSize.width,
+                           movedY - otherPt.dy * _canvasSize.height).distance;
           if (d < bestDist) {
             bestDist = d;
             bestDelta = Offset(otherPt.dx - pt.dx, otherPt.dy - pt.dy);
@@ -274,7 +274,35 @@ class _ZoneCanvasState extends ConsumerState<_ZoneCanvas> {
         }
       }
     }
-    return bestDelta ?? normDelta;
+    if (bestDelta != null) return bestDelta;
+
+    // Store boundary snap (X and Y axes independently).
+    final widthFt = st.storeData?.widthFt;
+    final depthFt = st.storeData?.depthFt;
+    if (widthFt != null && depthFt != null) {
+      final ppf = (_canvasSize.width / widthFt).clamp(0.0, _canvasSize.height / depthFt);
+      final storeW = widthFt * ppf;
+      final storeH = depthFt * ppf;
+      double? snapDx, snapDy;
+      double bestX = threshold, bestY = threshold;
+      for (final pt in startPts) {
+        final mx = (pt.dx + normDelta.dx) * _canvasSize.width;
+        final my = (pt.dy + normDelta.dy) * _canvasSize.height;
+        for (final bx in [0.0, storeW]) {
+          final d = (mx - bx).abs();
+          if (d < bestX) { bestX = d; snapDx = bx / _canvasSize.width - pt.dx; }
+        }
+        for (final by in [0.0, storeH]) {
+          final d = (my - by).abs();
+          if (d < bestY) { bestY = d; snapDy = by / _canvasSize.height - pt.dy; }
+        }
+      }
+      if (snapDx != null || snapDy != null) {
+        return Offset(snapDx ?? normDelta.dx, snapDy ?? normDelta.dy);
+      }
+    }
+
+    return normDelta;
   }
 
   // Snap to nearest vertex of any OTHER zone.
