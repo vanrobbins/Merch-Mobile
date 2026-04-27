@@ -1,0 +1,46 @@
+<h2>First question: Canvas architecture</h2>
+<p class="subtitle">The biggest decision for v0.25 — this shapes everything else</p>
+
+<p style="margin-bottom:20px;color:#6b6762;">
+  Right now the app has two separate canvas screens: <strong>Zone Map</strong> (store overview — zones as polygons) and <strong>Floor Builder</strong> (inside one zone — fixtures). The v0.25 goal of a Figma-like editor raises a fundamental question about how these relate.
+</p>
+
+<div class="options">
+  <div class="option" data-choice="unified" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Unified Canvas</h3>
+      <p>One infinite canvas for the whole store. Zones and fixtures coexist. Zoom in to see fixtures inside a zone; zoom out to see the full floor plan. Like Figma — frames contain elements.</p>
+      <div class="pros-cons" style="margin-top:12px">
+        <div class="pros"><h4>Pros</h4><ul><li>True Figma-like experience</li><li>No screen switching mid-workflow</li><li>See context while editing details</li></ul></div>
+        <div class="cons"><h4>Cons</h4><ul><li>Major rearchitecture</li><li>Replaces both Zone Map + Floor Builder</li><li>Highest effort (~3× more code)</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="linked" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Linked Canvas (recommended)</h3>
+      <p>Zone Map stays as the store overview. Floor Builder gets major UX improvements (smoother drag, resize handles, zoom/pan, planogram badges). Tapping a zone drills into its Floor Builder. The connection between them is explicit and clear.</p>
+      <div class="pros-cons" style="margin-top:12px">
+        <div class="pros"><h4>Pros</h4><ul><li>Builds on working code</li><li>Delivers the UX wins quickly</li><li>Each canvas is focused</li></ul></div>
+        <div class="cons"><h4>Cons</h4><ul><li>Context switch when drilling in</li><li>Not literally a single canvas</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="store-canvas" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>New Store Canvas (replaces Zone Map only)</h3>
+      <p>Replace Zone Map with a new <em>Store Canvas</em> screen that shows zones + their fixtures together, with store-size grid, zoom/pan, and inline editing. Floor Builder becomes an optional "deep edit" mode. Middle-ground approach.</p>
+      <div class="pros-cons" style="margin-top:12px">
+        <div class="pros"><h4>Pros</h4><ul><li>Unified top-level view</li><li>Doesn't throw away Floor Builder</li><li>Moderate effort</li></ul></div>
+        <div class="cons"><h4>Cons</h4><ul><li>Two edit surfaces still exist</li><li>Risk of duplicating logic</li></ul></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<p style="margin-top:20px;font-size:13px;color:#6b6762;">My recommendation is <strong>B (Linked Canvas)</strong> — it delivers the Figma-like feel where it matters most (smooth fixture editing) without the risk of a full rewrite. But if you want the truly unified experience, A is the right call.</p>

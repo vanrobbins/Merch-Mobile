@@ -1,0 +1,122 @@
+<h2>Fixture-type resize behaviour</h2>
+<p class="subtitle">Edge handles (B) — but each fixture type constrains which axes make sense. Does this match how you think about them?</p>
+
+<div class="options">
+
+  <!-- WALL / SHELF -->
+  <div class="option" data-choice="wall" onclick="toggleSelect(this)" style="cursor:default;">
+    <div class="letter" style="background:#1A1917;">W</div>
+    <div class="content">
+      <h3>Wall fixture / Shelf</h3>
+      <p>Mounted against a wall — depth is fixed (usually 1–2 ft and never changed). Only <strong>width</strong> is resizable. Show left + right edge handles only. Top/bottom handles hidden.</p>
+      <div style="margin-top:10px;background:#f2efe8;padding:10px;border:1px solid #d4cfc6;border-radius:2px;">
+        <div style="position:relative;height:90px;background:#fff;border:1px solid #ccc;border-radius:2px;overflow:hidden;">
+          <svg width="100%" height="100%">
+            <!-- Wall line at top -->
+            <rect x="0" y="0" width="100%" height="8" fill="#1A1917" opacity="0.15"/>
+            <text x="160" y="6" text-anchor="middle" fill="#9E9890" font-size="7">WALL</text>
+            <!-- Fixture -->
+            <rect x="60" y="8" width="200" height="30" fill="rgba(191,85,52,0.1)" stroke="#BF5534" stroke-width="1.5"/>
+            <text x="160" y="27" text-anchor="middle" fill="#1A1917" font-size="9" font-weight="700">WALL UNIT A</text>
+            <!-- Left handle (active) -->
+            <rect x="48" y="15" width="16" height="16" rx="2" fill="#BF5534"/>
+            <text x="56" y="26" text-anchor="middle" fill="white" font-size="10">↔</text>
+            <!-- Right handle (active) -->
+            <rect x="256" y="15" width="16" height="16" rx="2" fill="#BF5534"/>
+            <text x="264" y="26" text-anchor="middle" fill="white" font-size="10">↔</text>
+            <!-- Top/bottom handles (hidden / greyed) -->
+            <rect x="152" y="1" width="16" height="8" rx="2" fill="#e0ddd6" opacity="0.4"/>
+            <rect x="152" y="38" width="16" height="8" rx="2" fill="#e0ddd6" opacity="0.4"/>
+            <!-- Dimension label -->
+            <text x="160" y="65" text-anchor="middle" fill="#9E9890" font-size="9">width only — depth fixed</text>
+            <!-- Rotation hint -->
+            <text x="160" y="80" text-anchor="middle" fill="#BF5534" font-size="9">long-press → rotate 90°</text>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RACK -->
+  <div class="option" data-choice="rack" onclick="toggleSelect(this)" style="cursor:default;">
+    <div class="letter" style="background:#3B6BC2;">R</div>
+    <div class="content">
+      <h3>Rack (clothes / merchandise)</h3>
+      <p>Free-standing — both width and depth are meaningful. All <strong>4 edge handles</strong> active. Width = how many items hang across. Depth = aisle clearance. Rotation available via long-press.</p>
+      <div style="margin-top:10px;background:#f2efe8;padding:10px;border:1px solid #d4cfc6;border-radius:2px;">
+        <div style="position:relative;height:100px;background:#fff;border:1px solid #ccc;border-radius:2px;overflow:hidden;">
+          <svg width="100%" height="100%">
+            <rect x="80" y="20" width="160" height="55" fill="rgba(59,107,194,0.1)" stroke="#3B6BC2" stroke-width="1.5"/>
+            <text x="160" y="51" text-anchor="middle" fill="#1A1917" font-size="9" font-weight="700">RACK B</text>
+            <!-- All 4 handles active -->
+            <rect x="152" y="8" width="16" height="16" rx="2" fill="#BF5534"/>
+            <text x="160" y="19" text-anchor="middle" fill="white" font-size="10">↕</text>
+            <rect x="152" y="71" width="16" height="16" rx="2" fill="#BF5534"/>
+            <text x="160" y="82" text-anchor="middle" fill="white" font-size="10">↕</text>
+            <rect x="68" y="35" width="16" height="16" rx="2" fill="#BF5534"/>
+            <text x="76" y="46" text-anchor="middle" fill="white" font-size="10">↔</text>
+            <rect x="236" y="35" width="16" height="16" rx="2" fill="#BF5534"/>
+            <text x="244" y="46" text-anchor="middle" fill="white" font-size="10">↔</text>
+            <text x="160" y="95" text-anchor="middle" fill="#9E9890" font-size="9">width + depth — all 4 handles</text>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TABLE -->
+  <div class="option" data-choice="table" onclick="toggleSelect(this)" style="cursor:default;">
+    <div class="letter" style="background:#6b9e5e;">T</div>
+    <div class="content">
+      <h3>Table / Display table</h3>
+      <p>Free-standing surface — width <em>and</em> depth both matter for product spread. All <strong>4 edge handles</strong> active, same as rack. But table aspect ratio is often closer to square, so depth drag feels more useful here than on a rack.</p>
+      <div style="margin-top:10px;background:#f2efe8;padding:10px;border:1px solid #d4cfc6;border-radius:2px;">
+        <div style="position:relative;height:110px;background:#fff;border:1px solid #ccc;border-radius:2px;overflow:hidden;">
+          <svg width="100%" height="100%">
+            <!-- More square proportions -->
+            <rect x="90" y="15" width="140" height="75" fill="rgba(107,158,94,0.1)" stroke="#6b9e5e" stroke-width="1.5"/>
+            <text x="160" y="56" text-anchor="middle" fill="#1A1917" font-size="9" font-weight="700">TABLE C</text>
+            <!-- All 4 handles -->
+            <rect x="152" y="3" width="16" height="16" rx="2" fill="#BF5534"/>
+            <text x="160" y="14" text-anchor="middle" fill="white" font-size="10">↕</text>
+            <rect x="152" y="86" width="16" height="16" rx="2" fill="#BF5534"/>
+            <text x="160" y="97" text-anchor="middle" fill="white" font-size="10">↕</text>
+            <rect x="78" y="45" width="16" height="16" rx="2" fill="#BF5534"/>
+            <text x="86" y="56" text-anchor="middle" fill="white" font-size="10">↔</text>
+            <rect x="226" y="45" width="16" height="16" rx="2" fill="#BF5534"/>
+            <text x="234" y="56" text-anchor="middle" fill="white" font-size="10">↔</text>
+            <text x="160" y="107" text-anchor="middle" fill="#9E9890" font-size="9">width + depth — squarish footprint</text>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PARTITION / WALL DIVIDER -->
+  <div class="option" data-choice="partition" onclick="toggleSelect(this)" style="cursor:default;">
+    <div class="letter" style="background:#888;">P</div>
+    <div class="content">
+      <h3>Partition / Wall divider</h3>
+      <p>Thin structural element — <strong>width only</strong> (same logic as a wall fixture). Depth is always 0.5 ft or similar. Only left + right handles shown. Rotation via long-press matters a lot here (horizontal vs vertical wall).</p>
+      <div style="margin-top:10px;background:#f2efe8;padding:10px;border:1px solid #d4cfc6;border-radius:2px;">
+        <div style="position:relative;height:80px;background:#fff;border:1px solid #ccc;border-radius:2px;overflow:hidden;">
+          <svg width="100%" height="100%">
+            <!-- Very thin rect -->
+            <rect x="60" y="30" width="200" height="12" fill="rgba(0,0,0,0.08)" stroke="#888" stroke-width="1.5"/>
+            <text x="160" y="39" text-anchor="middle" fill="#1A1917" font-size="8" font-weight="700">PARTITION</text>
+            <!-- Left + right only -->
+            <rect x="48" y="26" width="16" height="16" rx="2" fill="#BF5534"/>
+            <text x="56" y="37" text-anchor="middle" fill="white" font-size="10">↔</text>
+            <rect x="256" y="26" width="16" height="16" rx="2" fill="#BF5534"/>
+            <text x="264" y="37" text-anchor="middle" fill="white" font-size="10">↔</text>
+            <text x="160" y="65" text-anchor="middle" fill="#9E9890" font-size="9">width only — depth always thin</text>
+            <text x="160" y="77" text-anchor="middle" fill="#BF5534" font-size="9">long-press → rotate = essential</text>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<p style="margin-top:16px;font-size:13px;color:#6b6762;">Proposed rule: <strong>wall + partition = width-only handles</strong>; <strong>rack + table = all 4 handles</strong>. Rotation stays on long-press action sheet for all types. Does this match how you think about them — any types missing or constraints wrong?</p>
