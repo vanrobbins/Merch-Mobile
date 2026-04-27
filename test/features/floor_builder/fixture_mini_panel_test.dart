@@ -4,22 +4,6 @@ import 'package:go_router/go_router.dart';
 import 'package:merch_mobile/core/models/fixture.dart';
 import 'package:merch_mobile/features/floor_builder/fixture_mini_panel.dart';
 
-GoRouter _makeRouter() => GoRouter(
-      routes: [
-        GoRoute(
-          path: '/',
-          builder: (_, __) => const Scaffold(body: SizedBox.shrink()),
-          routes: [
-            GoRoute(
-              path: 'planograms/:planogramId',
-              name: 'planogramDetail',
-              builder: (_, __) => const Scaffold(body: SizedBox.shrink()),
-            ),
-          ],
-        ),
-      ],
-    );
-
 void main() {
   final baseFixture = Fixture(
     id: 'f1',
@@ -31,21 +15,32 @@ void main() {
     updatedAt: DateTime(2025),
   );
 
-  Widget buildPanel({
-    required Fixture fixture,
-    VoidCallback? onDismiss,
-  }) {
-    return MaterialApp.router(
-      routerConfig: _makeRouter(),
-      builder: (context, child) => Scaffold(
-        body: FixtureMiniPanel(
-          fixture: fixture,
-          planogram: null,
-          onDismiss: onDismiss ?? () {},
-        ),
-      ),
-    );
-  }
+  GoRouter buildRouter(Fixture fixture, VoidCallback onDismiss) => GoRouter(
+        routes: [
+          GoRoute(
+            path: '/',
+            builder: (_, __) => Scaffold(
+              body: FixtureMiniPanel(
+                fixture: fixture,
+                planogram: null,
+                onDismiss: onDismiss,
+              ),
+            ),
+            routes: [
+              GoRoute(
+                path: 'planograms/:planogramId',
+                name: 'planogramDetail',
+                builder: (_, __) => const Scaffold(body: SizedBox.shrink()),
+              ),
+            ],
+          ),
+        ],
+      );
+
+  Widget buildPanel({required Fixture fixture, VoidCallback? onDismiss}) =>
+      MaterialApp.router(
+        routerConfig: buildRouter(fixture, onDismiss ?? () {}),
+      );
 
   testWidgets('shows fixture label and dimensions', (tester) async {
     await tester.pumpWidget(buildPanel(fixture: baseFixture));
@@ -60,15 +55,15 @@ void main() {
   });
 
   testWidgets('shows fixture type when label is empty', (tester) async {
-    final noLabel = baseFixture.copyWith(label: '');
-    await tester.pumpWidget(buildPanel(fixture: noLabel));
+    await tester.pumpWidget(buildPanel(fixture: baseFixture.copyWith(label: '')));
     expect(find.text('RACK'), findsOneWidget);
   });
 
   testWidgets('calls onDismiss when X tapped', (tester) async {
     var dismissed = false;
     await tester.pumpWidget(
-        buildPanel(fixture: baseFixture, onDismiss: () => dismissed = true));
+      buildPanel(fixture: baseFixture, onDismiss: () => dismissed = true),
+    );
     await tester.tap(find.byIcon(Icons.close));
     await tester.pump();
     expect(dismissed, isTrue);
