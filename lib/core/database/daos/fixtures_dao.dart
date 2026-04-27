@@ -23,6 +23,7 @@ class FixturesDao extends DatabaseAccessor<AppDatabase> with _$FixturesDaoMixin 
             ..where((t) => t.storeId.equals(storeId) & t.zoneId.isNull()))
           .watch();
 
+  /// Legacy alias (zoneId only) — used by ZoneDetailScreen.
   Stream<List<FixturesTableData>> watchByParentId(String zoneId) =>
       (select(fixturesTable)..where((t) => t.zoneId.equals(zoneId))).watch();
 
