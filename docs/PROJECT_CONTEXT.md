@@ -190,7 +190,7 @@ v0.25 fixes the incomplete interactive layout experience before v0.3. Covers:
 Spec: `docs/superpowers/specs/2026-04-16-v0.3-design.md`
 Plans: `docs/superpowers/plans/2026-04-27-v0.3-*.md`
 
-Adds the VM merchandising layer: brand color palettes, product templates with garment silhouettes, mannequin placement (5 body types, floor/wall/platform mount), and Mannequin Lock (outfit slot assignment per body part).
+Adds the VM merchandising layer: brand color palettes, product templates with garment silhouettes, mannequin placement (5 body types, floor/wall/platform mount), and Mannequin Lock (outfit slot assignment per body part). Agent 3 also delivers: undo/redo (command pattern, 20-deep stack), multi-select fixtures (long-press to enter, delete all / move group), and zone overlap validation (SAT polygon check, red warning tint).
 
 **Prerequisite:** v0.25 merged first, then v0.2 Agents 4/6/7 completed, then v0.3.
 
