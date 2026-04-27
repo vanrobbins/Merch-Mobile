@@ -24,6 +24,20 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
   double _pixelsPerFt = 20.0;
   Size _canvasSize = Size.zero;
 
+  // View transform
+  double _viewScale = 1.0;
+  Offset _viewOffset = Offset.zero;
+  final Map<int, Offset> _activePointers = {};
+  double? _pinchDistanceStart;
+  Offset? _pinchFocalStart;
+  double? _pinchScaleStart;
+  Offset? _pinchOffsetStart;
+
+  // Single-finger pan on empty canvas
+  bool _isPanning = false;
+  Offset? _panStartScreen;
+  Offset? _panStartOffset;
+
   // Ghost drag state
   Offset? _ghostPos;
   String? _ghostType;
@@ -146,8 +160,9 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
 
   void _handleLongPressInCanvas(LongPressStartDetails details) {
     if (_painter == null) return;
+    final canvas = _toCanvas(details.localPosition);
     for (final entry in _painter!.fixtureRects.entries) {
-      if (entry.value.contains(details.localPosition)) {
+      if (entry.value.contains(canvas)) {
         final fixture = ref
             .read(floorBuilderNotifierProvider)
             .fixtures
@@ -160,12 +175,35 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
   }
 
   void _onPointerDown(PointerDownEvent event) {
+    _activePointers[event.pointer] = event.localPosition;
+
+    if (_activePointers.length == 2) {
+      if (_primaryPointer != null) {
+        setState(() {
+          _dragFixtureId = null;
+          _resizingFixtureId = null;
+          _resizeHandle = null;
+          _resizeStartPos = null;
+          _isPanning = false;
+          _panStartScreen = null;
+        });
+        _primaryPointer = null;
+      }
+      _pinchScaleStart = _viewScale;
+      _pinchOffsetStart = _viewOffset;
+      _pinchFocalStart = _pinchFocal();
+      _pinchDistanceStart = _pinchDistance();
+      return;
+    }
+    if (_activePointers.length > 2) return;
     if (_painter == null || _primaryPointer != null) return;
+
+    final canvas = _toCanvas(event.localPosition);
 
     // 1. Resize handle hit-test (highest priority)
     for (final entry in _painter!.resizeHandleRects.entries) {
       for (final hEntry in entry.value.entries) {
-        if (hEntry.value.contains(event.localPosition)) {
+        if (hEntry.value.contains(canvas)) {
           _primaryPointer = event.pointer;
           final fixture = ref
               .read(floorBuilderNotifierProvider)
@@ -174,7 +212,7 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
           setState(() {
             _resizingFixtureId = entry.key;
             _resizeHandle = hEntry.key;
-            _resizeStartPos = event.localPosition;
+            _resizeStartPos = canvas;
             _resizeStartWidth = fixture.widthFt;
             _resizeStartDepth = fixture.depthFt;
           });
@@ -185,14 +223,14 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
 
     // 2. Badge hit-test
     for (final entry in _painter!.badgeRects.entries) {
-      if (entry.value.contains(event.localPosition)) {
+      if (entry.value.contains(canvas)) {
         _primaryPointer = event.pointer;
         _openPlanogramPicker(entry.key, front: true);
         return;
       }
     }
     for (final entry in _painter!.badgeBackRects.entries) {
-      if (entry.value.contains(event.localPosition)) {
+      if (entry.value.contains(canvas)) {
         _primaryPointer = event.pointer;
         _openPlanogramPicker(entry.key, front: false);
         return;
@@ -201,7 +239,7 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
 
     // 3. Fixture body hit-test
     for (final entry in _painter!.fixtureRects.entries) {
-      if (entry.value.contains(event.localPosition)) {
+      if (entry.value.contains(canvas)) {
         _primaryPointer = event.pointer;
         ref.read(floorBuilderNotifierProvider.notifier).selectFixture(entry.key);
         setState(() => _dragFixtureId = entry.key);
@@ -209,16 +247,28 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
       }
     }
 
-    // 4. Empty canvas — deselect
+    // 4. Empty canvas — deselect + pan
     ref.read(floorBuilderNotifierProvider.notifier).selectFixture(null);
+    _primaryPointer = event.pointer;
+    _isPanning = true;
+    _panStartScreen = event.localPosition;
+    _panStartOffset = _viewOffset;
   }
 
   void _onPointerMove(PointerMoveEvent event) {
+    _activePointers[event.pointer] = event.localPosition;
+
+    if (_activePointers.length >= 2) {
+      _updatePinch();
+      return;
+    }
+
     if (event.pointer != _primaryPointer) return;
+    final canvas = _toCanvas(event.localPosition);
 
     // Resize
     if (_resizingFixtureId != null && _resizeHandle != null && _resizeStartPos != null) {
-      final delta = event.localPosition - _resizeStartPos!;
+      final delta = canvas - _resizeStartPos!;
       final dFt = Offset(delta.dx / _pixelsPerFt, delta.dy / _pixelsPerFt);
       double? newWidth;
       double? newDepth;
@@ -237,16 +287,25 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
       return;
     }
 
-    // Drag
-    if (_dragFixtureId == null) return;
-    ref.read(floorBuilderNotifierProvider.notifier).moveFixture(
-          _dragFixtureId!,
-          Offset(event.localPosition.dx / _pixelsPerFt,
-              event.localPosition.dy / _pixelsPerFt),
-        );
+    // Drag fixture
+    if (_dragFixtureId != null) {
+      ref.read(floorBuilderNotifierProvider.notifier).moveFixture(
+            _dragFixtureId!,
+            Offset(canvas.dx / _pixelsPerFt, canvas.dy / _pixelsPerFt),
+          );
+      return;
+    }
+
+    // Pan
+    if (_isPanning && _panStartScreen != null) {
+      final delta = event.localPosition - _panStartScreen!;
+      setState(() => _viewOffset = _panStartOffset! + delta);
+    }
   }
 
   void _onPointerUp(PointerUpEvent event) {
+    _activePointers.remove(event.pointer);
+    if (_activePointers.length < 2) _resetPinch();
     if (event.pointer != _primaryPointer) return;
     _primaryPointer = null;
 
@@ -271,10 +330,42 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
     }
 
     if (_dragFixtureId != null) setState(() => _dragFixtureId = null);
+    if (_isPanning) setState(() { _isPanning = false; _panStartScreen = null; _panStartOffset = null; });
   }
+
+  Offset _toCanvas(Offset screen) => (screen - _viewOffset) / _viewScale;
 
   Offset _normalizeOffset(Offset pixelOffset) {
     return Offset(pixelOffset.dx / _pixelsPerFt, pixelOffset.dy / _pixelsPerFt);
+  }
+
+  void _resetPinch() {
+    _pinchScaleStart = null;
+    _pinchFocalStart = null;
+    _pinchDistanceStart = null;
+    _pinchOffsetStart = null;
+  }
+
+  Offset _pinchFocal() {
+    final pts = _activePointers.values.toList();
+    return (pts[0] + pts[1]) / 2;
+  }
+
+  double _pinchDistance() {
+    final pts = _activePointers.values.toList();
+    return (pts[0] - pts[1]).distance;
+  }
+
+  void _updatePinch() {
+    if (_pinchScaleStart == null) return;
+    final focal = _pinchFocal();
+    final dist = _pinchDistance();
+    final newScale = (_pinchScaleStart! * dist / _pinchDistanceStart!).clamp(0.2, 6.0);
+    final canvasFocalAtStart = (_pinchFocalStart! - _pinchOffsetStart!) / _pinchScaleStart!;
+    setState(() {
+      _viewScale = newScale;
+      _viewOffset = focal - canvasFocalAtStart * newScale;
+    });
   }
 
   Widget _buildMiniPanel(FloorBuilderState state) {
@@ -289,6 +380,10 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
       fixture: fixture,
       planogram: planogram,
       onDismiss: () => ref.read(floorBuilderNotifierProvider.notifier).selectFixture(null),
+      onEdit: () => _onFixtureLongPress(
+        fixture.id,
+        fixture.label.isNotEmpty ? fixture.label : fixture.fixtureType.toUpperCase(),
+      ),
     );
   }
 
@@ -360,39 +455,53 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
                       wallEdges: _wallEdges,
                       planograms: state.planograms,
                     );
-                    return Stack(
-                      children: [
-                        if (state.snapGridEnabled)
-                          Positioned.fill(
-                            child: SnapGrid(
-                              gridSizeFt: state.gridSizeFt,
-                              pixelsPerFt: _pixelsPerFt,
+                    return ClipRect(
+                      child: Stack(
+                        children: [
+                          if (state.snapGridEnabled)
+                            Positioned.fill(
+                              child: Transform(
+                                transform: Matrix4.identity()
+                                  ..translate(_viewOffset.dx, _viewOffset.dy)
+                                  ..scale(_viewScale),
+                                alignment: Alignment.topLeft,
+                                child: SnapGrid(
+                                  gridSizeFt: state.gridSizeFt,
+                                  pixelsPerFt: _pixelsPerFt,
+                                ),
+                              ),
                             ),
-                          ),
-                        SizedBox.expand(
-                          child: GestureDetector(
-                            onLongPressStart: _handleLongPressInCanvas,
-                            child: Listener(
-                              onPointerDown: _onPointerDown,
-                              onPointerMove: _onPointerMove,
-                              onPointerUp: _onPointerUp,
-                              child: CustomPaint(
-                                painter: _painter,
-                                size: _canvasSize,
+                          SizedBox.expand(
+                            child: GestureDetector(
+                              onLongPressStart: _handleLongPressInCanvas,
+                              child: Listener(
+                                onPointerDown: _onPointerDown,
+                                onPointerMove: _onPointerMove,
+                                onPointerUp: _onPointerUp,
+                                child: Transform(
+                                  transform: Matrix4.identity()
+                                    ..translate(_viewOffset.dx, _viewOffset.dy)
+                                    ..scale(_viewScale),
+                                  alignment: Alignment.topLeft,
+                                  child: CustomPaint(
+                                    painter: _painter,
+                                    size: _canvasSize,
+                                  ),
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                        if (state.selectedFixtureId != null &&
-                            _dragFixtureId == null &&
-                            _resizingFixtureId == null)
-                          Positioned(
-                            left: 0,
-                            right: 0,
-                            bottom: 0,
-                            child: _buildMiniPanel(state),
-                          ),
-                      ],
+                          if (state.selectedFixtureId != null &&
+                              _dragFixtureId == null &&
+                              _resizingFixtureId == null)
+                            Positioned(
+                              left: 0,
+                              right: 0,
+                              bottom: 0,
+                              child: _buildMiniPanel(state),
+                            ),
+                        ],
+                      ),
                     );
                   },
                 );

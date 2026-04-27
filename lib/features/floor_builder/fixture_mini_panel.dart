@@ -12,11 +12,13 @@ class FixtureMiniPanel extends StatelessWidget {
     required this.fixture,
     required this.planogram,
     required this.onDismiss,
+    this.onEdit,
   });
 
   final Fixture fixture;
   final PlanogramsTableData? planogram;
   final VoidCallback onDismiss;
+  final VoidCallback? onEdit;
 
   @override
   Widget build(BuildContext context) {
@@ -45,6 +47,15 @@ class FixtureMiniPanel extends StatelessWidget {
                   ),
                 ),
               ),
+              if (onEdit != null)
+                IconButton(
+                  icon: const Icon(Icons.edit_outlined, color: Colors.white70, size: 20),
+                  onPressed: onEdit,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  tooltip: 'Edit fixture',
+                ),
+              const SizedBox(width: 4),
               IconButton(
                 icon: const Icon(Icons.close, color: Colors.white54, size: 20),
                 onPressed: onDismiss,

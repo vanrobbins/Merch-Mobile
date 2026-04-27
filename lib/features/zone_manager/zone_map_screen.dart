@@ -1,14 +1,12 @@
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import '../../core/database/app_database.dart';
-import '../../core/router/app_router.dart';
 import '../../core/widgets/role_guard.dart';
 import '../../core/theme/app_theme.dart';
-import '../../core/theme/design_tokens.dart';
 import 'zone_map_painter.dart';
 import 'zone_map_provider.dart';
-import 'zone_legend_panel.dart';
+import 'zone_properties_panel.dart';
 import 'zone_shape.dart';
 
 class ZoneMapScreen extends ConsumerStatefulWidget {
@@ -50,7 +48,15 @@ class _ZoneMapScreenState extends ConsumerState<ZoneMapScreen> {
     final notifier = ref.read(zoneMapNotifierProvider.notifier);
     final selectedId = ref.read(zoneMapNotifierProvider).selectedZoneId;
     if (selectedId == zoneId) {
-      context.goNamed(AppRoutes.zoneDetail, pathParameters: {'zoneId': zoneId});
+      final zone = ref.read(zoneMapNotifierProvider).zones
+          .firstWhereOrNull((z) => z.id == zoneId);
+      if (zone == null) return;
+      showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (_) => ZonePropertiesPanel(zone: zone),
+      );
     } else {
       notifier.selectZone(zoneId);
     }
@@ -68,17 +74,9 @@ class _ZoneMapScreenState extends ConsumerState<ZoneMapScreen> {
 
     return Scaffold(
       appBar: AppBar(title: const Text('ZONE MAP')),
-      body: Column(
-        children: [
-          Expanded(
-            child: state.isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : _ZoneCanvas(onZoneTap: _onZoneTap),
-          ),
-          _SelectedZoneBanner(state: state),
-          const ZoneLegendPanel(),
-        ],
-      ),
+      body: state.isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _ZoneCanvas(onZoneTap: _onZoneTap),
       floatingActionButton: RoleGuard(
         allowedRoles: const ['coordinator', 'manager'],
         child: FloatingActionButton.extended(
@@ -87,74 +85,6 @@ class _ZoneMapScreenState extends ConsumerState<ZoneMapScreen> {
           icon: const Icon(Icons.add),
           backgroundColor: AppTheme.accent,
         ),
-      ),
-    );
-  }
-}
-
-/// Shows the name + type of the currently selected zone above the legend.
-class _SelectedZoneBanner extends StatelessWidget {
-  const _SelectedZoneBanner({required this.state});
-  final ZoneMapState state;
-
-  @override
-  Widget build(BuildContext context) {
-    final selectedId = state.selectedZoneId;
-    if (selectedId == null) return const SizedBox.shrink();
-    final zone = state.zones.where((z) => z.id == selectedId).firstOrNull;
-    if (zone == null) return const SizedBox.shrink();
-
-    final color = Color(zone.colorValue);
-    return Container(
-      width: double.infinity,
-      color: color.withOpacity(0.12),
-      padding: const EdgeInsets.symmetric(
-        horizontal: DesignTokens.spaceMd,
-        vertical: DesignTokens.spaceXs,
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 10,
-            height: 10,
-            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-          ),
-          const SizedBox(width: DesignTokens.spaceSm),
-          Text(
-            zone.name.toUpperCase(),
-            style: TextStyle(
-              fontSize: DesignTokens.typeSm,
-              fontWeight: DesignTokens.weightBold,
-              letterSpacing: DesignTokens.letterSpacingEyebrow,
-              color: color,
-            ),
-          ),
-          const SizedBox(width: DesignTokens.spaceXs),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.18),
-              borderRadius: BorderRadius.circular(AppTheme.borderRadius),
-            ),
-            child: Text(
-              zone.zoneType.toUpperCase().replaceAll('_', ' '),
-              style: TextStyle(
-                fontSize: DesignTokens.typeXs,
-                fontWeight: DesignTokens.weightBold,
-                color: color,
-              ),
-            ),
-          ),
-          const Spacer(),
-          Text(
-            'TAP AGAIN TO OPEN',
-            style: TextStyle(
-              fontSize: DesignTokens.typeXs,
-              color: AppTheme.textSecondary,
-              letterSpacing: DesignTokens.letterSpacingEyebrow,
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -169,11 +99,21 @@ class _ZoneCanvas extends ConsumerStatefulWidget {
 }
 
 class _ZoneCanvasState extends ConsumerState<_ZoneCanvas> {
-  Size _canvasSize = Size.zero;
-  static const _vertexHitRadius = 20.0;
+  static const _vertexHitScreenPx = 20.0;
+  static const _snapScreenPx = 22.0;
 
+  Size _canvasSize = Size.zero;
   ZoneMapPainter? _painter;
   int? _primaryPointer;
+
+  // View transform
+  double _viewScale = 1.0;
+  Offset _viewOffset = Offset.zero;
+  final Map<int, Offset> _activePointers = {};
+  double? _pinchDistanceStart;
+  Offset? _pinchFocalStart;
+  double? _pinchScaleStart;
+  Offset? _pinchOffsetStart;
 
   // Vertex drag state
   String? _dragZoneId;
@@ -182,31 +122,54 @@ class _ZoneCanvasState extends ConsumerState<_ZoneCanvas> {
 
   // Whole-zone move state
   String? _moveZoneId;
-  Offset? _moveStartPos;
+  Offset? _moveStartCanvas;
   List<Offset>? _moveStartPoints;
   List<Offset>? _moveCurrentPoints;
 
+  // Single-finger pan on empty canvas
+  bool _isPanning = false;
+  Offset? _panStartScreen;
+  Offset? _panStartOffset;
+
   ZoneMapNotifier get _notifier => ref.read(zoneMapNotifierProvider.notifier);
 
-  Offset _normalize(Offset position) => Offset(
-        (position.dx / _canvasSize.width).clamp(0.0, 1.0),
-        (position.dy / _canvasSize.height).clamp(0.0, 1.0),
+  Offset _toCanvas(Offset screen) => (screen - _viewOffset) / _viewScale;
+
+  Offset _normalize(Offset canvas) => Offset(
+        (canvas.dx / _canvasSize.width).clamp(0.0, 1.0),
+        (canvas.dy / _canvasSize.height).clamp(0.0, 1.0),
       );
 
-  Offset _normalizeDelta(Offset delta) =>
-      Offset(delta.dx / _canvasSize.width, delta.dy / _canvasSize.height);
+  Offset _normalizeDelta(Offset canvasDelta) =>
+      Offset(canvasDelta.dx / _canvasSize.width, canvasDelta.dy / _canvasSize.height);
 
-  /// Returns the index of a vertex of [zone] hit by [position], or -1.
-  int _hitVertex(ZonesTableData zone, Offset position) {
+  int _hitVertex(ZonesTableData zone, Offset canvas) {
     final pts = ZoneShape.decode(zone.shapePoints);
+    final radius = _vertexHitScreenPx / _viewScale;
     for (var i = 0; i < pts.length; i++) {
-      final screenPt = Offset(
-        pts[i].dx * _canvasSize.width,
-        pts[i].dy * _canvasSize.height,
-      );
-      if ((screenPt - position).distance < _vertexHitRadius) return i;
+      final pt = Offset(pts[i].dx * _canvasSize.width, pts[i].dy * _canvasSize.height);
+      if ((pt - canvas).distance < radius) return i;
     }
     return -1;
+  }
+
+  Offset _snap(Offset canvas, String dragZoneId) {
+    final threshold = _snapScreenPx / _viewScale;
+    final state = ref.read(zoneMapNotifierProvider);
+    Offset best = canvas;
+    double bestDist = threshold;
+    for (final zone in state.zones) {
+      if (zone.id == dragZoneId) continue;
+      for (final norm in ZoneShape.decode(zone.shapePoints)) {
+        final pt = Offset(norm.dx * _canvasSize.width, norm.dy * _canvasSize.height);
+        final d = (pt - canvas).distance;
+        if (d < bestDist) {
+          bestDist = d;
+          best = pt;
+        }
+      }
+    }
+    return best;
   }
 
   void _resetGesture() {
@@ -215,25 +178,68 @@ class _ZoneCanvasState extends ConsumerState<_ZoneCanvas> {
     _dragVertexIdx = null;
     _dragPoints = null;
     _moveZoneId = null;
-    _moveStartPos = null;
+    _moveStartCanvas = null;
     _moveStartPoints = null;
     _moveCurrentPoints = null;
+    _isPanning = false;
+    _panStartScreen = null;
+    _panStartOffset = null;
+  }
+
+  void _resetPinch() {
+    _pinchScaleStart = null;
+    _pinchFocalStart = null;
+    _pinchDistanceStart = null;
+    _pinchOffsetStart = null;
+  }
+
+  Offset _pinchFocal() {
+    final pts = _activePointers.values.toList();
+    return (pts[0] + pts[1]) / 2;
+  }
+
+  double _pinchDistance() {
+    final pts = _activePointers.values.toList();
+    return (pts[0] - pts[1]).distance;
+  }
+
+  void _updatePinch() {
+    if (_pinchScaleStart == null) return;
+    final focal = _pinchFocal();
+    final dist = _pinchDistance();
+    final newScale = (_pinchScaleStart! * dist / _pinchDistanceStart!).clamp(0.2, 6.0);
+    final canvasFocalAtStart = (_pinchFocalStart! - _pinchOffsetStart!) / _pinchScaleStart!;
+    setState(() {
+      _viewScale = newScale;
+      _viewOffset = focal - canvasFocalAtStart * newScale;
+    });
   }
 
   void _onPointerDown(PointerDownEvent event) {
-    if (_primaryPointer != null) return;
-    final state = ref.read(zoneMapNotifierProvider);
-    final selectedId = state.selectedZoneId;
+    _activePointers[event.pointer] = event.localPosition;
 
-    // 1. Try to grab a vertex of the selected zone first.
-    if (selectedId != null) {
-      final zone = state.zones.where((z) => z.id == selectedId).firstOrNull;
+    if (_activePointers.length == 2) {
+      if (_primaryPointer != null) setState(_resetGesture);
+      _pinchScaleStart = _viewScale;
+      _pinchOffsetStart = _viewOffset;
+      _pinchFocalStart = _pinchFocal();
+      _pinchDistanceStart = _pinchDistance();
+      return;
+    }
+    if (_activePointers.length > 2) return;
+    if (_primaryPointer != null) return;
+
+    final state = ref.read(zoneMapNotifierProvider);
+    final canvas = _toCanvas(event.localPosition);
+
+    if (state.selectedZoneId != null) {
+      final zone = state.zones.firstWhereOrNull((z) => z.id == state.selectedZoneId);
       if (zone != null) {
-        final idx = _hitVertex(zone, event.localPosition);
+        final idx = _hitVertex(zone, canvas);
         if (idx >= 0) {
           _primaryPointer = event.pointer;
           setState(() {
-            _dragZoneId = selectedId;
+            _dragZoneId = state.selectedZoneId;
             _dragVertexIdx = idx;
             _dragPoints = ZoneShape.decode(zone.shapePoints);
           });
@@ -242,45 +248,63 @@ class _ZoneCanvasState extends ConsumerState<_ZoneCanvas> {
       }
     }
 
-    // 2. Otherwise try to grab a whole zone for moving.
-    final hitId = _painter?.zoneIdAt(event.localPosition);
+    final hitId = _painter?.zoneIdAt(canvas);
     if (hitId != null) {
       _primaryPointer = event.pointer;
       final zone = state.zones.firstWhere((z) => z.id == hitId);
       setState(() {
         _moveZoneId = hitId;
-        _moveStartPos = event.localPosition;
+        _moveStartCanvas = canvas;
         _moveStartPoints = ZoneShape.decode(zone.shapePoints);
       });
+      return;
     }
+
+    _primaryPointer = event.pointer;
+    _isPanning = true;
+    _panStartScreen = event.localPosition;
+    _panStartOffset = _viewOffset;
   }
 
   void _onPointerMove(PointerMoveEvent event) {
+    _activePointers[event.pointer] = event.localPosition;
+
+    if (_activePointers.length >= 2) {
+      _updatePinch();
+      return;
+    }
+
     if (event.pointer != _primaryPointer) return;
+    final canvas = _toCanvas(event.localPosition);
 
     if (_dragZoneId != null && _dragVertexIdx != null && _dragPoints != null) {
-      final updated = List.of(_dragPoints!)
-        ..[_dragVertexIdx!] = _normalize(event.localPosition);
+      final snapped = _snap(canvas, _dragZoneId!);
+      final updated = List.of(_dragPoints!)..[_dragVertexIdx!] = _normalize(snapped);
       setState(() => _dragPoints = updated);
       _notifier.updateZoneShapeLocal(_dragZoneId!, updated);
       return;
     }
 
-    if (_moveZoneId != null && _moveStartPos != null && _moveStartPoints != null) {
-      final normDelta = _normalizeDelta(event.localPosition - _moveStartPos!);
+    if (_moveZoneId != null && _moveStartCanvas != null && _moveStartPoints != null) {
+      final normDelta = _normalizeDelta(canvas - _moveStartCanvas!);
       final moved = [
         for (final p in _moveStartPoints!)
-          Offset(
-            (p.dx + normDelta.dx).clamp(0.0, 1.0),
-            (p.dy + normDelta.dy).clamp(0.0, 1.0),
-          ),
+          Offset((p.dx + normDelta.dx).clamp(0.0, 1.0), (p.dy + normDelta.dy).clamp(0.0, 1.0)),
       ];
       _moveCurrentPoints = moved;
       _notifier.updateZoneShapeLocal(_moveZoneId!, moved);
+      return;
+    }
+
+    if (_isPanning && _panStartScreen != null) {
+      final delta = event.localPosition - _panStartScreen!;
+      setState(() => _viewOffset = _panStartOffset! + delta);
     }
   }
 
   void _onPointerUp(PointerUpEvent event) {
+    _activePointers.remove(event.pointer);
+    if (_activePointers.length < 2) _resetPinch();
     if (event.pointer != _primaryPointer) return;
 
     if (_dragZoneId != null && _dragPoints != null) {
@@ -293,7 +317,8 @@ class _ZoneCanvasState extends ConsumerState<_ZoneCanvas> {
   }
 
   void _onTapUp(TapUpDetails details) {
-    final id = _painter?.zoneIdAt(details.localPosition);
+    final canvas = _toCanvas(details.localPosition);
+    final id = _painter?.zoneIdAt(canvas);
     if (id != null) {
       widget.onZoneTap(id);
     } else {
@@ -314,13 +339,23 @@ class _ZoneCanvasState extends ConsumerState<_ZoneCanvas> {
           widthFt: state.storeData?.widthFt,
           depthFt: state.storeData?.depthFt,
         );
-        return Listener(
-          onPointerDown: _onPointerDown,
-          onPointerMove: _onPointerMove,
-          onPointerUp: _onPointerUp,
-          child: GestureDetector(
-            onTapUp: _onTapUp,
-            child: CustomPaint(painter: _painter, size: _canvasSize),
+        return ClipRect(
+          child: Listener(
+            onPointerDown: _onPointerDown,
+            onPointerMove: _onPointerMove,
+            onPointerUp: _onPointerUp,
+            child: GestureDetector(
+              onTapUp: _onTapUp,
+              child: SizedBox.expand(
+                child: Transform(
+                  transform: Matrix4.identity()
+                    ..translate(_viewOffset.dx, _viewOffset.dy)
+                    ..scale(_viewScale),
+                  alignment: Alignment.topLeft,
+                  child: CustomPaint(painter: _painter, size: _canvasSize),
+                ),
+              ),
+            ),
           ),
         );
       },
