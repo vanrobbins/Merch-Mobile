@@ -94,5 +94,46 @@ void main() {
       final store = await db.storesDao.findById('missing');
       expect(store, isNull);
     });
+
+    test('watchById emits the matching store', () async {
+      await db.storesDao.upsert(StoresTableCompanion.insert(
+        id: 's1', name: 'Store One', inviteCode: 'CODE1', createdAt: 1000, ownerUid: 'u1',
+      ));
+      await db.storesDao.upsert(StoresTableCompanion.insert(
+        id: 's2', name: 'Store Two', inviteCode: 'CODE2', createdAt: 2000, ownerUid: 'u2',
+      ));
+      final result = await db.storesDao.watchById('s1').first;
+      expect(result, isNotNull);
+      expect(result!.name, 'Store One');
+    });
+
+    test('watchById emits null for unknown id', () async {
+      final result = await db.storesDao.watchById('nonexistent').first;
+      expect(result, isNull);
+    });
+
+    test('updateDimensions persists widthFt and depthFt', () async {
+      await db.storesDao.upsert(StoresTableCompanion.insert(
+        id: 's1', name: 'Store One', inviteCode: 'CODE1', createdAt: 1000, ownerUid: 'u1',
+      ));
+      await db.storesDao.updateDimensions('s1', 60.0, 40.0);
+      final store = await db.storesDao.findById('s1');
+      expect(store, isNotNull);
+      expect(store!.widthFt, 60.0);
+      expect(store.depthFt, 40.0);
+    });
+
+    test('updateDimensions does not affect other stores', () async {
+      await db.storesDao.upsert(StoresTableCompanion.insert(
+        id: 's1', name: 'Store One', inviteCode: 'CODE1', createdAt: 1000, ownerUid: 'u1',
+      ));
+      await db.storesDao.upsert(StoresTableCompanion.insert(
+        id: 's2', name: 'Store Two', inviteCode: 'CODE2', createdAt: 2000, ownerUid: 'u2',
+      ));
+      await db.storesDao.updateDimensions('s1', 60.0, 40.0);
+      final s2 = await db.storesDao.findById('s2');
+      expect(s2!.widthFt, isNull);
+      expect(s2.depthFt, isNull);
+    });
   });
 }

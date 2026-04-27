@@ -84,5 +84,58 @@ void main() {
       final rows = await db.fixturesDao.watchAll().first;
       expect(rows, isEmpty);
     });
+
+    test('watchStoreLevelByStore returns only fixtures where zoneId IS NULL', () async {
+      await db.fixturesDao.upsert(FixturesTableCompanion.insert(
+        id: 'sl1',
+        zoneId: const Value(null),
+        fixtureType: 'partition',
+        updatedAt: DateTime(2025),
+        storeId: const Value('store_a'),
+      ));
+      await db.fixturesDao.upsert(FixturesTableCompanion.insert(
+        id: 'z1',
+        zoneId: const Value('zone_a'),
+        fixtureType: 'rack',
+        updatedAt: DateTime(2025),
+        storeId: const Value('store_a'),
+      ));
+      final storeLevelRows = await db.fixturesDao.watchStoreLevelByStore('store_a').first;
+      expect(storeLevelRows.length, 1);
+      expect(storeLevelRows.first.id, 'sl1');
+      expect(storeLevelRows.first.zoneId, isNull);
+    });
+
+    test('new fields default correctly', () async {
+      await db.fixturesDao.upsert(FixturesTableCompanion.insert(
+        id: 'f_new',
+        fixtureType: 'rack',
+        updatedAt: DateTime(2025),
+        storeId: const Value('store_a'),
+      ));
+      final rows = await db.fixturesDao.watchAll().first;
+      final f = rows.first;
+      expect(f.zoneId, isNull);
+      expect(f.planogramId, isNull);
+      expect(f.planogramIdBack, isNull);
+      expect(f.wallAdjacent, isFalse);
+    });
+
+    test('planogramId and wallAdjacent round-trip correctly', () async {
+      await db.fixturesDao.upsert(FixturesTableCompanion.insert(
+        id: 'fp',
+        fixtureType: 'partition',
+        updatedAt: DateTime(2025),
+        storeId: const Value('store_a'),
+        planogramId: const Value('plano_1'),
+        planogramIdBack: const Value('plano_2'),
+        wallAdjacent: const Value(true),
+      ));
+      final rows = await db.fixturesDao.watchAll().first;
+      final f = rows.first;
+      expect(f.planogramId, 'plano_1');
+      expect(f.planogramIdBack, 'plano_2');
+      expect(f.wallAdjacent, isTrue);
+    });
   });
 }
