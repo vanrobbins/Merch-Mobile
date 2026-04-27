@@ -1,3 +1,4 @@
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_theme.dart';
@@ -5,7 +6,9 @@ import '../../core/theme/design_tokens.dart';
 import '../zone_manager/zone_shape.dart';
 import 'builder_canvas_painter.dart';
 import 'element_library_panel.dart';
+import 'fixture_mini_panel.dart';
 import 'floor_builder_provider.dart';
+import 'planogram_picker_sheet.dart';
 import 'snap_grid.dart';
 import 'zone_edge_helper.dart';
 
@@ -31,6 +34,13 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
   BuilderCanvasPainter? _painter;
   String? _dragFixtureId;
   int? _primaryPointer;
+
+  // Resize state
+  String? _resizingFixtureId;
+  String? _resizeHandle;
+  Offset? _resizeStartPos;
+  double? _resizeStartWidth;
+  double? _resizeStartDepth;
 
   @override
   void initState() {
@@ -92,12 +102,43 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
   }
 
   void _onFixtureLongPress(String fixtureId, String currentLabel) {
+    final fixture = ref
+        .read(floorBuilderNotifierProvider)
+        .fixtures
+        .firstWhere((f) => f.id == fixtureId);
     showModalBottomSheet<void>(
       context: context,
       builder: (_) => _FixtureActionsSheet(
         fixtureId: fixtureId,
         currentLabel: currentLabel,
+        fixtureType: fixture.fixtureType,
+        wallAdjacent: fixture.wallAdjacent,
         notifier: ref.read(floorBuilderNotifierProvider.notifier),
+      ),
+    );
+  }
+
+  void _openPlanogramPicker(String fixtureId, {required bool front}) {
+    final state = ref.read(floorBuilderNotifierProvider);
+    final fixture = state.fixtures.firstWhere((f) => f.id == fixtureId);
+    final planogramList = state.planograms.values.toList();
+    final currentId = front ? fixture.planogramId : fixture.planogramIdBack;
+    final label = fixture.label.isNotEmpty ? fixture.label : fixture.fixtureType.toUpperCase();
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => PlanogramPickerSheet(
+        planograms: planogramList,
+        currentPlanogramId: currentId,
+        fixtureLabel: label,
+        onSelect: (id) {
+          if (front) {
+            ref.read(floorBuilderNotifierProvider.notifier).assignPlanogram(fixtureId, id);
+          } else {
+            ref.read(floorBuilderNotifierProvider.notifier).assignPlanogramBack(fixtureId, id);
+          }
+        },
       ),
     );
   }
@@ -118,6 +159,45 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
 
   void _onPointerDown(PointerDownEvent event) {
     if (_painter == null || _primaryPointer != null) return;
+
+    // 1. Resize handle hit-test (highest priority)
+    for (final entry in _painter!.resizeHandleRects.entries) {
+      for (final hEntry in entry.value.entries) {
+        if (hEntry.value.contains(event.localPosition)) {
+          _primaryPointer = event.pointer;
+          final fixture = ref
+              .read(floorBuilderNotifierProvider)
+              .fixtures
+              .firstWhere((f) => f.id == entry.key);
+          setState(() {
+            _resizingFixtureId = entry.key;
+            _resizeHandle = hEntry.key;
+            _resizeStartPos = event.localPosition;
+            _resizeStartWidth = fixture.widthFt;
+            _resizeStartDepth = fixture.depthFt;
+          });
+          return;
+        }
+      }
+    }
+
+    // 2. Badge hit-test
+    for (final entry in _painter!.badgeRects.entries) {
+      if (entry.value.contains(event.localPosition)) {
+        _primaryPointer = event.pointer;
+        _openPlanogramPicker(entry.key, front: true);
+        return;
+      }
+    }
+    for (final entry in _painter!.badgeBackRects.entries) {
+      if (entry.value.contains(event.localPosition)) {
+        _primaryPointer = event.pointer;
+        _openPlanogramPicker(entry.key, front: false);
+        return;
+      }
+    }
+
+    // 3. Fixture body hit-test
     for (final entry in _painter!.fixtureRects.entries) {
       if (entry.value.contains(event.localPosition)) {
         _primaryPointer = event.pointer;
@@ -126,26 +206,86 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
         return;
       }
     }
+
+    // 4. Empty canvas — deselect
     ref.read(floorBuilderNotifierProvider.notifier).selectFixture(null);
   }
 
   void _onPointerMove(PointerMoveEvent event) {
-    if (_dragFixtureId == null || event.pointer != _primaryPointer) return;
+    if (event.pointer != _primaryPointer) return;
+
+    // Resize
+    if (_resizingFixtureId != null && _resizeHandle != null && _resizeStartPos != null) {
+      final delta = event.localPosition - _resizeStartPos!;
+      final dFt = Offset(delta.dx / _pixelsPerFt, delta.dy / _pixelsPerFt);
+      double? newWidth;
+      double? newDepth;
+      switch (_resizeHandle!) {
+        case 'right':
+          newWidth = (_resizeStartWidth! + dFt.dx).clamp(0.5, double.infinity);
+        case 'left':
+          newWidth = (_resizeStartWidth! - dFt.dx).clamp(0.5, double.infinity);
+        case 'bottom':
+          newDepth = (_resizeStartDepth! + dFt.dy).clamp(0.5, double.infinity);
+        case 'top':
+          newDepth = (_resizeStartDepth! - dFt.dy).clamp(0.5, double.infinity);
+      }
+      ref.read(floorBuilderNotifierProvider.notifier).resizeFixtureLocal(
+            _resizingFixtureId!, newWidth, newDepth);
+      return;
+    }
+
+    // Drag
+    if (_dragFixtureId == null) return;
     ref.read(floorBuilderNotifierProvider.notifier).moveFixture(
-      _dragFixtureId!,
-      Offset(event.localPosition.dx / _pixelsPerFt, event.localPosition.dy / _pixelsPerFt),
-    );
+          _dragFixtureId!,
+          Offset(event.localPosition.dx / _pixelsPerFt,
+              event.localPosition.dy / _pixelsPerFt),
+        );
   }
 
   void _onPointerUp(PointerUpEvent event) {
-    if (event.pointer == _primaryPointer) {
-      _primaryPointer = null;
-      if (_dragFixtureId != null) setState(() => _dragFixtureId = null);
+    if (event.pointer != _primaryPointer) return;
+    _primaryPointer = null;
+
+    if (_resizingFixtureId != null) {
+      final fixture = ref
+          .read(floorBuilderNotifierProvider)
+          .fixtures
+          .firstWhereOrNull((f) => f.id == _resizingFixtureId!);
+      if (fixture != null) {
+        ref.read(floorBuilderNotifierProvider.notifier).resizeFixture(
+              _resizingFixtureId!, fixture.widthFt, fixture.depthFt);
+      }
+      setState(() {
+        _resizingFixtureId = null;
+        _resizeHandle = null;
+        _resizeStartPos = null;
+        _resizeStartWidth = null;
+        _resizeStartDepth = null;
+      });
     }
+
+    if (_dragFixtureId != null) setState(() => _dragFixtureId = null);
   }
 
   Offset _normalizeOffset(Offset pixelOffset) {
     return Offset(pixelOffset.dx / _pixelsPerFt, pixelOffset.dy / _pixelsPerFt);
+  }
+
+  Widget _buildMiniPanel(FloorBuilderState state) {
+    final fixture = state.fixtures
+        .where((f) => f.id == state.selectedFixtureId)
+        .firstOrNull;
+    if (fixture == null) return const SizedBox.shrink();
+    final planogram = fixture.planogramId != null
+        ? state.planograms[fixture.planogramId!]
+        : null;
+    return FixtureMiniPanel(
+      fixture: fixture,
+      planogram: planogram,
+      onDismiss: () => ref.read(floorBuilderNotifierProvider.notifier).selectFixture(null),
+    );
   }
 
   @override
@@ -164,6 +304,7 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
       zoneColor: zone != null ? Color(zone.colorValue) : null,
       zoneName: zone?.name,
       wallEdges: _wallEdges,
+      planograms: state.planograms,
     );
 
     return Scaffold(
@@ -225,7 +366,7 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
                       ),
                     // Canvas layer — gestures inside IV so coords match canvas space
                     InteractiveViewer(
-                      panEnabled: _dragFixtureId == null,
+                      panEnabled: _dragFixtureId == null && _resizingFixtureId == null,
                       boundaryMargin: const EdgeInsets.all(100),
                       minScale: 0.5,
                       maxScale: 4.0,
@@ -242,6 +383,15 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
                         ),
                       ),
                     ),
+                    if (state.selectedFixtureId != null &&
+                        _dragFixtureId == null &&
+                        _resizingFixtureId == null)
+                      Positioned(
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        child: _buildMiniPanel(state),
+                      ),
                   ],
                 );
               },
@@ -470,10 +620,14 @@ class _FixtureActionsSheet extends StatefulWidget {
   const _FixtureActionsSheet({
     required this.fixtureId,
     required this.currentLabel,
+    required this.fixtureType,
+    required this.wallAdjacent,
     required this.notifier,
   });
   final String fixtureId;
   final String currentLabel;
+  final String fixtureType;
+  final bool wallAdjacent;
   final FloorBuilderNotifier notifier;
 
   @override
@@ -522,6 +676,16 @@ class _FixtureActionsSheetState extends State<_FixtureActionsSheet> {
               border: UnderlineInputBorder(),
             ),
           ),
+          if (widget.fixtureType == 'partition') ...[
+            const SizedBox(height: DesignTokens.spaceSm),
+            OutlinedButton(
+              onPressed: () {
+                widget.notifier.toggleWallAdjacent(widget.fixtureId);
+                Navigator.pop(context);
+              },
+              child: Text(widget.wallAdjacent ? 'MARK AS FREE-STANDING' : 'MARK AS WALL-ADJACENT'),
+            ),
+          ],
           const SizedBox(height: DesignTokens.spaceMd),
           Row(
             children: [

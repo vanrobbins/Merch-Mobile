@@ -21,6 +21,7 @@ class FloorBuilderState {
   final double gridSizeFt;
   final bool isDragging;
   final bool isLoading;
+  final Map<String, PlanogramsTableData> planograms;
 
   const FloorBuilderState({
     this.fixtures = const [],
@@ -29,6 +30,7 @@ class FloorBuilderState {
     this.gridSizeFt = 2.0,
     this.isDragging = false,
     this.isLoading = false,
+    this.planograms = const {},
   });
 
   FloorBuilderState copyWith({
@@ -38,6 +40,7 @@ class FloorBuilderState {
     double? gridSizeFt,
     bool? isDragging,
     bool? isLoading,
+    Map<String, PlanogramsTableData>? planograms,
   }) {
     return FloorBuilderState(
       fixtures: fixtures ?? this.fixtures,
@@ -48,6 +51,7 @@ class FloorBuilderState {
       gridSizeFt: gridSizeFt ?? this.gridSizeFt,
       isDragging: isDragging ?? this.isDragging,
       isLoading: isLoading ?? this.isLoading,
+      planograms: planograms ?? this.planograms,
     );
   }
 }
@@ -87,11 +91,15 @@ FixturesTableCompanion _fixtureToCompanion(Fixture f) => FixturesTableCompanion(
 @riverpod
 class FloorBuilderNotifier extends _$FloorBuilderNotifier {
   StreamSubscription<List<FixturesTableData>>? _sub;
+  StreamSubscription<List<PlanogramsTableData>>? _planogramSub;
   String? _zoneId;
 
   @override
   FloorBuilderState build() {
-    ref.onDispose(() => _sub?.cancel());
+    ref.onDispose(() {
+      _sub?.cancel();
+      _planogramSub?.cancel();
+    });
     return const FloorBuilderState(isLoading: true);
   }
 
@@ -116,11 +124,18 @@ class FloorBuilderNotifier extends _$FloorBuilderNotifier {
 
   void loadFixtures(String zoneId) {
     _zoneId = zoneId;
+    final storeId = _storeId;
     _sub?.cancel();
-    _sub = _dao.watchByZone(_storeId, zoneId).listen((rows) {
+    _sub = _dao.watchByZone(storeId, zoneId).listen((rows) {
       state = state.copyWith(
         fixtures: rows.map(_rowToFixture).toList(),
         isLoading: false,
+      );
+    });
+    _planogramSub?.cancel();
+    _planogramSub = ref.read(appDatabaseProvider).planogramsDao.watchByStore(storeId).listen((rows) {
+      state = state.copyWith(
+        planograms: {for (final p in rows) p.id: p},
       );
     });
   }
@@ -185,6 +200,53 @@ class FloorBuilderNotifier extends _$FloorBuilderNotifier {
 
   void selectFixture(String? id) {
     state = state.copyWith(selectedFixtureId: id);
+  }
+
+  void resizeFixtureLocal(String id, double? widthFt, double? depthFt) {
+    final fixtures = state.fixtures.map((f) {
+      if (f.id != id) return f;
+      return f.copyWith(
+        widthFt: (widthFt ?? f.widthFt).clamp(0.5, double.infinity),
+        depthFt: (depthFt ?? f.depthFt).clamp(0.5,
+            f.fixtureType == 'partition' ? 1.0 : double.infinity),
+      );
+    }).toList();
+    state = state.copyWith(fixtures: fixtures);
+  }
+
+  Future<void> resizeFixture(String id, double? widthFt, double? depthFt) async {
+    final fixture = state.fixtures.firstWhere((f) => f.id == id);
+    final updated = fixture.copyWith(
+      widthFt: (widthFt ?? fixture.widthFt).clamp(0.5, double.infinity),
+      depthFt: (depthFt ?? fixture.depthFt).clamp(0.5,
+          fixture.fixtureType == 'partition' ? 1.0 : double.infinity),
+      updatedAt: DateTime.now(),
+    );
+    await _updateFixture(id, (_) => updated);
+  }
+
+  Future<void> assignPlanogram(String fixtureId, String? planogramId) async {
+    await _updateFixture(fixtureId, (f) => f.copyWith(
+      planogramId: planogramId,
+      updatedAt: DateTime.now(),
+    ));
+  }
+
+  Future<void> assignPlanogramBack(String fixtureId, String? planogramId) async {
+    await _updateFixture(fixtureId, (f) => f.copyWith(
+      planogramIdBack: planogramId,
+      updatedAt: DateTime.now(),
+    ));
+  }
+
+  Future<void> toggleWallAdjacent(String fixtureId) async {
+    final fixture = state.fixtures.firstWhere((f) => f.id == fixtureId);
+    final newValue = !fixture.wallAdjacent;
+    await _updateFixture(fixtureId, (f) => f.copyWith(
+      wallAdjacent: newValue,
+      planogramIdBack: newValue ? null : f.planogramIdBack,
+      updatedAt: DateTime.now(),
+    ));
   }
 
   void toggleSnap() {
