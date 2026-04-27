@@ -75,6 +75,31 @@ class ZoneMapNotifier extends _$ZoneMapNotifier {
 
   void selectZone(String? id) => state = state.copyWith(selectedZoneId: id);
 
+  Future<void> addZoneOfType(String zoneType) async {
+    final db = ref.read(appDatabaseProvider);
+    final storeId = ref.read(activeStoreIdProvider).value ?? '';
+    const center = Offset(0.5, 0.5);
+    final name = zoneType == 'entrance'
+        ? 'Entrance'
+        : zoneType == 'cash_wrap'
+            ? 'Cash Wrap'
+            : 'Zone ${state.zones.length + 1}';
+    final color = zoneType == 'entrance' ? 0xFF1A1917 : 0xFF3B6BC2;
+    await db.zonesDao.upsert(ZonesTableCompanion.insert(
+      id: const Uuid().v4(),
+      name: name,
+      colorValue: color,
+      zoneType: zoneType,
+      storeId: storeId,
+      posX: const Value(0.4),
+      posY: const Value(0.4),
+      width: const Value(0.2),
+      height: const Value(0.15),
+      shapePoints: Value(ZoneShape.encode(ZoneShape.defaultRect(center))),
+      updatedAt: DateTime.now(),
+    ));
+  }
+
   Future<void> addZone() async {
     final db = ref.read(appDatabaseProvider);
     final storeId = ref.read(activeStoreIdProvider).value ?? '';
@@ -97,11 +122,21 @@ class ZoneMapNotifier extends _$ZoneMapNotifier {
   Future<void> updateZoneName(String id, String name) =>
       _patchZone(id, (c) => c.copyWith(name: Value(name)));
 
-  Future<void> updateZoneColor(String id, int colorValue) =>
-      _patchZone(id, (c) => c.copyWith(colorValue: Value(colorValue)));
+  Future<void> updateZoneColor(String id, int colorValue) {
+    state = state.copyWith(zones: [
+      for (final z in state.zones)
+        if (z.id == id) z.copyWith(colorValue: colorValue) else z,
+    ]);
+    return _patchZone(id, (c) => c.copyWith(colorValue: Value(colorValue)));
+  }
 
-  Future<void> updateZoneType(String id, String type) =>
-      _patchZone(id, (c) => c.copyWith(zoneType: Value(type)));
+  Future<void> updateZoneType(String id, String type) {
+    state = state.copyWith(zones: [
+      for (final z in state.zones)
+        if (z.id == id) z.copyWith(zoneType: type) else z,
+    ]);
+    return _patchZone(id, (c) => c.copyWith(zoneType: Value(type)));
+  }
 
   Future<void> updateZoneShape(String id, List<Offset> points) =>
       _patchZone(id, (c) => c.copyWith(shapePoints: Value(ZoneShape.encode(points))));
@@ -123,6 +158,23 @@ class ZoneMapNotifier extends _$ZoneMapNotifier {
   /// Translates all vertices in local state only — used for smooth drag preview.
   void moveZoneLocal(String id, Offset normDelta) =>
       updateZoneShapeLocal(id, _translatedPoints(id, normDelta));
+
+  Future<void> addVertex(String id, int afterIdx, Offset normPt) {
+    final zone = state.zones.firstWhereOrNull((z) => z.id == id);
+    if (zone == null) return Future.value();
+    final pts = List.of(ZoneShape.decode(zone.shapePoints))
+      ..insert(afterIdx + 1, normPt);
+    return updateZoneShape(id, pts);
+  }
+
+  Future<void> removeVertex(String id, int idx) {
+    final zone = state.zones.firstWhereOrNull((z) => z.id == id);
+    if (zone == null) return Future.value();
+    final pts = List.of(ZoneShape.decode(zone.shapePoints));
+    if (pts.length <= 3) return Future.value(); // minimum triangle
+    pts.removeAt(idx);
+    return updateZoneShape(id, pts);
+  }
 
   Future<void> deleteZone(String id) async {
     final db = ref.read(appDatabaseProvider);

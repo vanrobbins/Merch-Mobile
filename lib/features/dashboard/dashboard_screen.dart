@@ -6,10 +6,11 @@ import '../../core/providers/store_provider.dart';
 import '../../core/router/app_router.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/design_tokens.dart';
+import '../zone_manager/zone_map_provider.dart';
 import 'dashboard_provider.dart';
 
 /// Role-aware home screen for the active store.
-/// - Coordinator: zones, fixtures, products, join requests, proposals.
+/// - Coordinator: zones, fixtures, products, join requests, proposals, store setup.
 /// - Manager: products, join requests, proposals.
 /// - Staff: my photos, my proposals.
 class DashboardScreen extends ConsumerWidget {
@@ -68,6 +69,8 @@ class DashboardScreen extends ConsumerWidget {
             ),
 
             if (role == 'coordinator') ...[
+              _StoreSetupCard(ref: ref),
+              const SizedBox(height: DesignTokens.spaceMd),
               _StatsGrid(items: [
                 _StatItem(
                   'Zones',
@@ -174,6 +177,128 @@ class DashboardScreen extends ConsumerWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _StoreSetupCard extends StatelessWidget {
+  const _StoreSetupCard({required this.ref});
+  final WidgetRef ref;
+
+  @override
+  Widget build(BuildContext context) {
+    final zoneState = ref.watch(zoneMapNotifierProvider);
+    final store = zoneState.storeData;
+    final hasDims = store?.widthFt != null && store?.depthFt != null;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: Colors.grey.shade200),
+        borderRadius: BorderRadius.circular(AppTheme.borderRadius),
+        boxShadow: const [AppTheme.cardShadow],
+      ),
+      padding: const EdgeInsets.all(DesignTokens.spaceMd),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'STORE SETUP',
+            style: TextStyle(
+              fontSize: DesignTokens.typeXs,
+              fontWeight: DesignTokens.weightBold,
+              letterSpacing: DesignTokens.letterSpacingEyebrow,
+              color: AppTheme.textSecondary,
+            ),
+          ),
+          const SizedBox(height: DesignTokens.spaceSm),
+          Row(
+            children: [
+              Icon(Icons.straighten, size: DesignTokens.iconSm, color: AppTheme.textSecondary),
+              const SizedBox(width: DesignTokens.spaceXs),
+              Expanded(
+                child: Text(
+                  hasDims
+                      ? '${store!.widthFt!.toStringAsFixed(0)} ft × ${store.depthFt!.toStringAsFixed(0)} ft'
+                      : 'No dimensions set',
+                  style: const TextStyle(fontSize: DesignTokens.typeSm),
+                ),
+              ),
+              TextButton(
+                onPressed: () => _showDimensionsDialog(context),
+                child: Text(hasDims ? 'EDIT' : 'SET SIZE'),
+              ),
+            ],
+          ),
+          const SizedBox(height: DesignTokens.spaceXs),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () async {
+                await ref.read(zoneMapNotifierProvider.notifier).addZoneOfType('entrance');
+                if (context.mounted) context.goNamed(AppRoutes.zoneMap);
+              },
+              icon: const Icon(Icons.door_front_door_outlined, size: 16),
+              label: const Text('ADD ENTRANCE'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showDimensionsDialog(BuildContext context) {
+    final widthCtrl = TextEditingController();
+    final depthCtrl = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+    showDialog<void>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('STORE DIMENSIONS'),
+        content: Form(
+          key: formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextFormField(
+                controller: widthCtrl,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                decoration: const InputDecoration(labelText: 'Width (ft)', border: OutlineInputBorder()),
+                validator: (v) {
+                  final n = double.tryParse(v ?? '');
+                  return (n == null || n <= 0) ? 'Enter a positive number' : null;
+                },
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: depthCtrl,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                decoration: const InputDecoration(labelText: 'Depth (ft)', border: OutlineInputBorder()),
+                validator: (v) {
+                  final n = double.tryParse(v ?? '');
+                  return (n == null || n <= 0) ? 'Enter a positive number' : null;
+                },
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('CANCEL')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.accent, foregroundColor: Colors.white),
+            onPressed: () {
+              if (formKey.currentState!.validate()) {
+                ref.read(zoneMapNotifierProvider.notifier).updateStoreDimensions(
+                  double.parse(widthCtrl.text),
+                  double.parse(depthCtrl.text),
+                );
+                Navigator.pop(context);
+              }
+            },
+            child: const Text('CONFIRM'),
+          ),
+        ],
       ),
     );
   }

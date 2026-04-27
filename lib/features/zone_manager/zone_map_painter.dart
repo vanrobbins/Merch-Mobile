@@ -87,10 +87,6 @@ class ZoneMapPainter extends CustomPainter {
 
   void _drawStoreBoundary(Canvas canvas) {
     final rect = _storeRect;
-    canvas.drawRect(
-      Rect.fromLTWH(0, 0, canvasSize.width, canvasSize.height),
-      Paint()..color = Colors.black.withOpacity(0.04),
-    );
     canvas.drawRect(rect, Paint()..color = const Color(0xFFF2EFE8));
     canvas.drawRect(
       rect,

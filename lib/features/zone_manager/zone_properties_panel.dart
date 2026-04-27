@@ -103,11 +103,21 @@ class _ZonePropertiesPanelState extends ConsumerState<ZonePropertiesPanel> {
           ),
           const SizedBox(height: DesignTokens.spaceMd),
 
-          // Name
+          // Name + current type
           TextField(
             controller: _nameCtrl,
             decoration: const InputDecoration(labelText: 'Zone Name'),
             onSubmitted: (v) => notifier.updateZoneName(widget.zone.id, v),
+          ),
+          const SizedBox(height: DesignTokens.spaceXs),
+          Text(
+            liveZone.zoneType.replaceAll('_', ' ').toUpperCase(),
+            style: const TextStyle(
+              fontSize: DesignTokens.typeXs,
+              color: AppTheme.textSecondary,
+              fontWeight: DesignTokens.weightBold,
+              letterSpacing: DesignTokens.letterSpacingEyebrow,
+            ),
           ),
           const SizedBox(height: DesignTokens.spaceMd),
 

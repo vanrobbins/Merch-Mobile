@@ -136,24 +136,41 @@ class _ZoneCanvasState extends ConsumerState<_ZoneCanvas> {
 
   ZoneMapNotifier get _notifier => ref.read(zoneMapNotifierProvider.notifier);
 
-  void _fitZones(List<ZonesTableData> zones) {
-    if (_canvasSize == Size.zero || zones.isEmpty) return;
-    double minX = double.infinity, maxX = double.negativeInfinity;
-    double minY = double.infinity, maxY = double.negativeInfinity;
-    for (final zone in zones) {
-      for (final pt in ZoneShape.decode(zone.shapePoints)) {
-        minX = min(minX, pt.dx); maxX = max(maxX, pt.dx);
-        minY = min(minY, pt.dy); maxY = max(maxY, pt.dy);
+  void _fitView() {
+    if (_canvasSize == Size.zero) return;
+    final st = ref.read(zoneMapNotifierProvider);
+    final widthFt = st.storeData?.widthFt;
+    final depthFt = st.storeData?.depthFt;
+
+    double minX, maxX, minY, maxY;
+
+    if (widthFt != null && depthFt != null) {
+      final ppf = (_canvasSize.width / widthFt).clamp(0.0, _canvasSize.height / depthFt);
+      minX = 0; maxX = widthFt * ppf; minY = 0; maxY = depthFt * ppf;
+    } else if (st.zones.isNotEmpty) {
+      minX = double.infinity; maxX = double.negativeInfinity;
+      minY = double.infinity; maxY = double.negativeInfinity;
+    } else {
+      return;
+    }
+
+    for (final zone in st.zones) {
+      for (final p in ZoneShape.decode(zone.shapePoints)) {
+        final px = p.dx * _canvasSize.width;
+        final py = p.dy * _canvasSize.height;
+        minX = min(minX, px); maxX = max(maxX, px);
+        minY = min(minY, py); maxY = max(maxY, py);
       }
     }
+
     if (minX >= maxX || minY >= maxY) return;
-    const pad = 0.08;
-    minX -= pad; maxX += pad; minY -= pad; maxY += pad;
-    final contentW = (maxX - minX) * _canvasSize.width;
-    final contentH = (maxY - minY) * _canvasSize.height;
-    final scale = min(_canvasSize.width / contentW, _canvasSize.height / contentH).clamp(0.2, 6.0);
-    final cx = (minX + maxX) / 2 * _canvasSize.width;
-    final cy = (minY + maxY) / 2 * _canvasSize.height;
+    const padPx = 40.0;
+    minX -= padPx; maxX += padPx; minY -= padPx; maxY += padPx;
+    final cw = maxX - minX; final ch = maxY - minY;
+    if (cw <= 0 || ch <= 0) return;
+    final scale = min(_canvasSize.width / cw, _canvasSize.height / ch).clamp(0.2, 6.0);
+    final cx = (minX + maxX) / 2;
+    final cy = (minY + maxY) / 2;
     setState(() {
       _viewScale = scale;
       _viewOffset = Offset(_canvasSize.width / 2 - cx * scale, _canvasSize.height / 2 - cy * scale);
@@ -178,6 +195,84 @@ class _ZoneCanvasState extends ConsumerState<_ZoneCanvas> {
       if ((pt - canvas).distance < radius) return i;
     }
     return -1;
+  }
+
+  /// Returns the edge index (i → i+1) closest to [canvas] within threshold,
+  /// or -1 if no edge is close enough.
+  int _hitEdge(ZonesTableData zone, Offset canvas) {
+    final normPts = ZoneShape.decode(zone.shapePoints);
+    final n = normPts.length;
+    final threshold = _vertexHitScreenPx / _viewScale;
+    int bestEdge = -1;
+    double bestDist = threshold;
+    for (var i = 0; i < n; i++) {
+      final a = Offset(normPts[i].dx * _canvasSize.width, normPts[i].dy * _canvasSize.height);
+      final b = Offset(normPts[(i + 1) % n].dx * _canvasSize.width, normPts[(i + 1) % n].dy * _canvasSize.height);
+      final d = _pointToSegmentDist(canvas, a, b);
+      if (d < bestDist) { bestDist = d; bestEdge = i; }
+    }
+    return bestEdge;
+  }
+
+  double _pointToSegmentDist(Offset p, Offset a, Offset b) {
+    final ab = b - a;
+    final len2 = ab.dx * ab.dx + ab.dy * ab.dy;
+    if (len2 == 0) return (p - a).distance;
+    final t = ((p - a).dx * ab.dx + (p - a).dy * ab.dy) / len2;
+    final clamped = t.clamp(0.0, 1.0);
+    final proj = a + Offset(ab.dx * clamped, ab.dy * clamped);
+    return (p - proj).distance;
+  }
+
+  void _onLongPress(LongPressStartDetails details) {
+    final state = ref.read(zoneMapNotifierProvider);
+    final selectedId = state.selectedZoneId;
+    if (selectedId == null) return;
+    final zone = state.zones.firstWhereOrNull((z) => z.id == selectedId);
+    if (zone == null) return;
+
+    final canvas = _toCanvas(details.localPosition);
+
+    // Long-press on a vertex → remove it
+    final vIdx = _hitVertex(zone, canvas);
+    if (vIdx >= 0) {
+      _notifier.removeVertex(selectedId, vIdx);
+      return;
+    }
+
+    // Long-press on an edge → insert vertex at that position
+    final eIdx = _hitEdge(zone, canvas);
+    if (eIdx >= 0) {
+      _notifier.addVertex(selectedId, eIdx, _normalize(canvas));
+    }
+  }
+
+  /// Snaps the move delta so the closest vertex pair aligns with another zone.
+  Offset _trySnapZoneMove(String zoneId, Offset normDelta) {
+    final st = ref.read(zoneMapNotifierProvider);
+    final zone = st.zones.firstWhereOrNull((z) => z.id == zoneId);
+    if (zone == null) return normDelta;
+    final movingPts = ZoneShape.decode(zone.shapePoints);
+    final threshold = _snapScreenPx / _viewScale;
+    Offset? bestDelta;
+    double bestDist = threshold;
+    for (final pt in movingPts) {
+      final movedX = (pt.dx + normDelta.dx) * _canvasSize.width;
+      final movedY = (pt.dy + normDelta.dy) * _canvasSize.height;
+      for (final other in st.zones) {
+        if (other.id == zoneId) continue;
+        for (final otherPt in ZoneShape.decode(other.shapePoints)) {
+          final ox = otherPt.dx * _canvasSize.width;
+          final oy = otherPt.dy * _canvasSize.height;
+          final d = Offset(movedX - ox, movedY - oy).distance;
+          if (d < bestDist) {
+            bestDist = d;
+            bestDelta = Offset(otherPt.dx - pt.dx, otherPt.dy - pt.dy);
+          }
+        }
+      }
+    }
+    return bestDelta ?? normDelta;
   }
 
   // Snap to nearest vertex of any OTHER zone.
@@ -410,7 +505,8 @@ class _ZoneCanvasState extends ConsumerState<_ZoneCanvas> {
     }
 
     if (_moveZoneId != null && _moveStartCanvas != null && _moveStartPoints != null) {
-      final normDelta = _normalizeDelta(canvas - _moveStartCanvas!);
+      var normDelta = _normalizeDelta(canvas - _moveStartCanvas!);
+      normDelta = _trySnapZoneMove(_moveZoneId!, normDelta);
       final moved = [
         for (final p in _moveStartPoints!)
           Offset((p.dx + normDelta.dx).clamp(0.0, 1.0), (p.dy + normDelta.dy).clamp(0.0, 1.0)),
@@ -457,9 +553,9 @@ class _ZoneCanvasState extends ConsumerState<_ZoneCanvas> {
     return LayoutBuilder(
       builder: (context, constraints) {
         _canvasSize = constraints.biggest;
-        if (!_hasFitView && state.zones.isNotEmpty && _canvasSize != Size.zero) {
+        if (!_hasFitView && !state.isLoading && _canvasSize != Size.zero) {
           _hasFitView = true;
-          WidgetsBinding.instance.addPostFrameCallback((_) { if (mounted) _fitZones(state.zones); });
+          WidgetsBinding.instance.addPostFrameCallback((_) { if (mounted) _fitView(); });
         }
         final snapPreview = _dragPoints != null ? _trySnapToShape(_dragPoints!) : null;
         _painter = ZoneMapPainter(
@@ -478,6 +574,7 @@ class _ZoneCanvasState extends ConsumerState<_ZoneCanvas> {
             onPointerUp: _onPointerUp,
             child: GestureDetector(
               onTapUp: _onTapUp,
+              onLongPressStart: _onLongPress,
               child: SizedBox.expand(
                 child: Transform(
                   transform: Matrix4.identity()
