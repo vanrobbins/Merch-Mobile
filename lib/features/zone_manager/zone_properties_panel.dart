@@ -197,8 +197,10 @@ class _ZonePropertiesPanelState extends ConsumerState<ZonePropertiesPanel> {
                 Expanded(
                   child: OutlinedButton(
                     onPressed: () {
+                      final notifier = ref.read(zoneMapNotifierProvider.notifier);
+                      final zoneId = widget.zone.id;
                       Navigator.pop(context);
-                      ZoneShapePicker.show(context, ref, widget.zone.id);
+                      ZoneShapePicker.show(context, notifier, zoneId);
                     },
                     child: const Text('REPLACE SHAPE'),
                   ),
