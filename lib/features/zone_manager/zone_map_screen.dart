@@ -73,13 +73,7 @@ class _ZoneMapScreenState extends ConsumerState<ZoneMapScreen> {
           Expanded(
             child: state.isLoading
                 ? const Center(child: CircularProgressIndicator())
-                : InteractiveViewer(
-                    panEnabled: false,
-                    boundaryMargin: const EdgeInsets.all(80),
-                    minScale: 0.2,
-                    maxScale: 4.0,
-                    child: _ZoneCanvas(onZoneTap: _onZoneTap),
-                  ),
+                : _ZoneCanvas(onZoneTap: _onZoneTap),
           ),
           _SelectedZoneBanner(state: state),
           const ZoneLegendPanel(),
@@ -175,7 +169,7 @@ class _ZoneCanvas extends ConsumerStatefulWidget {
 }
 
 class _ZoneCanvasState extends ConsumerState<_ZoneCanvas> {
-  static const _canvasSize = Size(800, 600);
+  Size _canvasSize = Size.zero;
   static const _vertexHitRadius = 20.0;
 
   ZoneMapPainter? _painter;
@@ -310,21 +304,26 @@ class _ZoneCanvasState extends ConsumerState<_ZoneCanvas> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(zoneMapNotifierProvider);
-    _painter = ZoneMapPainter(
-      zones: state.zones,
-      canvasSize: _canvasSize,
-      selectedZoneId: state.selectedZoneId,
-      widthFt: state.storeData?.widthFt,
-      depthFt: state.storeData?.depthFt,
-    );
-    return Listener(
-      onPointerDown: _onPointerDown,
-      onPointerMove: _onPointerMove,
-      onPointerUp: _onPointerUp,
-      child: GestureDetector(
-        onTapUp: _onTapUp,
-        child: CustomPaint(painter: _painter, size: _canvasSize),
-      ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        _canvasSize = constraints.biggest;
+        _painter = ZoneMapPainter(
+          zones: state.zones,
+          canvasSize: _canvasSize,
+          selectedZoneId: state.selectedZoneId,
+          widthFt: state.storeData?.widthFt,
+          depthFt: state.storeData?.depthFt,
+        );
+        return Listener(
+          onPointerDown: _onPointerDown,
+          onPointerMove: _onPointerMove,
+          onPointerUp: _onPointerUp,
+          child: GestureDetector(
+            onTapUp: _onTapUp,
+            child: CustomPaint(painter: _painter, size: _canvasSize),
+          ),
+        );
+      },
     );
   }
 }

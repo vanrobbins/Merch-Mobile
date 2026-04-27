@@ -21,7 +21,8 @@ class FloorBuilderScreen extends ConsumerStatefulWidget {
 }
 
 class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
-  static const _pixelsPerFt = 20.0;
+  double _pixelsPerFt = 20.0;
+  Size _canvasSize = Size.zero;
 
   // Ghost drag state
   Offset? _ghostPos;
@@ -70,7 +71,7 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
     if (zone == null) return;
     final zonePts = ZoneShape.decode(zone.shapePoints);
     if (zonePts.length < 3) return;
-    const canvasSize = Size(800, 600);
+    final canvasSize = _canvasSize;
     final edges = ZoneEdge.compute(zonePts, canvasSize, _pixelsPerFt);
     if (edges.isEmpty) return;
     setState(() => _wallEdges = edges);
@@ -297,24 +298,11 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
     final zoneAsync = ref.watch(zoneByIdProvider(widget.zoneId));
     final zone = zoneAsync.valueOrNull;
     final zonePts = zone != null ? ZoneShape.decode(zone.shapePoints) : null;
-    _painter = BuilderCanvasPainter(
-      fixtures: state.fixtures,
-      selectedFixtureId: state.selectedFixtureId,
-      ghostPos: _ghostPos,
-      ghostType: _ghostType,
-      pixelsPerFt: _pixelsPerFt,
-      zoneNormalizedPts: (zonePts != null && zonePts.length >= 3) ? zonePts : null,
-      zoneColor: zone != null ? Color(zone.colorValue) : null,
-      zoneName: zone?.name,
-      wallEdges: _wallEdges,
-      planograms: state.planograms,
-    );
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('FLOOR BUILDER'),
         actions: [
-          // Snap toggle
           IconButton(
             icon: Icon(
               state.snapGridEnabled ? Icons.grid_on : Icons.grid_off,
@@ -329,7 +317,6 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
           ? const Center(child: CircularProgressIndicator())
           : DragTarget<String>(
               onMove: (details) {
-                // Convert global position to local canvas coordinates
                 final box = context.findRenderObject() as RenderBox?;
                 if (box == null) return;
                 final localPos = box.globalToLocal(details.offset);
@@ -357,45 +344,57 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
                 });
               },
               builder: (context, candidateData, rejectedData) {
-                return Stack(
-                  children: [
-                    // Grid layer
-                    if (state.snapGridEnabled)
-                      Positioned.fill(
-                        child: SnapGrid(
-                          gridSizeFt: state.gridSizeFt,
-                          pixelsPerFt: _pixelsPerFt,
-                        ),
-                      ),
-                    // Canvas layer — gestures inside IV so coords match canvas space
-                    InteractiveViewer(
-                      panEnabled: false,
-                      boundaryMargin: const EdgeInsets.all(100),
-                      minScale: 0.2,
-                      maxScale: 4.0,
-                      child: GestureDetector(
-                        onLongPressStart: _handleLongPressInCanvas,
-                        child: Listener(
-                          onPointerDown: _onPointerDown,
-                          onPointerMove: _onPointerMove,
-                          onPointerUp: _onPointerUp,
-                          child: CustomPaint(
-                            painter: _painter,
-                            size: const Size(800, 600),
+                return LayoutBuilder(
+                  builder: (context, constraints) {
+                    _canvasSize = constraints.biggest;
+                    _pixelsPerFt = constraints.maxWidth / 20;
+                    _painter = BuilderCanvasPainter(
+                      fixtures: state.fixtures,
+                      selectedFixtureId: state.selectedFixtureId,
+                      ghostPos: _ghostPos,
+                      ghostType: _ghostType,
+                      pixelsPerFt: _pixelsPerFt,
+                      zoneNormalizedPts: (zonePts != null && zonePts.length >= 3) ? zonePts : null,
+                      zoneColor: zone != null ? Color(zone.colorValue) : null,
+                      zoneName: zone?.name,
+                      wallEdges: _wallEdges,
+                      planograms: state.planograms,
+                    );
+                    return Stack(
+                      children: [
+                        if (state.snapGridEnabled)
+                          Positioned.fill(
+                            child: SnapGrid(
+                              gridSizeFt: state.gridSizeFt,
+                              pixelsPerFt: _pixelsPerFt,
+                            ),
+                          ),
+                        SizedBox.expand(
+                          child: GestureDetector(
+                            onLongPressStart: _handleLongPressInCanvas,
+                            child: Listener(
+                              onPointerDown: _onPointerDown,
+                              onPointerMove: _onPointerMove,
+                              onPointerUp: _onPointerUp,
+                              child: CustomPaint(
+                                painter: _painter,
+                                size: _canvasSize,
+                              ),
+                            ),
                           ),
                         ),
-                      ),
-                    ),
-                    if (state.selectedFixtureId != null &&
-                        _dragFixtureId == null &&
-                        _resizingFixtureId == null)
-                      Positioned(
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        child: _buildMiniPanel(state),
-                      ),
-                  ],
+                        if (state.selectedFixtureId != null &&
+                            _dragFixtureId == null &&
+                            _resizingFixtureId == null)
+                          Positioned(
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            child: _buildMiniPanel(state),
+                          ),
+                      ],
+                    );
+                  },
                 );
               },
             ),
