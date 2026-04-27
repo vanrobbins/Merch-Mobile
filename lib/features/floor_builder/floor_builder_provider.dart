@@ -6,6 +6,7 @@ import 'package:uuid/uuid.dart';
 import '../../core/database/app_database.dart';
 import '../../core/models/fixture.dart';
 import '../../core/providers/database_provider.dart';
+import '../../core/providers/store_provider.dart';
 
 part 'floor_builder_provider.g.dart';
 
@@ -90,7 +91,8 @@ class FloorBuilderNotifier extends _$FloorBuilderNotifier {
     _zoneId = zoneId;
     _sub?.cancel();
     final db = ref.read(appDatabaseProvider);
-    _sub = db.fixturesDao.watchByParentId(zoneId).listen((rows) {
+    final storeId = ref.read(activeStoreIdProvider).value ?? '';
+    _sub = db.fixturesDao.watchByZone(storeId, zoneId).listen((rows) {
       state = state.copyWith(
         fixtures: rows.map(_rowToFixture).toList(),
         isLoading: false,
@@ -101,6 +103,7 @@ class FloorBuilderNotifier extends _$FloorBuilderNotifier {
   Future<void> addFixture(String type, Offset normalizedPos) async {
     if (_zoneId == null) return;
     const uuid = Uuid();
+    final storeId = ref.read(activeStoreIdProvider).value ?? '';
     final fixture = Fixture(
       id: uuid.v4(),
       zoneId: _zoneId!,
@@ -113,7 +116,10 @@ class FloorBuilderNotifier extends _$FloorBuilderNotifier {
       label: type.toUpperCase(),
       updatedAt: DateTime.now(),
     );
-    await ref.read(appDatabaseProvider).fixturesDao.upsert(_fixtureToCompanion(fixture));
+    final companion = _fixtureToCompanion(fixture).copyWith(
+      storeId: Value(storeId),
+    );
+    await ref.read(appDatabaseProvider).fixturesDao.upsert(companion);
   }
 
   Future<void> moveFixture(String id, Offset pos) async {
@@ -149,6 +155,33 @@ class FloorBuilderNotifier extends _$FloorBuilderNotifier {
     }
   }
 
+  Future<void> addWallFixture({
+    required Offset centerFt,
+    required double lengthFt,
+    required double angleDeg,
+  }) async {
+    if (_zoneId == null) return;
+    const uuid = Uuid();
+    const depthFt = 0.5;
+    final storeId = ref.read(activeStoreIdProvider).value ?? '';
+    final fixture = Fixture(
+      id: uuid.v4(),
+      zoneId: _zoneId!,
+      fixtureType: 'wall',
+      posX: centerFt.dx - lengthFt / 2,
+      posY: centerFt.dy - depthFt / 2,
+      rotation: angleDeg,
+      widthFt: lengthFt,
+      depthFt: depthFt,
+      label: 'WALL',
+      updatedAt: DateTime.now(),
+    );
+    final companion = _fixtureToCompanion(fixture).copyWith(
+      storeId: Value(storeId),
+    );
+    await ref.read(appDatabaseProvider).fixturesDao.upsert(companion);
+  }
+
   void selectFixture(String? id) {
     state = state.copyWith(selectedFixtureId: id);
   }
@@ -161,3 +194,7 @@ class FloorBuilderNotifier extends _$FloorBuilderNotifier {
     state = state.copyWith(isDragging: v);
   }
 }
+
+@riverpod
+Future<ZonesTableData?> zoneById(ZoneByIdRef ref, String zoneId) =>
+    ref.watch(appDatabaseProvider).zonesDao.findById(zoneId);

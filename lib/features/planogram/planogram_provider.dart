@@ -1,230 +1,90 @@
-import 'dart:async';
-import 'dart:convert';
-
 import 'package:drift/drift.dart' show Value;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:uuid/uuid.dart';
 
 import '../../core/database/app_database.dart';
-import '../../core/models/planogram.dart';
-import '../../core/models/planogram_slot.dart';
-import '../../core/providers/auth_provider.dart';
 import '../../core/providers/database_provider.dart';
+import '../../core/providers/store_provider.dart';
+import 'planogram_slot.dart';
 
 part 'planogram_provider.g.dart';
 
 // ---------------------------------------------------------------------------
-// State
+// Stream providers
 // ---------------------------------------------------------------------------
 
-class PlanogramState {
-  final List<Planogram> planograms;
-  final bool isLoading;
+/// All planograms for the currently active store.
+@riverpod
+Stream<List<PlanogramsTableData>> planogramList(PlanogramListRef ref) {
+  final db = ref.watch(appDatabaseProvider);
+  final storeId = ref.watch(activeStoreIdProvider).value;
+  if (storeId == null || storeId.isEmpty) return Stream.value([]);
+  return db.planogramsDao.watchByStore(storeId);
+}
 
-  const PlanogramState({
-    required this.planograms,
-    this.isLoading = false,
-  });
-
-  PlanogramState copyWith({
-    List<Planogram>? planograms,
-    bool? isLoading,
-  }) =>
-      PlanogramState(
-        planograms: planograms ?? this.planograms,
-        isLoading: isLoading ?? this.isLoading,
-      );
+/// A single planogram by id, reactive to DB changes.
+@riverpod
+Stream<PlanogramsTableData?> planogramDetail(
+  PlanogramDetailRef ref,
+  String planogramId,
+) {
+  final db = ref.watch(appDatabaseProvider);
+  return db.planogramsDao
+      .watchAll()
+      .map((list) => list.where((p) => p.id == planogramId).firstOrNull);
 }
 
 // ---------------------------------------------------------------------------
-// Row ↔ model conversions
-// ---------------------------------------------------------------------------
-
-Planogram _rowToPlanogram(PlanogramsTableData r) {
-  final rawSlots = jsonDecode(r.slotsJson) as List<dynamic>;
-  final slots = rawSlots
-      .map((e) => PlanogramSlot.fromJson(Map<String, dynamic>.from(e as Map)))
-      .toList();
-  return Planogram(
-    id: r.id,
-    fixtureId: r.fixtureId,
-    title: r.title,
-    season: r.season,
-    status: r.status,
-    slots: slots,
-    publishedAt: r.publishedAt,
-    updatedAt: r.updatedAt,
-  );
-}
-
-PlanogramsTableCompanion _planogramToCompanion(Planogram p) =>
-    PlanogramsTableCompanion(
-      id: Value(p.id),
-      fixtureId: Value(p.fixtureId),
-      title: Value(p.title),
-      season: Value(p.season),
-      status: Value(p.status),
-      slotsJson: Value(jsonEncode(p.slots.map((s) => s.toJson()).toList())),
-      publishedAt: Value(p.publishedAt),
-      updatedAt: Value(p.updatedAt),
-    );
-
-// ---------------------------------------------------------------------------
-// Notifier
+// Editor notifier — in-memory slot state bound to a single planogram id.
 // ---------------------------------------------------------------------------
 
 @riverpod
-class PlanogramNotifier extends _$PlanogramNotifier {
-  StreamSubscription<List<PlanogramsTableData>>? _sub;
-
+class PlanogramEditor extends _$PlanogramEditor {
   @override
-  PlanogramState build() {
-    final db = ref.watch(appDatabaseProvider);
-    _sub?.cancel();
-    _sub = db.planogramsDao.watchAll().listen((rows) {
-      state = state.copyWith(
-        planograms: rows.map(_rowToPlanogram).toList(),
-        isLoading: false,
-      );
-    });
-    ref.onDispose(() => _sub?.cancel());
-    return const PlanogramState(planograms: [], isLoading: true);
+  List<PgSlot> build(String planogramId) => const [];
+
+  /// Initialize editor state from the planogram's stored slotsJson.
+  /// Falls back to 6 empty default slots when the stored JSON is empty.
+  void loadSlots(String slotsJson) {
+    var slots = PgSlot.decodeList(slotsJson);
+    if (slots.isEmpty) slots = PgSlot.defaults(6);
+    state = slots;
   }
 
-  // -------------------------------------------------------------------------
-  // Create
-  // -------------------------------------------------------------------------
-
-  Future<void> createPlanogram(
-    String fixtureId,
-    String title,
-    String season,
-  ) async {
-    const uuid = Uuid();
-    final planogram = Planogram(
-      id: uuid.v4(),
-      fixtureId: fixtureId,
-      title: title,
-      season: season,
-      status: 'draft',
-      slots: const [],
-      updatedAt: DateTime.now(),
-    );
-    await ref
-        .read(appDatabaseProvider)
-        .planogramsDao
-        .upsert(_planogramToCompanion(planogram));
-  }
-
-  // -------------------------------------------------------------------------
-  // Slot helpers — each loads from current state and upserts
-  // -------------------------------------------------------------------------
-
-  Future<void> addSlot(String planogramId, PlanogramSlot slot) async {
-    final planogram = _findById(planogramId);
-    final updated = planogram.copyWith(
-      slots: [...planogram.slots, slot],
-      updatedAt: DateTime.now(),
-    );
-    await _upsert(updated);
-  }
-
-  Future<void> removeSlot(String planogramId, String slotId) async {
-    final planogram = _findById(planogramId);
-    final updated = planogram.copyWith(
-      slots: planogram.slots.where((s) => s.id != slotId).toList(),
-      updatedAt: DateTime.now(),
-    );
-    await _upsert(updated);
-  }
-
-  Future<void> setSlotProduct(
-    String planogramId,
+  /// Replace the product on a slot (by slot id).
+  void assignProduct(
     String slotId,
     String productId,
-  ) async {
-    final planogram = _findById(planogramId);
-    final updatedSlots = planogram.slots.map((s) {
-      return s.id == slotId ? s.copyWith(productId: productId) : s;
+    String name,
+    String sku,
+  ) {
+    state = state.map((s) {
+      if (s.id != slotId) return s;
+      return s.copyWith(
+        productId: productId,
+        productName: name,
+        productSku: sku,
+      );
     }).toList();
-    final updated = planogram.copyWith(
-      slots: updatedSlots,
-      updatedAt: DateTime.now(),
-    );
-    await _upsert(updated);
   }
 
-  Future<void> reorderSlots(
-    String planogramId,
-    int oldIndex,
-    int newIndex,
-  ) async {
-    final planogram = _findById(planogramId);
-    final slots = [...planogram.slots];
-
-    // Adjust newIndex for removal offset
-    final adjustedNew = newIndex > oldIndex ? newIndex - 1 : newIndex;
-    final slot = slots.removeAt(oldIndex);
-    slots.insert(adjustedNew, slot);
-
-    // Re-assign sequence numbers based on new order
-    final resequenced = slots
-        .asMap()
-        .entries
-        .map((e) => e.value.copyWith(sequence: e.key))
-        .toList();
-
-    final updated = planogram.copyWith(
-      slots: resequenced,
-      updatedAt: DateTime.now(),
-    );
-    await _upsert(updated);
+  /// Clear the product from a slot, leaving the slot frame in place.
+  void clearSlot(String slotId) {
+    state = state.map((s) {
+      if (s.id != slotId) return s;
+      return PgSlot(id: s.id, position: s.position);
+    }).toList();
   }
 
-  // -------------------------------------------------------------------------
-  // Status transitions (publish is coordinator-gated)
-  // -------------------------------------------------------------------------
-
-  Future<void> publish(String planogramId) async {
-    final appUser = await ref.read(currentUserProvider.future);
-    if (appUser == null || appUser.role != 'coordinator') {
-      throw StateError('Only coordinators may publish a planogram.');
-    }
-
-    final planogram = _findById(planogramId);
-    final updated = planogram.copyWith(
-      status: 'published',
-      publishedAt: DateTime.now(),
-      updatedAt: DateTime.now(),
+  /// Persist the current editor state back to the planograms row.
+  Future<void> save(String planogramId) async {
+    final db = ref.read(appDatabaseProvider);
+    final existing = await db.planogramsDao.findById(planogramId);
+    if (existing == null) return;
+    await db.planogramsDao.upsert(
+      existing.toCompanion(true).copyWith(
+            slotsJson: Value(PgSlot.encodeList(state)),
+            updatedAt: Value(DateTime.now()),
+          ),
     );
-    await _upsert(updated);
   }
-
-  Future<void> retractToDraft(String planogramId) async {
-    final planogram = _findById(planogramId);
-    // publishedAt must be explicitly set to null; copyWith requires nullable override
-    final updated = Planogram(
-      id: planogram.id,
-      fixtureId: planogram.fixtureId,
-      title: planogram.title,
-      season: planogram.season,
-      status: 'draft',
-      slots: planogram.slots,
-      publishedAt: null,
-      updatedAt: DateTime.now(),
-    );
-    await _upsert(updated);
-  }
-
-  // -------------------------------------------------------------------------
-  // Internal helpers
-  // -------------------------------------------------------------------------
-
-  Planogram _findById(String planogramId) =>
-      state.planograms.firstWhere((p) => p.id == planogramId);
-
-  Future<void> _upsert(Planogram planogram) =>
-      ref.read(appDatabaseProvider).planogramsDao.upsert(
-            _planogramToCompanion(planogram),
-          );
 }

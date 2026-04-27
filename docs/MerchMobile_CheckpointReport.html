@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Merch Mobile — Checkpoint Report</title>
+  <style>
+    /* ── Base ─────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      font-size: 10.5pt;
+      color: #1a1917;
+      background: #fff;
+      line-height: 1.55;
+    }
+    @media print {
+      body { font-size: 10pt; }
+      .page-break { page-break-before: always; }
+      header { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+
+    /* ── Header ──────────────────────────────────────────────── */
+    header {
+      background: #1a1917;
+      color: #fff;
+      text-align: center;
+      padding: 42px 48px 38px;
+    }
+    header .label {
+      font-size: 8pt;
+      letter-spacing: 0.35em;
+      text-transform: uppercase;
+      color: #bf5534;
+      margin-bottom: 10px;
+    }
+    header h1 {
+      font-size: 42pt;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      line-height: 1;
+      margin-bottom: 8px;
+    }
+    header .subtitle {
+      font-style: italic;
+      color: #c8c4bc;
+      font-size: 11pt;
+      margin-bottom: 14px;
+    }
+    header .meta {
+      font-size: 9pt;
+      color: #9e9890;
+    }
+    header .meta span { color: #bf5534; }
+
+    /* ── Body wrapper ────────────────────────────────────────── */
+    main {
+      max-width: 780px;
+      margin: 0 auto;
+      padding: 36px 48px 64px;
+    }
+
+    /* ── Section headings ────────────────────────────────────── */
+    h2 {
+      font-size: 14pt;
+      font-weight: 700;
+      color: #1a1917;
+      margin: 36px 0 10px;
+      padding-bottom: 6px;
+      border-bottom: 2px solid #bf5534;
+    }
+    h3 {
+      font-size: 10.5pt;
+      font-weight: 700;
+      color: #1a1917;
+      margin: 18px 0 6px;
+    }
+
+    /* ── Prose ───────────────────────────────────────────────── */
+    p { margin: 8px 0; }
+    ul, ol { margin: 8px 0 8px 22px; }
+    li { margin: 3px 0; }
+
+    /* ── Status badge strip ──────────────────────────────────── */
+    .badge-strip {
+      display: flex;
+      gap: 12px;
+      margin: 24px 0 8px;
+      flex-wrap: wrap;
+    }
+    .badge {
+      padding: 5px 14px;
+      border-radius: 2px;
+      font-size: 8.5pt;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .badge-green  { background: #eaf5eb; color: #2e7d32; border: 1px solid #a5d6a7; }
+    .badge-coral  { background: #fdf0ec; color: #bf5534; border: 1px solid #f5c4b0; }
+    .badge-navy   { background: #e8eaf0; color: #283593; border: 1px solid #9fa8da; }
+
+    /* ── Progress bar ────────────────────────────────────────── */
+    .progress-wrap { margin: 18px 0 8px; }
+    .progress-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 9pt;
+      font-weight: 600;
+      margin-bottom: 5px;
+    }
+    .progress-track {
+      height: 10px;
+      background: #eee;
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: #bf5534;
+      border-radius: 2px;
+    }
+
+    /* ── Card grid (4-col) ───────────────────────────────────── */
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin: 16px 0;
+    }
+    .card-grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin: 16px 0;
+    }
+    .card {
+      border: 1px solid #ddd;
+      border-top: 3px solid #bf5534;
+      padding: 12px 11px;
+      border-radius: 2px;
+    }
+    .card.blue  { border-top-color: #1565c0; }
+    .card.green { border-top-color: #2e7d32; }
+    .card.purple{ border-top-color: #6a1b9a; }
+    .card.teal  { border-top-color: #00695c; }
+    .card.amber { border-top-color: #e65100; }
+    .card h4 {
+      font-size: 9pt;
+      font-weight: 700;
+      margin-bottom: 5px;
+      color: #1a1917;
+    }
+    .card p {
+      font-size: 8.5pt;
+      color: #444;
+      line-height: 1.45;
+      margin: 0;
+    }
+
+    /* ── Tables ──────────────────────────────────────────────── */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 14px 0;
+      font-size: 9.5pt;
+    }
+    thead tr th {
+      background: #1a1917;
+      color: #fff;
+      padding: 8px 10px;
+      text-align: left;
+      font-weight: 600;
+      font-size: 9pt;
+    }
+    tbody tr:nth-child(even) { background: #f8f7f5; }
+    tbody tr td {
+      padding: 7px 10px;
+      border-bottom: 1px solid #e8e8e8;
+      vertical-align: top;
+    }
+    td.check { color: #2e7d32; font-weight: 700; }
+    td.cross  { color: #c62828; }
+    td.partial{ color: #e65100; }
+
+    /* ── Code snippets ───────────────────────────────────────── */
+    pre {
+      background: #1a1917;
+      color: #f2efe8;
+      font-family: 'Consolas', 'Courier New', monospace;
+      font-size: 8.5pt;
+      line-height: 1.5;
+      padding: 14px 16px;
+      border-radius: 2px;
+      overflow-x: auto;
+      margin: 12px 0;
+    }
+    code {
+      font-family: 'Consolas', 'Courier New', monospace;
+      font-size: 8.5pt;
+      background: #f0ede8;
+      padding: 1px 5px;
+      border-radius: 2px;
+    }
+    .kw  { color: #bf5534; }
+    .cm  { color: #7a9e7a; font-style: italic; }
+    .st  { color: #f2c97e; }
+    .ty  { color: #7ec8e3; }
+    .an  { color: #c792ea; }
+
+    /* ── Callout box ─────────────────────────────────────────── */
+    .callout {
+      border-left: 4px solid #bf5534;
+      background: #fdf0ec;
+      padding: 12px 16px;
+      border-radius: 0 2px 2px 0;
+      margin: 14px 0;
+      font-size: 9.5pt;
+    }
+    .callout.navy {
+      border-left-color: #1a1917;
+      background: #f0f0f4;
+    }
+    .callout strong { color: #bf5534; }
+    .callout.navy strong { color: #1a1917; }
+
+    /* ── Two-col layout ──────────────────────────────────────── */
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin: 14px 0;
+    }
+
+    /* ── Inline status indicators ────────────────────────────── */
+    .tag {
+      display: inline-block;
+      padding: 1px 8px;
+      border-radius: 2px;
+      font-size: 7.5pt;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      vertical-align: middle;
+    }
+    .tag-done    { background: #eaf5eb; color: #2e7d32; }
+    .tag-wip     { background: #fff8e1; color: #e65100; }
+    .tag-planned { background: #e8eaf0; color: #283593; }
+
+    /* ── Footer ──────────────────────────────────────────────── */
+    footer {
+      text-align: center;
+      font-size: 8pt;
+      color: #999;
+      margin-top: 48px;
+      padding-top: 16px;
+      border-top: 1px solid #e8e8e8;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     HEADER
+═══════════════════════════════════════════════════════════════ -->
+<header>
+  <p class="label">Project Checkpoint Report</p>
+  <h1>Merch Mobile</h1>
+  <p class="subtitle">A Flutter Visual Merchandising Management System</p>
+  <p class="meta">
+    <span>Student:</span> Van Robbins &nbsp;|&nbsp;
+    <span>Course:</span> C490 &nbsp;|&nbsp;
+    <span>Date:</span> April 13, 2026 &nbsp;|&nbsp;
+    <span>Branch:</span> feature/v0.2
+  </p>
+</header>
+
+<main>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     OVERALL STATUS
+═══════════════════════════════════════════════════════════════ -->
+<div class="badge-strip">
+  <span class="badge badge-green">v0.1 — Complete &amp; Merged (PR #1)</span>
+  <span class="badge badge-coral">v0.2 — In Progress (feature/v0.2)</span>
+  <span class="badge badge-navy">~60% Overall Complete</span>
+</div>
+
+<div class="progress-wrap">
+  <div class="progress-label"><span>Overall Coding Progress</span><span>~60%</span></div>
+  <div class="progress-track"><div class="progress-fill" style="width:60%"></div></div>
+</div>
+
+<p>
+  By the checkpoint date, Merch Mobile has completed its full v0.1 foundation — every core screen,
+  the offline database, Firebase authentication, navigation, and theming — and is actively mid-way
+  through a significant v0.2 feature expansion covering multi-store support, zone redesign,
+  planogram proposals, and role enforcement.
+</p>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     1. FINALIZED GUI DESIGN
+═══════════════════════════════════════════════════════════════ -->
+<h2>1. Finalized GUI Design</h2>
+
+<p>
+  The UI design has been fully implemented as real Flutter code and refined beyond the original wireframes.
+  The dark-navy / coral / warm off-white design system is defined in
+  <code>lib/core/theme/app_theme.dart</code> and <code>design_tokens.dart</code>,
+  and is applied consistently across all screens.
+</p>
+
+<h3>Design System Tokens (implemented)</h3>
+<pre>
+<span class="cm">// lib/core/theme/design_tokens.dart</span>
+<span class="kw">const</span> <span class="ty">Color</span> mmPrimary   = <span class="ty">Color</span>(<span class="st">0xFF1A1917</span>);  <span class="cm">// near-black</span>
+<span class="kw">const</span> <span class="ty">Color</span> mmAccent    = <span class="ty">Color</span>(<span class="st">0xFFBF5534</span>);  <span class="cm">// warm coral</span>
+<span class="kw">const</span> <span class="ty">Color</span> mmCanvas    = <span class="ty">Color</span>(<span class="st">0xFFF2EFE8</span>);  <span class="cm">// warm off-white</span>
+<span class="kw">const double</span> mmRadius   = <span class="st">2.0</span>;               <span class="cm">// 2px everywhere</span></pre>
+
+<div class="card-grid">
+  <div class="card">
+    <h4>Zone Map Screen</h4>
+    <p>Custom polygon zones with vertex drag handles, colour-coded fill, tap-to-select, and properties side-panel. Rendered via <code>ZoneMapPainter</code> (CustomPainter).</p>
+  </div>
+  <div class="card blue">
+    <h4>Wall &amp; Table Builder</h4>
+    <p>Live drag-and-drop fixture placement with snap-to-grid (<code>SnapGrid</code>), ghost preview on drag, and a modal bottom sheet element library.</p>
+  </div>
+  <div class="card green">
+    <h4>Auto Build Display</h4>
+    <p>Before/after side-by-side preview, category and season settings, one-tap Generate Display, and saveable preset thumbnails.</p>
+  </div>
+  <div class="card purple">
+    <h4>Store Gate &amp; Switcher</h4>
+    <p>New in v0.2: <code>StoreGateScreen</code> routes unaffiliated users to create or join a store; multi-store switcher sheet lists all memberships.</p>
+  </div>
+</div>
+
+<div class="card-grid">
+  <div class="card teal">
+    <h4>Photo Docs</h4>
+    <p>List/detail views with <code>ApprovalStatusChip</code> (pending / approved / rejected), camera capture, and Firebase Storage upload. Role-gated approve/reject actions.</p>
+  </div>
+  <div class="card amber">
+    <h4>Product Catalog</h4>
+    <p>Searchable SKU list (<code>MmSearchBar</code>), product card grid, and a new <code>ProductFormScreen</code> for adding/editing products — wired to Drift.</p>
+  </div>
+  <div class="card blue">
+    <h4>Planogram Manager</h4>
+    <p>List and detail screens with publish/draft state badges and a new proposals workflow: staff submit changes, coordinators and managers approve/reject.</p>
+  </div>
+  <div class="card">
+    <h4>Shared Widget Library</h4>
+    <p><code>MmCard</code>, <code>MmChip</code>, <code>MmBanner</code>, <code>MmBottomSheet</code>, <code>MmEmptyState</code>, <code>MmSearchBar</code>, <code>RoleGuard</code> — reused across all features.</p>
+  </div>
+</div>
+
+<h3>Key Code Snippet — ZoneMapPainter (CustomPainter)</h3>
+<pre>
+<span class="an">@override</span>
+<span class="kw">void</span> paint(<span class="ty">Canvas</span> canvas, <span class="ty">Size</span> size) {
+  _zonePaths.clear();
+  _drawGrid(canvas, size);          <span class="cm">// subtle grey alignment grid</span>
+  <span class="kw">for</span> (<span class="kw">final</span> zone <span class="kw">in</span> zones) {
+    _drawZone(canvas, size, zone);  <span class="cm">// polygon fill + stroke per zone</span>
+  }
+  <span class="cm">// Vertex drag handles on selected zone only</span>
+  <span class="kw">if</span> (selectedZoneId != <span class="kw">null</span>) {
+    <span class="kw">final</span> selected = zones.where((z) => z.id == selectedZoneId).firstOrNull;
+    <span class="kw">if</span> (selected != <span class="kw">null</span>) _drawVertexHandles(canvas, size, selected);
+  }
+}</pre>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     2. RESEARCH, LEARNING & EXPERIMENTATION
+═══════════════════════════════════════════════════════════════ -->
+<h2>2. Research, Learning &amp; Experimentation</h2>
+
+<p>
+  The checkpoint marks genuine mastery of seven new technical areas that were not covered in course lectures.
+  Each required independent documentation reading, trial implementations, and debugging before being
+  integrated into the production codebase.
+</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Technique</th>
+      <th>Where Used</th>
+      <th>Mastery Evidence</th>
+      <th>Resource</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Drift ORM + code gen</strong></td>
+      <td>All data persistence (10 tables, 9 DAOs)</td>
+      <td>Schema v2 with destructive migration strategy; Companion types, <code>watchAll()</code> reactive streams, multi-column foreign keys</td>
+      <td>drift.simonbinder.eu</td>
+    </tr>
+    <tr>
+      <td><strong>Riverpod Generator</strong></td>
+      <td>All providers across all features</td>
+      <td><code>@riverpod</code> annotations with <code>riverpod_generator</code>; <code>AsyncNotifier</code> subclasses; <code>ref.watch</code> / <code>ref.invalidate</code> patterns</td>
+      <td>riverpod.dev</td>
+    </tr>
+    <tr>
+      <td><strong>CustomPainter</strong></td>
+      <td>Zone Map, Floor Builder canvas</td>
+      <td>Hit-test path caching (<code>Map&lt;String, Path&gt;</code>), vertex handle rendering, ghost-drag overlay, snap-to-grid coordinate transforms</td>
+      <td>Flutter docs</td>
+    </tr>
+    <tr>
+      <td><strong>GoRouter (typed routes)</strong></td>
+      <td>11 named routes + auth/store guards</td>
+      <td>Nested <code>ShellRoute</code>, <code>redirect</code> callbacks, <code>@TypedGoRoute</code> annotations, role-aware redirect chain</td>
+      <td>pub.dev/go_router</td>
+    </tr>
+    <tr>
+      <td><strong>Freezed + json_serializable</strong></td>
+      <td>All domain models (12 Freezed classes)</td>
+      <td>Union types for <code>PlanogramProposal</code> status; <code>copyWith</code> immutable updates; <code>fromJson</code> / <code>toJson</code> throughout</td>
+      <td>VGV blog, pub.dev</td>
+    </tr>
+    <tr>
+      <td><strong>Firebase Auth (custom claims)</strong></td>
+      <td>Role assignment (coordinator / manager / staff)</td>
+      <td>ID token force-refresh, custom claim extraction in <code>currentUserProvider</code>, <code>authStateChanges</code> stream integration</td>
+      <td>FlutterFire docs</td>
+    </tr>
+    <tr>
+      <td><strong>Dio interceptors</strong></td>
+      <td><code>ApiClient</code> service</td>
+      <td>Bearer token injected via <code>InterceptorsWrapper</code> on every request; 401 trigger re-authentication flow</td>
+      <td>pub.dev/dio</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="callout">
+  <strong>New skill beyond the proposal:</strong> Drift's reactive streams (<code>watchAll()</code> returns a
+  <code>Stream&lt;List&lt;T&gt;&gt;</code>) integrate with Riverpod's <code>StreamProvider</code> to make the UI
+  automatically rebuild whenever the local database changes — without any manual state invalidation.
+  This was discovered independently while implementing the Zone Map and is now the standard data
+  pattern across all features.
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     3. CHANGES FROM THE PROPOSAL
+═══════════════════════════════════════════════════════════════ -->
+<h2>3. Changes from the Proposal</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th>Area</th>
+      <th>Proposed</th>
+      <th>Implemented</th>
+      <th>Reason</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Local Storage</strong></td>
+      <td>Hive (key-value store)</td>
+      <td>Drift (SQLite ORM)</td>
+      <td>App data is highly relational: zones contain fixtures, planograms reference products, proposals link to planograms. Hive's flat key-value model would have required manual join logic. Drift provides typed tables, reactive queries, and foreign-key support out of the box — a better fit discovered while designing the schema.</td>
+    </tr>
+    <tr>
+      <td><strong>User Roles</strong></td>
+      <td>2 roles: coordinator, staff</td>
+      <td>3 roles: coordinator, manager, staff</td>
+      <td>During implementation it became clear that store managers need their own operational authority (approve/reject photo docs and planogram proposals) without full coordinator privileges. A separate manager role cleanly separates these concerns and makes the permission model realistic for actual retail environments.</td>
+    </tr>
+    <tr>
+      <td><strong>Multi-Store Layer</strong></td>
+      <td>Single-store assumed</td>
+      <td>Full multi-store: create, invite-code join, approval flow, store groups, store switcher</td>
+      <td>A retail VM app is meaningless without a store context. The proposal assumed this implicitly; building it explicitly required adding 5 new Drift tables (<code>stores</code>, <code>store_memberships</code>, <code>store_groups</code>, <code>store_group_members</code>, <code>planogram_proposals</code>) and 7 new screens. This expansion makes the app substantially more realistic and portfolio-worthy.</td>
+    </tr>
+    <tr>
+      <td><strong>Planogram Workflow</strong></td>
+      <td>Publish/draft states only</td>
+      <td>Full proposal system: staff submit changes, manager/coordinator approve/reject</td>
+      <td>Discovered during implementation that read-only planogram display does not demonstrate meaningful Flutter complexity. Adding the proposal/approval workflow exercises async state management, role guards, and multi-user data flows — closer to the "~5 assignments" workload target.</td>
+    </tr>
+    <tr>
+      <td><strong>Weeks 5–6 (skipped in proposal)</strong></td>
+      <td>Timeline gap in proposal</td>
+      <td>v0.2 design spec and agent-based parallel implementation</td>
+      <td>Weeks 5–6 were used to design the v0.2 architecture and begin parallel feature implementation across the multi-store layer, zone redesign, and role enforcement modules.</td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     4. CODING PROGRESS
+═══════════════════════════════════════════════════════════════ -->
+<h2>4. Coding Progress</h2>
+
+<div class="callout">
+  <strong>~60% complete</strong> — significantly exceeding the 30–50% checkpoint threshold.
+  The v0.1 milestone (core scaffold + all feature screens) is fully merged to <code>main</code>.
+  v0.2 (multi-store, zone redesign, role enforcement) is ~50% complete on the feature branch.
+</div>
+
+<h3>v0.1 — Complete (merged, PR #1)</h3>
+
+<div class="card-grid-2">
+  <div class="card">
+    <h4>Core Infrastructure</h4>
+    <p>
+      Firebase init · ProviderScope · MaterialApp.router · GoRouter (11 routes) ·
+      Drift AppDatabase (schema v2) · 5 original tables + DAOs · 7 Freezed models ·
+      AppTheme + design tokens · AppScaffold (4-tab shell) · shared widget library (6 components)
+    </p>
+  </div>
+  <div class="card blue">
+    <h4>Feature Screens — All Functional</h4>
+    <p>
+      Auth: SplashScreen, LoginScreen, SignupScreen · Zone Manager: map + painter + legend ·
+      Floor Builder: canvas painter + snap grid + element library · Auto Build: settings + before/after ·
+      Planogram: list + detail · Product Catalog: search + card grid · Photo Docs: list + detail + camera
+    </p>
+  </div>
+</div>
+
+<h3>v0.2 — In Progress (feature/v0.2 branch)</h3>
+
+<table>
+  <thead>
+    <tr><th>Module</th><th>Files Added / Modified</th><th>Status</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Database Schema</strong></td>
+      <td>5 new tables, 4 new DAOs, 5 new Freezed models, schema bumped to v2</td>
+      <td class="check"><span class="tag tag-done">Done</span></td>
+    </tr>
+    <tr>
+      <td><strong>Store System</strong></td>
+      <td><code>StoreProvider</code>, <code>InviteCodeUtil</code>, <code>StoreGateScreen</code>, <code>CreateStoreScreen</code>, <code>JoinStoreScreen</code>, <code>MembersScreen</code>, <code>PendingApprovalScreen</code>, <code>StoreSwitcherSheet</code>, <code>GroupManagementScreen</code></td>
+      <td class="check"><span class="tag tag-done">Done</span></td>
+    </tr>
+    <tr>
+      <td><strong>Role Enforcement</strong></td>
+      <td><code>RoleGuard</code> widget, <code>checkRole()</code> helper, route guard refactor, <code>RoleGuard</code> applied to 6 screens</td>
+      <td class="check"><span class="tag tag-done">Done</span></td>
+    </tr>
+    <tr>
+      <td><strong>Zone Manager Redesign</strong></td>
+      <td><code>ZoneShape</code> enum, <code>ZoneShapePicker</code>, <code>ZonePropertiesPanel</code>, polygon vertex editing in painter</td>
+      <td><span class="tag tag-wip">In Progress</span></td>
+    </tr>
+    <tr>
+      <td><strong>Product Form</strong></td>
+      <td><code>ProductFormScreen</code> (add/edit wired to Drift)</td>
+      <td class="check"><span class="tag tag-done">Done</span></td>
+    </tr>
+    <tr>
+      <td><strong>DB Wiring — Catalog &amp; Zones</strong></td>
+      <td>DAOs updated with store-scoped queries; providers updated</td>
+      <td><span class="tag tag-wip">In Progress</span></td>
+    </tr>
+    <tr>
+      <td><strong>Dashboard Home Screen</strong></td>
+      <td>Role-aware dashboard with stat cards</td>
+      <td><span class="tag tag-planned">Planned</span></td>
+    </tr>
+    <tr>
+      <td><strong>Planogram Proposals UI</strong></td>
+      <td>Submit, approve, reject flows for <code>PlanogramProposal</code></td>
+      <td><span class="tag tag-planned">Planned</span></td>
+    </tr>
+    <tr>
+      <td><strong>UI Polish Pass</strong></td>
+      <td>Animations, transitions, loading states</td>
+      <td><span class="tag tag-planned">Planned</span></td>
+    </tr>
+    <tr>
+      <td><strong>Tests</strong></td>
+      <td>Widget + integration test suite</td>
+      <td><span class="tag tag-planned">Planned</span></td>
+    </tr>
+  </tbody>
+</table>
+
+<p>
+  The codebase currently contains <strong>130+ Dart source files</strong> (excluding generated
+  <code>.g.dart</code> and <code>.freezed.dart</code> files), organized across
+  <strong>10 feature modules</strong> and a complete core layer.
+</p>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     5. DIFFICULTIES & PLAN
+═══════════════════════════════════════════════════════════════ -->
+<h2>5. Difficulties &amp; Plan to Overcome Them</h2>
+
+<div class="two-col">
+  <div>
+    <h3>Difficulty 1 — Drift Code Generation Complexity</h3>
+    <p>
+      Drift generates Companion types, Data classes, and DAO method stubs into
+      <code>app_database.g.dart</code>, not into individual table files. Screens that need
+      <code>StoresTableCompanion</code> must import <code>app_database.dart</code>, not
+      <code>stores_table.dart</code> — a non-obvious pattern that caused a wave of
+      "undefined class" compile errors across all feature screens when the schema was first wired up.
+    </p>
+    <p><strong>Resolution:</strong> Established a project-wide rule (documented in the decision log):
+      all screens import <code>app_database.dart</code> directly. Applied consistently across all DAOs
+      and providers. No further occurrences.</p>
+  </div>
+  <div>
+    <h3>Difficulty 2 — Riverpod Generator Deprecations</h3>
+    <p>
+      <code>riverpod_generator ^2.4.3</code> generates typed <code>*Ref</code> classes
+      (e.g., <code>ActiveStoreRef</code>) that are deprecated by
+      <code>riverpod_annotation ^2.3.5</code> in favor of a plain <code>Ref</code> type.
+      These appear as warnings across all generated provider files and cannot be resolved
+      without a breaking package upgrade.
+    </p>
+    <p><strong>Plan:</strong> Pin both packages at current versions for the remainder of the project
+      to keep generated code stable. Monitor riverpod_generator for a stable release resolving
+      the Ref type change; upgrade after final submission if time allows.</p>
+  </div>
+</div>
+
+<div class="two-col">
+  <div>
+    <h3>Difficulty 3 — RoleGuard + Flutter Layout Constraints</h3>
+    <p>
+      Flutter's <code>Expanded</code> widget must be a direct child of a
+      <code>Row</code>/<code>Column</code>/<code>Flex</code>. Wrapping an <code>Expanded</code>
+      inside <code>RoleGuard</code> (which returns a <code>SizedBox.shrink()</code> fallback)
+      caused layout assertion errors because the <code>Expanded</code> was no longer a direct
+      Flex child.
+    </p>
+    <p><strong>Resolution:</strong> Moved <code>RoleGuard</code> to wrap the outer <code>Padding</code>
+      containing the entire button row. The fallback collapses the whole button bar rather than
+      individual buttons — cleaner UX and correct layout hierarchy.</p>
+  </div>
+  <div>
+    <h3>Difficulty 4 — CustomPainter Hit Testing for Polygons</h3>
+    <p>
+      Zone polygons are arbitrary shapes; Flutter's standard tap detection works on bounding
+      boxes, not polygon paths. Initial implementation triggered tap events on zones that weren't
+      actually tapped.
+    </p>
+    <p><strong>Resolution:</strong> Cache each zone's <code>Path</code> object in a
+      <code>Map&lt;String, Path&gt;</code> during <code>paint()</code>, then use
+      <code>path.contains(localPosition)</code> in the <code>GestureDetector</code>'s
+      <code>onTapDown</code> handler to do accurate point-in-polygon hit testing.
+      This pattern is now documented and reused in the Floor Builder canvas.</p>
+  </div>
+</div>
+
+<h3>Remaining Work Plan (Weeks 6–8)</h3>
+<table>
+  <thead>
+    <tr><th>Week</th><th>Target</th><th>Key Deliverables</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>6</td>
+      <td>Complete v0.2 feature wiring</td>
+      <td>Finish store-scoped DB queries; planogram proposals UI; role-aware dashboard home</td>
+    </tr>
+    <tr>
+      <td>7</td>
+      <td>UI polish + sync</td>
+      <td>Offline indicator, background sync service, loading/error states, hero animations</td>
+    </tr>
+    <tr>
+      <td>8</td>
+      <td>Testing + final report</td>
+      <td>Widget tests for RoleGuard, DAO integration tests, demo video recording, written report</td>
+    </tr>
+  </tbody>
+</table>
+
+
+</main>
+
+<footer>
+  Merch Mobile · C490 Spring 2026 · Van Robbins · Checkpoint Report · April 13, 2026
+</footer>
+
+</body>
+</html>

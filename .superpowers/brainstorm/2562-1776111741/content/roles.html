@@ -1,0 +1,89 @@
+<h2>Design Section 3 — Role Permissions Matrix</h2>
+<p class="subtitle">What each role can do across every feature in v0.2</p>
+
+<style>
+  .matrix { width:100%; border-collapse:collapse; font-size:12px; margin-top:12px; }
+  .matrix th { background:#1A1917; color:#fff; padding:8px 10px; text-align:left; font-weight:700; letter-spacing:1px; font-size:11px; }
+  .matrix td { padding:8px 10px; border-bottom:1px solid #e8e5de; vertical-align:top; }
+  .matrix tr:nth-child(even) td { background:#F9F7F3; }
+  .yes { color:#2a7a3a; font-weight:700; }
+  .no { color:#aaa; }
+  .propose { color:#BF5534; font-weight:700; }
+  .badge { display:inline-block; padding:1px 7px; border-radius:2px; font-size:10px; font-weight:700; letter-spacing:1px; }
+  .badge-c { background:#1A1917; color:#fff; }
+  .badge-m { background:#3B6BC2; color:#fff; }
+  .badge-s { background:#888; color:#fff; }
+</style>
+
+<table class="matrix">
+  <thead>
+    <tr>
+      <th>Feature / Action</th>
+      <th><span class="badge badge-c">COORDINATOR</span></th>
+      <th><span class="badge badge-m">MANAGER</span></th>
+      <th><span class="badge badge-s">STAFF</span></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Store & Members</strong><br><span style="color:#888">Create store, manage members</span></td>
+      <td><span class="yes">Full access</span><br>Create store, invite code, approve/deny (any role), change roles, manage groups</td>
+      <td><span class="yes">Partial</span><br>Approve/deny requests (staff only), view members list</td>
+      <td><span class="no">View only</span><br>See store name + own role</td>
+    </tr>
+    <tr>
+      <td><strong>Store Groups</strong><br><span style="color:#888">Create & manage groups</span></td>
+      <td><span class="yes">Full access</span><br>Create groups, add/remove stores</td>
+      <td><span class="no">View only</span></td>
+      <td><span class="no">View only</span></td>
+    </tr>
+    <tr>
+      <td><strong>Zone Manager</strong><br><span style="color:#888">Zone CRUD, color, naming</span></td>
+      <td><span class="yes">Full access</span><br>Create, edit, delete zones</td>
+      <td><span class="yes">Full access</span><br>Create, edit, delete zones</td>
+      <td><span class="no">View only</span><br>Read-only zone map</td>
+    </tr>
+    <tr>
+      <td><strong>Floor Builder</strong><br><span style="color:#888">Place, move, label fixtures</span></td>
+      <td><span class="yes">Full access</span></td>
+      <td><span class="yes">Full access</span></td>
+      <td><span class="no">View only</span><br>Can see floor plan, cannot edit</td>
+    </tr>
+    <tr>
+      <td><strong>Product Catalog</strong><br><span style="color:#888">Add, edit, delete products</span></td>
+      <td><span class="yes">Full access</span></td>
+      <td><span class="yes">Full access</span><br>Add, edit, delete products</td>
+      <td><span class="no">View only</span><br>Browse catalog, search</td>
+    </tr>
+    <tr>
+      <td><strong>Planograms</strong><br><span style="color:#888">Create, edit, assign slots</span></td>
+      <td><span class="yes">Full access</span></td>
+      <td><span class="yes">Full access</span><br>Create planograms, edit slots, assign products, approve/reject proposals</td>
+      <td><span class="propose">Propose only</span><br>Submit slot-change proposals; cannot directly edit</td>
+    </tr>
+    <tr>
+      <td><strong>Planogram Proposals</strong><br><span style="color:#888">Review staff proposals</span></td>
+      <td><span class="yes">Approve / Reject</span></td>
+      <td><span class="yes">Approve / Reject</span></td>
+      <td><span class="propose">Submit only</span><br>View own proposal status</td>
+    </tr>
+    <tr>
+      <td><strong>Photo Docs</strong><br><span style="color:#888">Capture, review, approve</span></td>
+      <td><span class="yes">Full access</span></td>
+      <td><span class="yes">Approve / Reject</span><br>Review and action photo submissions</td>
+      <td><span class="yes">Capture & submit</span><br>Take photos, view own submissions</td>
+    </tr>
+    <tr>
+      <td><strong>Dashboard</strong><br><span style="color:#888">Summary stats</span></td>
+      <td><span class="yes">Full stats</span><br>All metrics, pending approvals, member activity</td>
+      <td><span class="yes">Partial stats</span><br>Planogram & photo metrics, pending proposals</td>
+      <td><span class="yes">Personal stats</span><br>Own tasks, own photo submissions</td>
+    </tr>
+    <tr>
+      <td><strong>Auto Build</strong><br><span style="color:#888">AI-assisted floor layout</span></td>
+      <td><span class="yes">Full access</span></td>
+      <td><span class="yes">Full access</span></td>
+      <td><span class="no">View only</span></td>
+    </tr>
+  </tbody>
+</table>

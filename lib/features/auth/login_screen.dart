@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/theme/design_tokens.dart';
 import 'login_notifier.dart';
 import 'signup_notifier.dart';
 
@@ -74,7 +75,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const SizedBox(height: 24),
+              const SizedBox(height: DesignTokens.spaceLg),
               const Text(
                 'MERCH MOBILE',
                 style: TextStyle(
@@ -85,12 +86,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 ),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: DesignTokens.spaceLg),
               if (error != null)
                 Container(
-                  padding: const EdgeInsets.all(12),
-                  margin: const EdgeInsets.only(bottom: 16),
-                  color: AppTheme.accent.withValues(alpha: 0.12),
+                  padding: const EdgeInsets.all(DesignTokens.spaceSm),
+                  margin:
+                      const EdgeInsets.only(bottom: DesignTokens.spaceMd),
+                  decoration: BoxDecoration(
+                    color: AppTheme.accent.withValues(alpha: 0.12),
+                    borderRadius:
+                        BorderRadius.circular(AppTheme.borderRadius),
+                  ),
                   child: Text(
                     error,
                     style: const TextStyle(color: AppTheme.accent),
@@ -103,7 +109,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   textCapitalization: TextCapitalization.words,
                   autocorrect: false,
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: DesignTokens.spaceLg),
               ],
               TextField(
                 controller: _emailCtrl,
@@ -111,14 +117,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 keyboardType: TextInputType.emailAddress,
                 autocorrect: false,
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: DesignTokens.spaceLg),
               TextField(
                 controller: _passwordCtrl,
                 decoration: underline.copyWith(labelText: 'PASSWORD'),
                 obscureText: true,
               ),
               if (_isSignUp) ...[
-                const SizedBox(height: 24),
+                const SizedBox(height: DesignTokens.spaceLg),
                 TextField(
                   controller: _confirmCtrl,
                   decoration:
@@ -126,7 +132,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   obscureText: true,
                 ),
               ],
-              const SizedBox(height: 24),
+              const SizedBox(height: DesignTokens.spaceLg),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppTheme.primary,
@@ -155,7 +161,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         ),
                       ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: DesignTokens.spaceLg),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [

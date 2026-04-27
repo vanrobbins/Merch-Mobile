@@ -11,6 +11,7 @@ import '../../core/theme/app_theme.dart';
 import '../../core/theme/design_tokens.dart';
 import '../../core/widgets/mm_banner.dart';
 import '../../core/widgets/mm_empty_state.dart';
+import '../../core/widgets/role_guard.dart';
 import 'approval_status_chip.dart';
 import 'photo_capture_button.dart';
 import 'photo_provider.dart';
@@ -63,9 +64,12 @@ class _PhotoListScreenState extends ConsumerState<PhotoListScreen>
           ],
         ),
       ),
-      floatingActionButton: const PhotoCaptureButton(
-        fixtureId: '',
-        phase: 'before',
+      floatingActionButton: const RoleGuard(
+        allowedRoles: ['coordinator', 'manager', 'staff'],
+        child: PhotoCaptureButton(
+          fixtureId: '',
+          phase: 'before',
+        ),
       ),
       body: Column(
         children: [

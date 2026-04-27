@@ -1,0 +1,159 @@
+<h2>Design Section 5 — Zone Manager Redesign</h2>
+<p class="subtitle">Interactive zone editing, zone types, and planogram-linked zone detail view</p>
+
+<div class="section">
+  <h3>Zone Map Canvas (coordinator edit mode)</h3>
+  <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start;margin-top:8px">
+
+    <div style="flex:2;min-width:280px">
+      <div class="mockup">
+        <div class="mockup-header">Store Floor Map — Edit Mode</div>
+        <div class="mockup-body" style="padding:0;overflow:hidden">
+          <div style="background:#F2EFE8;position:relative;height:320px">
+            <!-- Toolbar -->
+            <div style="position:absolute;top:8px;right:8px;display:flex;flex-direction:column;gap:6px;z-index:10">
+              <div style="background:#1A1917;color:#fff;padding:6px 10px;border-radius:2px;font-size:10px;letter-spacing:1px;text-align:center">+ ZONE</div>
+              <div style="background:#fff;border:1px solid #ddd;padding:6px 10px;border-radius:2px;font-size:10px;letter-spacing:1px;text-align:center">GRID</div>
+              <div style="background:#fff;border:1px solid #ddd;padding:6px 10px;border-radius:2px;font-size:10px;letter-spacing:1px;text-align:center">UNDO</div>
+            </div>
+
+            <!-- Womens zone - L shape -->
+            <svg width="100%" height="100%" style="position:absolute;top:0;left:0">
+              <!-- Womens L-shape -->
+              <polygon points="30,30 180,30 180,100 100,100 100,180 30,180" fill="rgba(59,107,194,0.25)" stroke="#3B6BC2" stroke-width="2"/>
+              <text x="60" y="90" fill="#3B6BC2" font-size="10" font-weight="bold" letter-spacing="1">WOMENS</text>
+              <!-- Vertex handles -->
+              <circle cx="30" cy="30" r="5" fill="#3B6BC2" stroke="#fff" stroke-width="1.5"/>
+              <circle cx="180" cy="30" r="5" fill="#3B6BC2" stroke="#fff" stroke-width="1.5"/>
+              <circle cx="180" cy="100" r="5" fill="#3B6BC2" stroke="#fff" stroke-width="1.5"/>
+              <circle cx="100" cy="100" r="5" fill="#3B6BC2" stroke="#fff" stroke-width="1.5"/>
+              <circle cx="100" cy="180" r="5" fill="#3B6BC2" stroke="#fff" stroke-width="1.5"/>
+              <circle cx="30" cy="180" r="5" fill="#3B6BC2" stroke="#fff" stroke-width="1.5"/>
+
+              <!-- Mens rectangle -->
+              <rect x="200" y="30" width="160" height="120" fill="rgba(58,125,68,0.25)" stroke="#3A7D44" stroke-width="2"/>
+              <text x="240" y="95" fill="#3A7D44" font-size="10" font-weight="bold" letter-spacing="1">MENS</text>
+
+              <!-- Fitting rooms - small rect, non-display -->
+              <rect x="200" y="170" width="70" height="60" fill="rgba(139,61,139,0.2)" stroke="#8B3D8B" stroke-width="2" stroke-dasharray="5,3"/>
+              <text x="210" y="198" fill="#8B3D8B" font-size="9" font-weight="bold" letter-spacing="0.5">FITTING</text>
+              <text x="213" y="211" fill="#8B3D8B" font-size="9">ROOMS</text>
+
+              <!-- Cash wrap - non-display -->
+              <rect x="290" y="200" width="70" height="40" fill="rgba(224,123,84,0.2)" stroke="#E07B54" stroke-width="2" stroke-dasharray="5,3"/>
+              <text x="298" y="224" fill="#E07B54" font-size="9" font-weight="bold" letter-spacing="0.5">CASH WRAP</text>
+
+              <!-- Accessories -->
+              <rect x="30" y="200" width="55" height="55" fill="rgba(193,154,107,0.25)" stroke="#C19A6B" stroke-width="2"/>
+              <text x="33" y="228" fill="#8B6914" font-size="9" font-weight="bold" letter-spacing="0.5">ACCESS.</text>
+            </svg>
+
+            <!-- Selected zone indicator -->
+            <div style="position:absolute;bottom:8px;left:8px;background:#1A1917;color:#fff;padding:4px 10px;border-radius:2px;font-size:10px;letter-spacing:1px">WOMENS — SELECTED</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="flex:1;min-width:200px;display:flex;flex-direction:column;gap:12px">
+      <div class="mockup">
+        <div class="mockup-header">Zone Properties Panel</div>
+        <div class="mockup-body" style="padding:12px">
+          <div class="mock-input" style="margin-bottom:8px;font-size:12px">Zone name: Womens</div>
+          <div style="font-size:10px;letter-spacing:1px;font-weight:700;color:#888;margin-bottom:6px">ZONE TYPE</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
+            <div style="background:#1A1917;color:#fff;padding:3px 8px;border-radius:2px;font-size:10px;letter-spacing:1px">DISPLAY</div>
+            <div style="border:1px solid #ccc;color:#666;padding:3px 8px;border-radius:2px;font-size:10px;letter-spacing:1px">CASH WRAP</div>
+            <div style="border:1px solid #ccc;color:#666;padding:3px 8px;border-radius:2px;font-size:10px;letter-spacing:1px">FITTING</div>
+            <div style="border:1px solid #ccc;color:#666;padding:3px 8px;border-radius:2px;font-size:10px;letter-spacing:1px">ENTRANCE</div>
+            <div style="border:1px solid #ccc;color:#666;padding:3px 8px;border-radius:2px;font-size:10px;letter-spacing:1px">STORAGE</div>
+            <div style="border:1px solid #ccc;color:#666;padding:3px 8px;border-radius:2px;font-size:10px;letter-spacing:1px">OTHER</div>
+          </div>
+          <div style="font-size:10px;letter-spacing:1px;font-weight:700;color:#888;margin-bottom:6px">SHAPE</div>
+          <div style="display:flex;gap:6px;margin-bottom:10px">
+            <div style="background:#F2EFE8;border:1px solid #BF5534;padding:4px 8px;border-radius:2px;font-size:10px;letter-spacing:1px;color:#BF5534">EDIT VERTICES</div>
+            <div style="border:1px solid #ccc;padding:4px 8px;border-radius:2px;font-size:10px;letter-spacing:1px;color:#666">REPLACE SHAPE</div>
+          </div>
+          <div style="font-size:10px;letter-spacing:1px;font-weight:700;color:#888;margin-bottom:4px">COLOR</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
+            <div style="width:24px;height:24px;background:#3B6BC2;border-radius:2px;border:2px solid #BF5534"></div>
+            <div style="width:24px;height:24px;background:#3A7D44;border-radius:2px"></div>
+            <div style="width:24px;height:24px;background:#C19A6B;border-radius:2px"></div>
+            <div style="width:24px;height:24px;background:#8B3D8B;border-radius:2px"></div>
+            <div style="width:24px;height:24px;background:#E07B54;border-radius:2px"></div>
+          </div>
+          <div style="display:flex;gap:6px">
+            <div style="flex:1;background:#BF5534;color:#fff;padding:6px;border-radius:2px;font-size:10px;letter-spacing:1px;text-align:center">OPEN ZONE →</div>
+            <div style="border:1px solid #e33;color:#e33;padding:6px 8px;border-radius:2px;font-size:10px;letter-spacing:1px">DEL</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>Zone Detail View (tap "Open Zone" or tap zone on map)</h3>
+  <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start;margin-top:8px">
+
+    <div style="flex:1;min-width:200px">
+      <div class="mockup">
+        <div class="mockup-header">Display Zone — Womens</div>
+        <div class="mockup-body" style="padding:0;overflow:hidden">
+          <div style="background:#F9F7F3;position:relative;height:280px">
+            <svg width="100%" height="100%" style="position:absolute">
+              <!-- Zone outline clipped -->
+              <polygon points="10,10 200,10 200,80 120,80 120,160 10,160" fill="none" stroke="#3B6BC2" stroke-width="1.5" stroke-dasharray="4,3"/>
+              <!-- Fixtures with planogram badges -->
+              <rect x="25" y="20" width="60" height="30" rx="2" fill="#dde4f0" stroke="#3B6BC2" stroke-width="1"/>
+              <text x="30" y="38" font-size="9" fill="#3B6BC2" font-weight="bold">RACK A</text>
+              <rect x="50" y="14" width="30" height="10" rx="2" fill="#3B6BC2"/>
+              <text x="55" y="22" font-size="7" fill="#fff">PLG-01</text>
+
+              <rect x="110" y="20" width="70" height="30" rx="2" fill="#dde4f0" stroke="#3B6BC2" stroke-width="1"/>
+              <text x="116" y="38" font-size="9" fill="#3B6BC2" font-weight="bold">WALL UNIT</text>
+              <rect x="125" y="14" width="30" height="10" rx="2" fill="#3B6BC2"/>
+              <text x="130" y="22" font-size="7" fill="#fff">PLG-02</text>
+
+              <rect x="25" y="65" width="50" height="40" rx="2" fill="#dde4f0" stroke="#3B6BC2" stroke-width="1"/>
+              <text x="30" y="88" font-size="9" fill="#3B6BC2" font-weight="bold">TABLE</text>
+              <!-- No planogram badge - unassigned -->
+              <rect x="35" y="59" width="40" height="10" rx="2" fill="#e0e0e0"/>
+              <text x="40" y="67" font-size="7" fill="#999">UNASSIGNED</text>
+            </svg>
+            <div style="position:absolute;bottom:8px;right:8px;background:#BF5534;color:#fff;padding:4px 10px;border-radius:2px;font-size:10px;letter-spacing:1px">+ ASSIGN PLANOGRAM</div>
+          </div>
+        </div>
+      </div>
+      <p style="font-size:11px;color:#666;margin-top:6px">Display zones show fixtures with planogram badges. Tap a fixture to assign/swap planogram. Unassigned fixtures shown in grey.</p>
+    </div>
+
+    <div style="flex:1;min-width:200px">
+      <div class="mockup">
+        <div class="mockup-header">Non-Display Zone — Fitting Rooms</div>
+        <div class="mockup-body" style="padding:16px;text-align:center">
+          <div style="font-size:28px;margin-bottom:8px">👗</div>
+          <div style="font-size:12px;font-weight:700;letter-spacing:1px;margin-bottom:8px">FITTING ROOMS</div>
+          <div style="font-size:11px;color:#888;margin-bottom:16px">Non-display zone — no fixtures or planograms.</div>
+          <div style="background:#F2EFE8;border-radius:2px;padding:10px;text-align:left;font-size:11px">
+            <div style="font-weight:700;letter-spacing:1px;font-size:10px;color:#888;margin-bottom:6px">NOTES</div>
+            <div class="mock-input" style="font-size:11px">e.g. 6 rooms, ADA compliant</div>
+          </div>
+          <div style="margin-top:12px;font-size:10px;color:#888">Photo docs can still be attached to any zone.</div>
+        </div>
+      </div>
+      <p style="font-size:11px;color:#666;margin-top:6px">Non-display zones (cash wrap, fitting rooms, entrance, storage) show a simple info card — no fixtures, no planograms.</p>
+    </div>
+
+  </div>
+</div>
+
+<div class="section">
+  <h3>Schema additions for this feature</h3>
+  <div style="background:#F2EFE8;border-left:3px solid #BF5534;padding:12px 16px;border-radius:2px;font-family:monospace;font-size:12px;line-height:1.8">
+    zones.shape_points TEXT <span style="color:#888">— JSON array of {x,y} vertices (replaces width/height)</span><br>
+    zones.zone_type TEXT <span style="color:#888">— display | cash_wrap | fitting_room | entrance | storage | other</span><br>
+    zones.notes TEXT <span style="color:#888">— freeform notes for non-display zones</span><br>
+    fixtures.planogram_id TEXT <span style="color:#888">— FK → planograms.id (nullable, links fixture to planogram)</span>
+  </div>
+</div>

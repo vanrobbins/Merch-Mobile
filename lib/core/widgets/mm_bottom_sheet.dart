@@ -36,7 +36,8 @@ class MmBottomSheet extends StatelessWidget {
               height: 4,
               decoration: BoxDecoration(
                 color: Colors.grey.shade300,
-                borderRadius: BorderRadius.circular(2),
+                borderRadius:
+                    BorderRadius.circular(AppTheme.borderRadius),
               ),
             ),
           ),

@@ -1,0 +1,71 @@
+<h2>Design Section 1 — Database Schema Changes</h2>
+<p class="subtitle">New tables + store_id added to all existing tables</p>
+
+<div class="section">
+  <h3>New Tables</h3>
+  <div class="cards">
+
+    <div class="card" style="cursor:default">
+      <div class="card-body">
+        <h3>stores</h3>
+        <p style="font-family:monospace;font-size:12px;line-height:1.7">
+          id TEXT PRIMARY KEY<br>
+          name TEXT NOT NULL<br>
+          invite_code TEXT UNIQUE NOT NULL<br>
+          created_at INTEGER NOT NULL<br>
+          owner_uid TEXT NOT NULL
+        </p>
+      </div>
+    </div>
+
+    <div class="card" style="cursor:default">
+      <div class="card-body">
+        <h3>store_memberships</h3>
+        <p style="font-family:monospace;font-size:12px;line-height:1.7">
+          id TEXT PRIMARY KEY<br>
+          store_id TEXT → stores.id<br>
+          user_uid TEXT NOT NULL<br>
+          role TEXT NOT NULL <span style="color:#888">— coordinator | manager | staff</span><br>
+          display_name TEXT NOT NULL<br>
+          joined_at INTEGER NOT NULL
+        </p>
+      </div>
+    </div>
+
+    <div class="card" style="cursor:default">
+      <div class="card-body">
+        <h3>planogram_proposals</h3>
+        <p style="font-family:monospace;font-size:12px;line-height:1.7">
+          id TEXT PRIMARY KEY<br>
+          planogram_id TEXT → planograms.id<br>
+          store_id TEXT → stores.id<br>
+          proposed_by_uid TEXT NOT NULL<br>
+          proposed_at INTEGER NOT NULL<br>
+          status TEXT <span style="color:#888">— pending | approved | rejected</span><br>
+          notes TEXT<br>
+          slot_changes TEXT <span style="color:#888">— JSON blob of slot diffs</span><br>
+          reviewed_by_uid TEXT<br>
+          reviewed_at INTEGER
+        </p>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="section">
+  <h3>Existing Tables — store_id FK added</h3>
+  <p>Every existing table gets <code style="background:#eee;padding:2px 6px;border-radius:3px">store_id TEXT NOT NULL REFERENCES stores(id)</code> added via a Drift schema migration.</p>
+  <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px">
+    <span style="background:#1A1917;color:#fff;padding:4px 12px;border-radius:2px;font-size:13px">zones</span>
+    <span style="background:#1A1917;color:#fff;padding:4px 12px;border-radius:2px;font-size:13px">fixtures</span>
+    <span style="background:#1A1917;color:#fff;padding:4px 12px;border-radius:2px;font-size:13px">products</span>
+    <span style="background:#1A1917;color:#fff;padding:4px 12px;border-radius:2px;font-size:13px">planograms</span>
+    <span style="background:#1A1917;color:#fff;padding:4px 12px;border-radius:2px;font-size:13px">photo_docs</span>
+  </div>
+</div>
+
+<div class="section">
+  <h3>Active Store in App State</h3>
+  <p>A <strong>activeStoreProvider</strong> (Riverpod) holds the currently selected store. All DAOs gain a <code style="background:#eee;padding:2px 6px;border-radius:3px">watchByStore(storeId)</code> method. The store switcher updates this provider — every screen reactively scopes to the active store.</p>
+</div>

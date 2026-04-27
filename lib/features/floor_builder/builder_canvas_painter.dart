@@ -1,15 +1,21 @@
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import '../../core/models/fixture.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/design_tokens.dart';
+import 'zone_edge_helper.dart';
 
 class BuilderCanvasPainter extends CustomPainter {
   BuilderCanvasPainter({
     required this.fixtures,
     this.selectedFixtureId,
-    this.ghostPos,       // Offset? for snap ghost during drag
-    this.ghostType,      // String? fixture type for ghost
+    this.ghostPos,
+    this.ghostType,
     this.pixelsPerFt = 20.0,
+    this.zoneNormalizedPts,
+    this.zoneColor,
+    this.zoneName,
+    this.wallEdges,
   });
 
   final List<Fixture> fixtures;
@@ -17,17 +23,125 @@ class BuilderCanvasPainter extends CustomPainter {
   final Offset? ghostPos;
   final String? ghostType;
   final double pixelsPerFt;
+  final List<Offset>? zoneNormalizedPts;
+  final Color? zoneColor;
+  final String? zoneName;
+  final List<ZoneEdge>? wallEdges;
 
-  final Map<String, Rect> fixtureRects = {};  // public so screen can hit-test
+  final Map<String, Rect> fixtureRects = {};
 
   @override
   void paint(Canvas canvas, Size size) {
     fixtureRects.clear();
+    _drawZoneBackground(canvas, size);
     for (final fixture in fixtures) {
       _drawFixture(canvas, fixture);
     }
     if (ghostPos != null && ghostType != null) {
       _drawGhost(canvas, ghostPos!, ghostType!);
+    }
+    if (wallEdges != null) {
+      _drawEdgeHandles(canvas, wallEdges!);
+    }
+  }
+
+  void _drawEdgeHandles(Canvas canvas, List<ZoneEdge> edges) {
+    for (var i = 0; i < edges.length; i++) {
+      final edge = edges[i];
+      canvas.drawLine(
+        edge.startPx,
+        edge.endPx,
+        Paint()
+          ..color = AppTheme.accent.withValues(alpha: 0.55)
+          ..strokeWidth = 3.5
+          ..strokeCap = StrokeCap.round,
+      );
+      canvas.drawCircle(edge.midPx, 14, Paint()..color = AppTheme.accent);
+      canvas.drawCircle(
+        edge.midPx,
+        14,
+        Paint()
+          ..color = Colors.white
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2.0,
+      );
+      final tp = TextPainter(
+        text: TextSpan(
+          text: '${i + 1}',
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        textDirection: ui.TextDirection.ltr,
+      )..layout();
+      tp.paint(canvas, edge.midPx - Offset(tp.width / 2, tp.height / 2));
+    }
+  }
+
+  void _drawZoneBackground(Canvas canvas, Size size) {
+    final pts = zoneNormalizedPts;
+    if (pts == null || pts.length < 3) return;
+
+    // Find bounding box of normalized points so we can scale to fill the canvas
+    double minX = pts.map((p) => p.dx).reduce((a, b) => a < b ? a : b);
+    double maxX = pts.map((p) => p.dx).reduce((a, b) => a > b ? a : b);
+    double minY = pts.map((p) => p.dy).reduce((a, b) => a < b ? a : b);
+    double maxY = pts.map((p) => p.dy).reduce((a, b) => a > b ? a : b);
+
+    final rangeX = (maxX - minX).clamp(0.01, 1.0);
+    final rangeY = (maxY - minY).clamp(0.01, 1.0);
+    const padding = 40.0;
+    final usableW = size.width - padding * 2;
+    final usableH = size.height - padding * 2;
+
+    // Uniform scale to fit within usable area
+    final scale = (usableW / rangeX).clamp(0.0, usableH / rangeY);
+
+    // Center the shape
+    final scaledW = rangeX * scale;
+    final scaledH = rangeY * scale;
+    final offsetX = padding + (usableW - scaledW) / 2;
+    final offsetY = padding + (usableH - scaledH) / 2;
+
+    Offset toCanvas(Offset p) => Offset(
+          offsetX + (p.dx - minX) / rangeX * scaledW,
+          offsetY + (p.dy - minY) / rangeY * scaledH,
+        );
+
+    final screenPts = pts.map(toCanvas).toList();
+    final path = Path()..addPolygon(screenPts, true);
+    final color = zoneColor ?? AppTheme.primary;
+
+    // Floor fill
+    canvas.drawPath(path, Paint()..color = color.withValues(alpha: 0.07)..style = PaintingStyle.fill);
+    // Zone boundary border
+    canvas.drawPath(
+      path,
+      Paint()
+        ..color = color.withValues(alpha: 0.5)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2.5
+        ..strokeJoin = StrokeJoin.round,
+    );
+
+    // Zone name label at top of shape
+    if (zoneName != null) {
+      final tp = TextPainter(
+        text: TextSpan(
+          text: zoneName!.toUpperCase(),
+          style: TextStyle(
+            color: color.withValues(alpha: 0.6),
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 1.5,
+          ),
+        ),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      final topCenter = screenPts.reduce((a, b) => a.dy < b.dy ? a : b);
+      tp.paint(canvas, topCenter.translate(-tp.width / 2, -tp.height - 6));
     }
   }
 
@@ -64,6 +178,8 @@ class BuilderCanvasPainter extends CustomPainter {
         _drawShelf(canvas, rect, fillPaint, borderPaint);
       case 'wall':
         _drawWall(canvas, rect, fillPaint, borderPaint);
+      case 'partition':
+        _drawPartition(canvas, rect, fillPaint, borderPaint);
       default:
         canvas.drawRect(rect, fillPaint);
         canvas.drawRect(rect, borderPaint);
@@ -109,10 +225,35 @@ class BuilderCanvasPainter extends CustomPainter {
   }
 
   void _drawWall(Canvas canvas, Rect rect, Paint fill, Paint border) {
-    // Thick filled rect
     final wallPaint = Paint()..color = AppTheme.primary.withValues(alpha: 0.35)..style = PaintingStyle.fill;
     canvas.drawRect(rect, wallPaint);
     canvas.drawRect(rect, border);
+  }
+
+  void _drawPartition(Canvas canvas, Rect rect, Paint fill, Paint border) {
+    // Interior divider — dashed centre line with light fill
+    canvas.drawRect(rect, Paint()..color = AppTheme.accent.withValues(alpha: 0.12)..style = PaintingStyle.fill);
+    canvas.drawRect(rect, Paint()..color = AppTheme.accent..strokeWidth = 1.5..style = PaintingStyle.stroke);
+    // Dashed centre line along long axis
+    final isWide = rect.width >= rect.height;
+    final dashPaint = Paint()..color = AppTheme.accent..strokeWidth = 1.0;
+    const dashLen = 4.0;
+    const gap = 3.0;
+    if (isWide) {
+      double x = rect.left + 4;
+      final y = rect.center.dy;
+      while (x < rect.right - 4) {
+        canvas.drawLine(Offset(x, y), Offset((x + dashLen).clamp(rect.left, rect.right - 4), y), dashPaint);
+        x += dashLen + gap;
+      }
+    } else {
+      double y = rect.top + 4;
+      final x = rect.center.dx;
+      while (y < rect.bottom - 4) {
+        canvas.drawLine(Offset(x, y), Offset(x, (y + dashLen).clamp(rect.top, rect.bottom - 4)), dashPaint);
+        y += dashLen + gap;
+      }
+    }
   }
 
   void _drawGhost(Canvas canvas, Offset pos, String type) {
@@ -146,5 +287,6 @@ class BuilderCanvasPainter extends CustomPainter {
   bool shouldRepaint(BuilderCanvasPainter old) =>
       old.fixtures != fixtures ||
       old.selectedFixtureId != selectedFixtureId ||
-      old.ghostPos != ghostPos;
+      old.ghostPos != ghostPos ||
+      old.wallEdges != wallEdges;
 }

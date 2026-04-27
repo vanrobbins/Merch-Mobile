@@ -1,0 +1,110 @@
+<h2>Design Section 4 — Feature Work Summary</h2>
+<p class="subtitle">What gets wired up vs. what's new in v0.2</p>
+
+<style>
+  .ftable { width:100%; border-collapse:collapse; font-size:12px; margin-top:12px; }
+  .ftable th { background:#1A1917; color:#fff; padding:8px 12px; text-align:left; font-size:11px; letter-spacing:1px; }
+  .ftable td { padding:10px 12px; border-bottom:1px solid #e8e5de; vertical-align:top; line-height:1.6; }
+  .ftable tr:nth-child(even) td { background:#F9F7F3; }
+  .tag { display:inline-block; padding:1px 7px; border-radius:2px; font-size:10px; font-weight:700; letter-spacing:1px; margin-bottom:4px; }
+  .tag-wire { background:#3A7D44; color:#fff; }
+  .tag-new { background:#BF5534; color:#fff; }
+  .tag-polish { background:#3B6BC2; color:#fff; }
+</style>
+
+<table class="ftable">
+  <thead>
+    <tr>
+      <th>Feature</th>
+      <th>Type</th>
+      <th>What changes in v0.2</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Zone Manager</strong></td>
+      <td><span class="tag tag-wire">WIRE UP</span></td>
+      <td>
+        Zones persist to Drift (currently <code>createDefaultZones()</code> is in-memory only).<br>
+        Full CRUD via ZonesDAO scoped to active store.<br>
+        ZoneMapPainter loads from DB stream; zone count shown on Dashboard.
+      </td>
+    </tr>
+    <tr>
+      <td><strong>Floor Builder</strong></td>
+      <td><span class="tag tag-wire">WIRE UP</span></td>
+      <td>
+        Fixtures save/load from FixturesDAO scoped to zone + store.<br>
+        Add/move/rotate/delete all persist immediately.<br>
+        Floor plan is read-only for staff (edit controls hidden by role).
+      </td>
+    </tr>
+    <tr>
+      <td><strong>Product Catalog</strong></td>
+      <td><span class="tag tag-wire">WIRE UP</span></td>
+      <td>
+        Real CRUD: coordinator/manager can add, edit, delete products.<br>
+        Products scoped to active store via ProductsDAO.<br>
+        Staff browse + search read-only. Product count on Dashboard.
+      </td>
+    </tr>
+    <tr>
+      <td><strong>Planogram Editor</strong></td>
+      <td><span class="tag tag-wire">WIRE UP</span></td>
+      <td>
+        Slot editing persists via PlanogramsDAO + PlanogramSlotsDAO.<br>
+        Staff see a "Propose Change" button instead of direct edit.<br>
+        Proposals stored in <code>planogram_proposals</code> table; manager/coordinator review queue.
+      </td>
+    </tr>
+    <tr>
+      <td><strong>Store & Members</strong></td>
+      <td><span class="tag tag-new">NEW</span></td>
+      <td>
+        Create store → auto invite code → coordinator role.<br>
+        Join flow: enter code → pending → coordinator/manager approves → staff role assigned.<br>
+        Members screen: pending queue + active members + role editing.<br>
+        Multi-store switcher in app header.
+      </td>
+    </tr>
+    <tr>
+      <td><strong>Store Groups</strong></td>
+      <td><span class="tag tag-new">NEW</span></td>
+      <td>
+        Coordinator creates groups (e.g. "Gap Region 1").<br>
+        Adds/removes stores from groups via a group management screen.<br>
+        Groups displayed in the store switcher sheet for context.
+      </td>
+    </tr>
+    <tr>
+      <td><strong>Dashboard</strong></td>
+      <td><span class="tag tag-new">NEW</span></td>
+      <td>
+        Role-aware home screen replacing the current empty tab.<br>
+        <strong>Coordinator:</strong> zone count, fixture count, product count, pending join requests, pending proposals, pending photo approvals.<br>
+        <strong>Manager:</strong> pending proposals, pending photo approvals, product count.<br>
+        <strong>Staff:</strong> own photo submissions, own proposals + their status.
+      </td>
+    </tr>
+    <tr>
+      <td><strong>Product → Planogram Assignment</strong></td>
+      <td><span class="tag tag-new">NEW</span></td>
+      <td>
+        In planogram detail view: slots show an "Assign Product" button.<br>
+        Opens a searchable product picker (from catalog).<br>
+        Selected product stored in <code>planogram_slots.product_id</code>.<br>
+        Slot displays product name + SKU once assigned.<br>
+        Staff submit this as a proposal; manager/coordinator edit directly.
+      </td>
+    </tr>
+    <tr>
+      <td><strong>Role Enforcement</strong></td>
+      <td><span class="tag tag-polish">POLISH</span></td>
+      <td>
+        All edit controls (FABs, action buttons, context menus) check current user role before rendering.<br>
+        GoRouter guards updated to block routes by role where needed.<br>
+        Staff attempting restricted actions see an "Access restricted" snackbar.
+      </td>
+    </tr>
+  </tbody>
+</table>

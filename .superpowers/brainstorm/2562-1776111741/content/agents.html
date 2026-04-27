@@ -1,0 +1,123 @@
+<h2>Design Section 6 — v0.2 Agent Division</h2>
+<p class="subtitle">5 agents — Agent 1 ships first, Agents 2–5 run in parallel after</p>
+
+<style>
+  .agent-card { background:#fff; border:1px solid #e8e5de; border-radius:2px; padding:16px; margin-bottom:12px; }
+  .agent-header { display:flex; align-items:center; gap:12px; margin-bottom:12px; }
+  .agent-num { background:#1A1917; color:#fff; width:32px; height:32px; border-radius:2px; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:14px; flex-shrink:0; }
+  .agent-title { font-weight:700; font-size:14px; letter-spacing:0.5px; }
+  .agent-subtitle { font-size:11px; color:#888; letter-spacing:1px; }
+  .file-list { font-family:monospace; font-size:11px; line-height:1.8; color:#444; }
+  .file-list .new { color:#BF5534; font-weight:700; }
+  .file-list .modified { color:#3A7D44; font-weight:700; }
+  .tag { display:inline-block; padding:1px 7px; border-radius:2px; font-size:10px; font-weight:700; letter-spacing:1px; }
+  .tag-seq { background:#E07B54; color:#fff; }
+  .tag-par { background:#3A7D44; color:#fff; }
+  .blocker { background:#F2EFE8; border-left:2px solid #BF5534; padding:6px 10px; font-size:11px; color:#666; border-radius:1px; margin-top:8px; }
+</style>
+
+<div class="agent-card">
+  <div class="agent-header">
+    <div class="agent-num">1</div>
+    <div>
+      <div class="agent-title">Foundation & Schema</div>
+      <div class="agent-subtitle">RUNS FIRST — SEQUENTIAL <span class="tag tag-seq">GATE</span></div>
+    </div>
+  </div>
+  <div class="file-list">
+    <span class="new">NEW</span> lib/core/database/tables/stores_table.dart<br>
+    <span class="new">NEW</span> lib/core/database/tables/store_memberships_table.dart<br>
+    <span class="new">NEW</span> lib/core/database/tables/store_groups_table.dart<br>
+    <span class="new">NEW</span> lib/core/database/tables/store_group_members_table.dart<br>
+    <span class="new">NEW</span> lib/core/database/tables/planogram_proposals_table.dart<br>
+    <span class="new">NEW</span> lib/core/database/daos/stores_dao.dart<br>
+    <span class="new">NEW</span> lib/core/database/daos/store_memberships_dao.dart<br>
+    <span class="new">NEW</span> lib/core/database/daos/store_groups_dao.dart<br>
+    <span class="new">NEW</span> lib/core/database/daos/planogram_proposals_dao.dart<br>
+    <span class="modified">MOD</span> lib/core/database/app_database.dart — bump schemaVersion, add migration, add store_id FK + shape_points + zone_type to existing tables<br>
+    <span class="modified">MOD</span> lib/core/models/ — add Store, StoreMembership, StoreGroup, PlanogramProposal @freezed models<br>
+    <span class="modified">MOD</span> lib/core/providers/ — add activeStoreProvider, currentMembershipProvider<br>
+    <span class="modified">MOD</span> lib/core/router/app_router.dart — add store gate, members, group management routes<br>
+    <span class="new">NEW</span> lib/features/store/ — StoreGateScreen, CreateStoreScreen, JoinStoreScreen, PendingApprovalScreen, StoreSwitcherSheet, MembersScreen, GroupManagementScreen
+  </div>
+  <div class="blocker">Agents 2–5 are blocked on this. Once Agent 1 merges, all four start in parallel.</div>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+
+  <div class="agent-card">
+    <div class="agent-header">
+      <div class="agent-num" style="background:#3B6BC2">2</div>
+      <div>
+        <div class="agent-title">Zone Manager Redesign</div>
+        <div class="agent-subtitle">PARALLEL <span class="tag tag-par">AFTER AGENT 1</span></div>
+      </div>
+    </div>
+    <div class="file-list">
+      <span class="modified">MOD</span> lib/features/zone_manager/zone_map_screen.dart — polygon canvas, vertex drag, zone type selector, properties panel<br>
+      <span class="modified">MOD</span> lib/features/zone_manager/zone_map_painter.dart — render arbitrary polygons<br>
+      <span class="new">NEW</span> lib/features/zone_manager/zone_vertex_editor.dart — vertex drag handles<br>
+      <span class="new">NEW</span> lib/features/zone_manager/zone_shape_picker.dart — predefined shapes sheet<br>
+      <span class="new">NEW</span> lib/features/zone_manager/zone_detail_screen.dart — display zone interior (fixtures + planogram badges)<br>
+      <span class="modified">MOD</span> lib/features/zone_manager/zone_map_provider.dart — real DB via ZonesDAO scoped to activeStore<br>
+      <span class="modified">MOD</span> lib/core/database/daos/zones_dao.dart — watchByStore, upsert shape_points + zone_type
+    </div>
+  </div>
+
+  <div class="agent-card">
+    <div class="agent-header">
+      <div class="agent-num" style="background:#3A7D44">3</div>
+      <div>
+        <div class="agent-title">Floor Builder + Product Catalog</div>
+        <div class="agent-subtitle">PARALLEL <span class="tag tag-par">AFTER AGENT 1</span></div>
+      </div>
+    </div>
+    <div class="file-list">
+      <span class="modified">MOD</span> lib/features/floor_builder/ — fixtures persist to FixturesDAO (store-scoped), planogram_id FK on fixture<br>
+      <span class="modified">MOD</span> lib/features/floor_builder/floor_builder_provider.dart — real DB load/save<br>
+      <span class="modified">MOD</span> lib/features/product_catalog/catalog_screen.dart — real CRUD from ProductsDAO (store-scoped)<br>
+      <span class="modified">MOD</span> lib/features/product_catalog/catalog_provider.dart — wire to DB<br>
+      <span class="new">NEW</span> lib/features/product_catalog/product_form_screen.dart — add/edit product (coordinator/manager only)<br>
+      <span class="modified">MOD</span> lib/core/database/daos/fixtures_dao.dart — watchByZone(storeId, zoneId)<br>
+      <span class="modified">MOD</span> lib/core/database/daos/products_dao.dart — watchByStore, upsert, delete
+    </div>
+  </div>
+
+  <div class="agent-card">
+    <div class="agent-header">
+      <div class="agent-num" style="background:#8B3D8B">4</div>
+      <div>
+        <div class="agent-title">Planogram Editor + Dashboard</div>
+        <div class="agent-subtitle">PARALLEL <span class="tag tag-par">AFTER AGENT 1</span></div>
+      </div>
+    </div>
+    <div class="file-list">
+      <span class="modified">MOD</span> lib/features/planogram/planogram_detail_screen.dart — real slot editing, assign product picker, staff proposal button<br>
+      <span class="modified">MOD</span> lib/features/planogram/planogram_provider.dart — wire to PlanogramsDAO + ProposalsDAO<br>
+      <span class="new">NEW</span> lib/features/planogram/planogram_proposal_screen.dart — staff submit proposal UI<br>
+      <span class="new">NEW</span> lib/features/planogram/proposal_review_screen.dart — manager/coordinator approve/reject<br>
+      <span class="new">NEW</span> lib/features/planogram/product_slot_picker.dart — searchable product assignment sheet<br>
+      <span class="new">NEW</span> lib/features/dashboard/dashboard_screen.dart — role-aware stats (zones, fixtures, products, pending items)<br>
+      <span class="new">NEW</span> lib/features/dashboard/dashboard_provider.dart
+    </div>
+  </div>
+
+  <div class="agent-card">
+    <div class="agent-header">
+      <div class="agent-num" style="background:#C19A6B">5</div>
+      <div>
+        <div class="agent-title">Role Enforcement + Tests</div>
+        <div class="agent-subtitle">PARALLEL <span class="tag tag-par">AFTER AGENT 1</span></div>
+      </div>
+    </div>
+    <div class="file-list">
+      <span class="modified">MOD</span> lib/core/router/route_guards.dart — store gate guard, role-based route blocking<br>
+      <span class="modified">MOD</span> All feature screens — hide/show edit controls based on currentMembershipProvider role<br>
+      <span class="new">NEW</span> lib/core/widgets/role_guard.dart — RoleGuard widget wraps any child, hides if role insufficient<br>
+      <span class="new">NEW</span> test/core/database/ — DAO unit tests (stores, memberships, zones, fixtures, products, planograms, proposals)<br>
+      <span class="new">NEW</span> test/features/ — widget tests for ZoneMapScreen, PlanogramDetailScreen, DashboardScreen, MembersScreen<br>
+      <span class="new">NEW</span> test/integration/ — store create → join → approve flow integration test
+    </div>
+  </div>
+
+</div>
