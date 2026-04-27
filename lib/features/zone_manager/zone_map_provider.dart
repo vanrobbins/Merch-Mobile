@@ -10,6 +10,8 @@ import 'zone_shape.dart';
 
 part 'zone_map_provider.g.dart';
 
+const _sentinel = Object();
+
 class ZoneMapState {
   final List<ZonesTableData> zones;
   final String? selectedZoneId;
@@ -42,8 +44,6 @@ class ZoneMapState {
   }
 }
 
-const _sentinel = Object();
-
 @riverpod
 class ZoneMapNotifier extends _$ZoneMapNotifier {
   StreamSubscription<List<ZonesTableData>>? _zoneSub;
@@ -52,8 +52,7 @@ class ZoneMapNotifier extends _$ZoneMapNotifier {
   @override
   ZoneMapState build() {
     final db = ref.watch(appDatabaseProvider);
-    final storeIdAsync = ref.watch(activeStoreIdProvider);
-    final storeId = storeIdAsync.value;
+    final storeId = ref.watch(activeStoreIdProvider).value;
 
     _zoneSub?.cancel();
     _storeSub?.cancel();
@@ -78,10 +77,9 @@ class ZoneMapNotifier extends _$ZoneMapNotifier {
   Future<void> addZone() async {
     final db = ref.read(appDatabaseProvider);
     final storeId = ref.read(activeStoreIdProvider).value ?? '';
-    final id = const Uuid().v4();
     const center = Offset(0.5, 0.5);
     await db.zonesDao.upsert(ZonesTableCompanion.insert(
-      id: id,
+      id: const Uuid().v4(),
       name: 'Zone ${state.zones.length + 1}',
       colorValue: 0xFF3B6BC2,
       zoneType: 'display',
@@ -95,76 +93,35 @@ class ZoneMapNotifier extends _$ZoneMapNotifier {
     ));
   }
 
-  Future<void> updateZoneName(String id, String name) async {
-    final db = ref.read(appDatabaseProvider);
-    final zone = state.zones.firstWhere((z) => z.id == id);
-    await db.zonesDao.upsert(zone.toCompanion(true).copyWith(
-          name: Value(name),
-          updatedAt: Value(DateTime.now()),
-        ));
-  }
+  Future<void> updateZoneName(String id, String name) =>
+      _patchZone(id, (c) => c.copyWith(name: Value(name)));
 
-  Future<void> updateZoneColor(String id, int colorValue) async {
-    final db = ref.read(appDatabaseProvider);
-    final zone = state.zones.firstWhere((z) => z.id == id);
-    await db.zonesDao.upsert(zone.toCompanion(true).copyWith(
-          colorValue: Value(colorValue),
-          updatedAt: Value(DateTime.now()),
-        ));
-  }
+  Future<void> updateZoneColor(String id, int colorValue) =>
+      _patchZone(id, (c) => c.copyWith(colorValue: Value(colorValue)));
 
-  Future<void> updateZoneType(String id, String type) async {
-    final db = ref.read(appDatabaseProvider);
-    final zone = state.zones.firstWhere((z) => z.id == id);
-    await db.zonesDao.upsert(zone.toCompanion(true).copyWith(
-          zoneType: Value(type),
-          updatedAt: Value(DateTime.now()),
-        ));
-  }
+  Future<void> updateZoneType(String id, String type) =>
+      _patchZone(id, (c) => c.copyWith(zoneType: Value(type)));
 
-  Future<void> updateZoneShape(String id, List<Offset> points) async {
-    final db = ref.read(appDatabaseProvider);
-    final zone = state.zones.firstWhere((z) => z.id == id);
-    await db.zonesDao.upsert(zone.toCompanion(true).copyWith(
-          shapePoints: Value(ZoneShape.encode(points)),
-          updatedAt: Value(DateTime.now()),
-        ));
-  }
+  Future<void> updateZoneShape(String id, List<Offset> points) =>
+      _patchZone(id, (c) => c.copyWith(shapePoints: Value(ZoneShape.encode(points))));
 
   /// Updates zone shape in local state only — used for smooth vertex drag.
   void updateZoneShapeLocal(String id, List<Offset> points) {
-    final updated = state.zones.map((z) {
-      if (z.id != id) return z;
-      return z.copyWith(shapePoints: Value(ZoneShape.encode(points)));
-    }).toList();
+    final encoded = ZoneShape.encode(points);
+    final updated = [
+      for (final z in state.zones)
+        if (z.id == id) z.copyWith(shapePoints: Value(encoded)) else z,
+    ];
     state = state.copyWith(zones: updated);
   }
 
   /// Translates all vertices of a zone by the given normalized delta, persists to DB.
-  Future<void> moveZone(String id, Offset normDelta) async {
-    final zone = state.zones.firstWhere((z) => z.id == id);
-    final pts = ZoneShape.decode(zone.shapePoints);
-    final moved = pts
-        .map((p) => Offset(
-              (p.dx + normDelta.dx).clamp(0.0, 1.0),
-              (p.dy + normDelta.dy).clamp(0.0, 1.0),
-            ))
-        .toList();
-    await updateZoneShape(id, moved);
-  }
+  Future<void> moveZone(String id, Offset normDelta) =>
+      updateZoneShape(id, _translatedPoints(id, normDelta));
 
   /// Translates all vertices in local state only — used for smooth drag preview.
-  void moveZoneLocal(String id, Offset normDelta) {
-    final zone = state.zones.firstWhere((z) => z.id == id);
-    final pts = ZoneShape.decode(zone.shapePoints);
-    final moved = pts
-        .map((p) => Offset(
-              (p.dx + normDelta.dx).clamp(0.0, 1.0),
-              (p.dy + normDelta.dy).clamp(0.0, 1.0),
-            ))
-        .toList();
-    updateZoneShapeLocal(id, moved);
-  }
+  void moveZoneLocal(String id, Offset normDelta) =>
+      updateZoneShapeLocal(id, _translatedPoints(id, normDelta));
 
   Future<void> deleteZone(String id) async {
     final db = ref.read(appDatabaseProvider);
@@ -176,8 +133,7 @@ class ZoneMapNotifier extends _$ZoneMapNotifier {
 
   Future<void> applyPreset(String id, String presetName) async {
     final zone = state.zones.firstWhere((z) => z.id == id);
-    final center = Offset(zone.posX, zone.posY);
-    final points = ZoneShape.presetAt(presetName, center);
+    final points = ZoneShape.presetAt(presetName, Offset(zone.posX, zone.posY));
     await updateZoneShape(id, points);
   }
 
@@ -185,5 +141,29 @@ class ZoneMapNotifier extends _$ZoneMapNotifier {
     final db = ref.read(appDatabaseProvider);
     final storeId = ref.read(activeStoreIdProvider).value ?? '';
     await db.storesDao.updateDimensions(storeId, widthFt, depthFt);
+  }
+
+  // -- helpers --
+
+  Future<void> _patchZone(
+    String id,
+    ZonesTableCompanion Function(ZonesTableCompanion) patch,
+  ) async {
+    final db = ref.read(appDatabaseProvider);
+    final zone = state.zones.firstWhere((z) => z.id == id);
+    final companion = patch(zone.toCompanion(true))
+        .copyWith(updatedAt: Value(DateTime.now()));
+    await db.zonesDao.upsert(companion);
+  }
+
+  List<Offset> _translatedPoints(String id, Offset normDelta) {
+    final zone = state.zones.firstWhere((z) => z.id == id);
+    return [
+      for (final p in ZoneShape.decode(zone.shapePoints))
+        Offset(
+          (p.dx + normDelta.dx).clamp(0.0, 1.0),
+          (p.dy + normDelta.dy).clamp(0.0, 1.0),
+        ),
+    ];
   }
 }

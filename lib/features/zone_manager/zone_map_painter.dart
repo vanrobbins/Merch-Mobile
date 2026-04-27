@@ -22,8 +22,10 @@ class ZoneMapPainter extends CustomPainter {
 
   final Map<String, Path> _zonePaths = {};
 
+  bool get _hasStoreDims => widthFt != null && depthFt != null;
+
   double get _pixelsPerFt {
-    if (widthFt == null || depthFt == null) return 0;
+    if (!_hasStoreDims) return 0;
     return (canvasSize.width / widthFt!).clamp(0, canvasSize.height / depthFt!);
   }
 
@@ -37,39 +39,37 @@ class ZoneMapPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     _zonePaths.clear();
     _drawGrid(canvas, size);
-    if (widthFt != null && depthFt != null) {
-      _drawStoreBoundary(canvas);
-    }
+    if (_hasStoreDims) _drawStoreBoundary(canvas);
+
     for (final zone in zones) {
       _drawZone(canvas, size, zone);
     }
-    if (selectedZoneId != null) {
-      final selected = zones.where((z) => z.id == selectedZoneId).firstOrNull;
-      if (selected != null) {
-        _drawVertexHandles(canvas, size, selected);
-      }
-    }
+
+    final selected = selectedZoneId == null
+        ? null
+        : zones.where((z) => z.id == selectedZoneId).firstOrNull;
+    if (selected != null) _drawVertexHandles(canvas, size, selected);
   }
 
   void _drawGrid(Canvas canvas, Size size) {
     final ppf = _pixelsPerFt;
-    if (ppf > 0 && widthFt != null && depthFt != null) {
-      final gridPaint = Paint()
-        ..color = Colors.grey.withOpacity(0.15)
-        ..strokeWidth = 0.5;
+    final useFtGrid = ppf > 0 && _hasStoreDims;
+
+    final paint = Paint()
+      ..color = Colors.grey.withOpacity(useFtGrid ? 0.15 : 0.10)
+      ..strokeWidth = 0.5;
+
+    if (useFtGrid) {
       const ftStep = 5.0;
       final stepPx = ftStep * ppf;
       final boundary = _storeRect;
       for (double x = 0; x <= boundary.width + 0.1; x += stepPx) {
-        canvas.drawLine(Offset(x, 0), Offset(x, boundary.height), gridPaint);
+        canvas.drawLine(Offset(x, 0), Offset(x, boundary.height), paint);
       }
       for (double y = 0; y <= boundary.height + 0.1; y += stepPx) {
-        canvas.drawLine(Offset(0, y), Offset(boundary.width, y), gridPaint);
+        canvas.drawLine(Offset(0, y), Offset(boundary.width, y), paint);
       }
     } else {
-      final paint = Paint()
-        ..color = Colors.grey.withOpacity(0.10)
-        ..strokeWidth = 0.5;
       const step = 40.0;
       for (double x = 0; x < size.width; x += step) {
         canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
@@ -108,19 +108,15 @@ class ZoneMapPainter extends CustomPainter {
     final isDisplay = zone.zoneType == 'display';
 
     final centroid = _centroid(points);
-    final outsideBoundary = widthFt != null &&
-        depthFt != null &&
-        !_storeRect.contains(centroid);
+    final outsideBoundary = _hasStoreDims && !_storeRect.contains(centroid);
 
-    canvas.drawPath(
-      path,
-      Paint()
-        ..color = outsideBoundary
-            ? Colors.red.withOpacity(0.18)
-            : color.withOpacity(isSelected ? 0.45 : 0.20)
-        ..style = PaintingStyle.fill,
-    );
+    // Fill
+    final fillColor = outsideBoundary
+        ? Colors.red.withOpacity(0.18)
+        : color.withOpacity(isSelected ? 0.45 : 0.20);
+    canvas.drawPath(path, Paint()..color = fillColor);
 
+    // Stroke
     if (isSelected) {
       _drawDashedPath(
         canvas,
@@ -133,17 +129,20 @@ class ZoneMapPainter extends CustomPainter {
       );
     } else {
       final strokePaint = Paint()
-        ..color = outsideBoundary ? Colors.red.withOpacity(0.6) : color.withOpacity(0.7)
+        ..color = outsideBoundary
+            ? Colors.red.withOpacity(0.6)
+            : color.withOpacity(0.7)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 1.5
         ..strokeJoin = StrokeJoin.round;
-      if (!isDisplay) {
-        _drawDashedPath(canvas, path, strokePaint);
-      } else {
+      if (isDisplay) {
         canvas.drawPath(path, strokePaint);
+      } else {
+        _drawDashedPath(canvas, path, strokePaint);
       }
     }
 
+    // Label
     final tp = TextPainter(
       text: TextSpan(
         text: zone.name.toUpperCase(),
@@ -168,7 +167,6 @@ class ZoneMapPainter extends CustomPainter {
   }
 
   void _drawVertexHandles(Canvas canvas, Size size, ZonesTableData zone) {
-    final points = _getPoints(zone, size);
     final fillPaint = Paint()
       ..color = const Color(0xFFBF5534)
       ..style = PaintingStyle.fill;
@@ -177,7 +175,7 @@ class ZoneMapPainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2.0;
 
-    for (final p in points) {
+    for (final p in _getPoints(zone, size)) {
       canvas.drawCircle(p, 8.0, fillPaint);
       canvas.drawCircle(p, 8.0, strokePaint);
     }
@@ -186,7 +184,9 @@ class ZoneMapPainter extends CustomPainter {
   List<Offset> _getPoints(ZonesTableData zone, Size size) {
     final decoded = ZoneShape.decode(zone.shapePoints);
     if (decoded.isNotEmpty) {
-      return decoded.map((p) => Offset(p.dx * size.width, p.dy * size.height)).toList();
+      return [
+        for (final p in decoded) Offset(p.dx * size.width, p.dy * size.height),
+      ];
     }
     final x = zone.posX * size.width;
     final y = zone.posY * size.height;
@@ -209,9 +209,8 @@ class ZoneMapPainter extends CustomPainter {
   }
 
   Offset _centroid(List<Offset> pts) {
-    var x = 0.0, y = 0.0;
-    for (final p in pts) { x += p.dx; y += p.dy; }
-    return Offset(x / pts.length, y / pts.length);
+    final sum = pts.fold<Offset>(Offset.zero, (acc, p) => acc + p);
+    return sum / pts.length.toDouble();
   }
 
   String? zoneIdAt(Offset position) {
@@ -222,7 +221,8 @@ class ZoneMapPainter extends CustomPainter {
     return null;
   }
 
-  int vertexIndexAt(String zoneId, Offset position, Size size, {double hitRadius = 20.0}) {
+  int vertexIndexAt(String zoneId, Offset position, Size size,
+      {double hitRadius = 20.0}) {
     final zone = zones.where((z) => z.id == zoneId).firstOrNull;
     if (zone == null) return -1;
     final pts = _getPoints(zone, size);

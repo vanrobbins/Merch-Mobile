@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../core/database/app_database.dart';
 import '../../core/router/app_router.dart';
 import '../../core/widgets/role_guard.dart';
 import '../../core/theme/app_theme.dart';
@@ -24,10 +25,11 @@ class _ZoneMapScreenState extends ConsumerState<ZoneMapScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) => _checkStoreDimensions());
   }
 
+  bool _needsDimensions(StoresTableData? store) =>
+      store != null && (store.widthFt == null || store.depthFt == null);
+
   void _checkStoreDimensions() {
-    final storeData = ref.read(zoneMapNotifierProvider).storeData;
-    if (storeData != null &&
-        (storeData.widthFt == null || storeData.depthFt == null)) {
+    if (_needsDimensions(ref.read(zoneMapNotifierProvider).storeData)) {
       _showSetupDialog();
     }
   }
@@ -45,14 +47,12 @@ class _ZoneMapScreenState extends ConsumerState<ZoneMapScreen> {
   }
 
   void _onZoneTap(String zoneId) {
+    final notifier = ref.read(zoneMapNotifierProvider.notifier);
     final selectedId = ref.read(zoneMapNotifierProvider).selectedZoneId;
     if (selectedId == zoneId) {
-      context.goNamed(
-        AppRoutes.zoneDetail,
-        pathParameters: {'zoneId': zoneId},
-      );
+      context.goNamed(AppRoutes.zoneDetail, pathParameters: {'zoneId': zoneId});
     } else {
-      ref.read(zoneMapNotifierProvider.notifier).selectZone(zoneId);
+      notifier.selectZone(zoneId);
     }
   }
 
@@ -61,9 +61,7 @@ class _ZoneMapScreenState extends ConsumerState<ZoneMapScreen> {
     final state = ref.watch(zoneMapNotifierProvider);
 
     ref.listen(zoneMapNotifierProvider, (prev, next) {
-      if (prev?.storeData == null &&
-          next.storeData != null &&
-          (next.storeData!.widthFt == null || next.storeData!.depthFt == null)) {
+      if (prev?.storeData == null && _needsDimensions(next.storeData)) {
         _showSetupDialog();
       }
     });
@@ -99,16 +97,18 @@ class _ZoneMapScreenState extends ConsumerState<ZoneMapScreen> {
   }
 }
 
-// Shows the name + type of the currently selected zone above the legend.
+/// Shows the name + type of the currently selected zone above the legend.
 class _SelectedZoneBanner extends StatelessWidget {
   const _SelectedZoneBanner({required this.state});
   final ZoneMapState state;
 
   @override
   Widget build(BuildContext context) {
-    if (state.selectedZoneId == null) return const SizedBox.shrink();
-    final zone = state.zones.where((z) => z.id == state.selectedZoneId).firstOrNull;
+    final selectedId = state.selectedZoneId;
+    if (selectedId == null) return const SizedBox.shrink();
+    final zone = state.zones.where((z) => z.id == selectedId).firstOrNull;
     if (zone == null) return const SizedBox.shrink();
+
     final color = Color(zone.colorValue);
     return Container(
       width: double.infinity,
@@ -122,10 +122,7 @@ class _SelectedZoneBanner extends StatelessWidget {
           Container(
             width: 10,
             height: 10,
-            decoration: BoxDecoration(
-              color: color,
-              shape: BoxShape.circle,
-            ),
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
           ),
           const SizedBox(width: DesignTokens.spaceSm),
           Text(
@@ -183,40 +180,72 @@ class _ZoneCanvasState extends ConsumerState<_ZoneCanvas> {
   ZoneMapPainter? _painter;
   int? _primaryPointer;
 
+  // Vertex drag state
   String? _dragZoneId;
   int? _dragVertexIdx;
   List<Offset>? _dragPoints;
 
+  // Whole-zone move state
   String? _moveZoneId;
   Offset? _moveStartPos;
   List<Offset>? _moveStartPoints;
+
+  ZoneMapNotifier get _notifier => ref.read(zoneMapNotifierProvider.notifier);
+
+  Offset _normalize(Offset position) => Offset(
+        (position.dx / _canvasSize.width).clamp(0.0, 1.0),
+        (position.dy / _canvasSize.height).clamp(0.0, 1.0),
+      );
+
+  Offset _normalizeDelta(Offset delta) =>
+      Offset(delta.dx / _canvasSize.width, delta.dy / _canvasSize.height);
+
+  /// Returns the index of a vertex of [zone] hit by [position], or -1.
+  int _hitVertex(ZonesTableData zone, Offset position) {
+    final pts = ZoneShape.decode(zone.shapePoints);
+    for (var i = 0; i < pts.length; i++) {
+      final screenPt = Offset(
+        pts[i].dx * _canvasSize.width,
+        pts[i].dy * _canvasSize.height,
+      );
+      if ((screenPt - position).distance < _vertexHitRadius) return i;
+    }
+    return -1;
+  }
+
+  void _resetGesture() {
+    _primaryPointer = null;
+    _dragZoneId = null;
+    _dragVertexIdx = null;
+    _dragPoints = null;
+    _moveZoneId = null;
+    _moveStartPos = null;
+    _moveStartPoints = null;
+  }
 
   void _onPointerDown(PointerDownEvent event) {
     if (_primaryPointer != null) return;
     final state = ref.read(zoneMapNotifierProvider);
     final selectedId = state.selectedZoneId;
 
+    // 1. Try to grab a vertex of the selected zone first.
     if (selectedId != null) {
       final zone = state.zones.where((z) => z.id == selectedId).firstOrNull;
       if (zone != null) {
-        final pts = ZoneShape.decode(zone.shapePoints);
-        final screenPts = pts
-            .map((p) => Offset(p.dx * _canvasSize.width, p.dy * _canvasSize.height))
-            .toList();
-        for (var i = 0; i < screenPts.length; i++) {
-          if ((screenPts[i] - event.localPosition).distance < _vertexHitRadius) {
-            _primaryPointer = event.pointer;
-            setState(() {
-              _dragZoneId = selectedId;
-              _dragVertexIdx = i;
-              _dragPoints = List.of(pts);
-            });
-            return;
-          }
+        final idx = _hitVertex(zone, event.localPosition);
+        if (idx >= 0) {
+          _primaryPointer = event.pointer;
+          setState(() {
+            _dragZoneId = selectedId;
+            _dragVertexIdx = idx;
+            _dragPoints = ZoneShape.decode(zone.shapePoints);
+          });
+          return;
         }
       }
     }
 
+    // 2. Otherwise try to grab a whole zone for moving.
     final hitId = _painter?.zoneIdAt(event.localPosition);
     if (hitId != null) {
       _primaryPointer = event.pointer;
@@ -233,51 +262,46 @@ class _ZoneCanvasState extends ConsumerState<_ZoneCanvas> {
     if (event.pointer != _primaryPointer) return;
 
     if (_dragZoneId != null && _dragVertexIdx != null && _dragPoints != null) {
-      final norm = Offset(
-        (event.localPosition.dx / _canvasSize.width).clamp(0.0, 1.0),
-        (event.localPosition.dy / _canvasSize.height).clamp(0.0, 1.0),
-      );
-      final updated = List.of(_dragPoints!)..[_dragVertexIdx!] = norm;
+      final updated = List.of(_dragPoints!)
+        ..[_dragVertexIdx!] = _normalize(event.localPosition);
       setState(() => _dragPoints = updated);
-      ref.read(zoneMapNotifierProvider.notifier).updateZoneShapeLocal(_dragZoneId!, updated);
+      _notifier.updateZoneShapeLocal(_dragZoneId!, updated);
       return;
     }
 
     if (_moveZoneId != null && _moveStartPos != null && _moveStartPoints != null) {
-      final delta = event.localPosition - _moveStartPos!;
-      final normDelta = Offset(delta.dx / _canvasSize.width, delta.dy / _canvasSize.height);
-      final moved = _moveStartPoints!
-          .map((p) => Offset(
-                (p.dx + normDelta.dx).clamp(0.0, 1.0),
-                (p.dy + normDelta.dy).clamp(0.0, 1.0),
-              ))
-          .toList();
-      ref.read(zoneMapNotifierProvider.notifier).updateZoneShapeLocal(_moveZoneId!, moved);
+      final normDelta = _normalizeDelta(event.localPosition - _moveStartPos!);
+      final moved = [
+        for (final p in _moveStartPoints!)
+          Offset(
+            (p.dx + normDelta.dx).clamp(0.0, 1.0),
+            (p.dy + normDelta.dy).clamp(0.0, 1.0),
+          ),
+      ];
+      _notifier.updateZoneShapeLocal(_moveZoneId!, moved);
     }
   }
 
   void _onPointerUp(PointerUpEvent event) {
     if (event.pointer != _primaryPointer) return;
-    _primaryPointer = null;
 
     if (_dragZoneId != null && _dragPoints != null) {
-      ref.read(zoneMapNotifierProvider.notifier).updateZoneShape(_dragZoneId!, _dragPoints!);
+      _notifier.updateZoneShape(_dragZoneId!, _dragPoints!);
+    } else if (_moveZoneId != null && _moveStartPos != null) {
+      final normDelta = _normalizeDelta(event.localPosition - _moveStartPos!);
+      _notifier.moveZone(_moveZoneId!, normDelta);
     }
 
-    if (_moveZoneId != null && _moveStartPos != null && _moveStartPoints != null) {
-      final delta = event.localPosition - _moveStartPos!;
-      final normDelta = Offset(delta.dx / _canvasSize.width, delta.dy / _canvasSize.height);
-      ref.read(zoneMapNotifierProvider.notifier).moveZone(_moveZoneId!, normDelta);
-    }
+    setState(_resetGesture);
+  }
 
-    setState(() {
-      _dragZoneId = null;
-      _dragVertexIdx = null;
-      _dragPoints = null;
-      _moveZoneId = null;
-      _moveStartPos = null;
-      _moveStartPoints = null;
-    });
+  void _onTapUp(TapUpDetails details) {
+    final id = _painter?.zoneIdAt(details.localPosition);
+    if (id != null) {
+      widget.onZoneTap(id);
+    } else {
+      _notifier.selectZone(null);
+    }
   }
 
   @override
@@ -296,14 +320,7 @@ class _ZoneCanvasState extends ConsumerState<_ZoneCanvas> {
       onPointerMove: _onPointerMove,
       onPointerUp: _onPointerUp,
       child: GestureDetector(
-        onTapUp: (d) {
-          final id = _painter?.zoneIdAt(d.localPosition);
-          if (id != null) {
-            widget.onZoneTap(id);
-          } else {
-            ref.read(zoneMapNotifierProvider.notifier).selectZone(null);
-          }
-        },
+        onTapUp: _onTapUp,
         child: CustomPaint(painter: _painter, size: _canvasSize),
       ),
     );
@@ -330,6 +347,22 @@ class _StoreDimensionsDialogState extends State<_StoreDimensionsDialog> {
     super.dispose();
   }
 
+  String? _validatePositive(String? v) {
+    final n = double.tryParse(v ?? '');
+    if (n == null || n <= 0) return 'Enter a positive number';
+    return null;
+  }
+
+  void _onConfirm() {
+    if (_formKey.currentState!.validate()) {
+      widget.onSave(
+        double.parse(_widthCtrl.text),
+        double.parse(_depthCtrl.text),
+      );
+      Navigator.of(context).pop();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
@@ -350,11 +383,7 @@ class _StoreDimensionsDialogState extends State<_StoreDimensionsDialog> {
                 labelText: 'Width (ft)',
                 border: OutlineInputBorder(),
               ),
-              validator: (v) {
-                final n = double.tryParse(v ?? '');
-                if (n == null || n <= 0) return 'Enter a positive number';
-                return null;
-              },
+              validator: _validatePositive,
             ),
             const SizedBox(height: 12),
             TextFormField(
@@ -364,11 +393,7 @@ class _StoreDimensionsDialogState extends State<_StoreDimensionsDialog> {
                 labelText: 'Depth (ft)',
                 border: OutlineInputBorder(),
               ),
-              validator: (v) {
-                final n = double.tryParse(v ?? '');
-                if (n == null || n <= 0) return 'Enter a positive number';
-                return null;
-              },
+              validator: _validatePositive,
             ),
           ],
         ),
@@ -379,15 +404,7 @@ class _StoreDimensionsDialogState extends State<_StoreDimensionsDialog> {
           child: const Text('SKIP'),
         ),
         ElevatedButton(
-          onPressed: () {
-            if (_formKey.currentState!.validate()) {
-              widget.onSave(
-                double.parse(_widthCtrl.text),
-                double.parse(_depthCtrl.text),
-              );
-              Navigator.of(context).pop();
-            }
-          },
+          onPressed: _onConfirm,
           style: ElevatedButton.styleFrom(
             backgroundColor: AppTheme.accent,
             foregroundColor: Colors.white,
