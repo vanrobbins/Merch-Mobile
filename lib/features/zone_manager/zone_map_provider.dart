@@ -196,6 +196,22 @@ class ZoneMapNotifier extends _$ZoneMapNotifier {
     await db.storesDao.updateDimensions(storeId, widthFt, depthFt);
   }
 
+  Future<void> setEntrance(String entranceJson) async {
+    final db = ref.read(appDatabaseProvider);
+    final storeId = ref.read(activeStoreIdProvider).value ?? '';
+    // Remove legacy entrance-type zones
+    for (final z in state.zones.where((z) => z.zoneType == 'entrance')) {
+      await db.zonesDao.deleteById(z.id);
+    }
+    await db.storesDao.updateEntrance(storeId, entranceJson);
+  }
+
+  Future<void> removeEntrance() async {
+    final db = ref.read(appDatabaseProvider);
+    final storeId = ref.read(activeStoreIdProvider).value ?? '';
+    await db.storesDao.updateEntrance(storeId, null);
+  }
+
   // -- helpers --
 
   Future<void> _patchZone(

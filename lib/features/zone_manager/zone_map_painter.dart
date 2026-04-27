@@ -2,6 +2,7 @@ import 'dart:math';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import '../../core/database/app_database.dart';
+import 'store_entrance.dart';
 import 'zone_shape.dart';
 
 class ZoneMapPainter extends CustomPainter {
@@ -11,6 +12,7 @@ class ZoneMapPainter extends CustomPainter {
     this.selectedZoneId,
     this.widthFt,
     this.depthFt,
+    this.entranceJson,
     this.activeVertexIdx,
     this.snapPreviewPoints,
   });
@@ -20,6 +22,7 @@ class ZoneMapPainter extends CustomPainter {
   final String? selectedZoneId;
   final double? widthFt;
   final double? depthFt;
+  final String? entranceJson;
   final int? activeVertexIdx;
   /// When non-null, draw a ghost of the shape-snapped result.
   final List<Offset>? snapPreviewPoints;
@@ -88,12 +91,15 @@ class ZoneMapPainter extends CustomPainter {
   void _drawStoreBoundary(Canvas canvas) {
     final rect = _storeRect;
     canvas.drawRect(rect, Paint()..color = const Color(0xFFF2EFE8));
-    canvas.drawRect(
-      rect,
+    final entrance = StoreEntrance.fromJson(entranceJson);
+    final path = StoreEntrance.boundaryPath(rect, entrance);
+    canvas.drawPath(
+      path,
       Paint()
         ..color = const Color(0xFF1A1917)
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 2.5,
+        ..strokeWidth = 2.5
+        ..strokeCap = StrokeCap.square,
     );
   }
 
@@ -313,6 +319,7 @@ class ZoneMapPainter extends CustomPainter {
       old.selectedZoneId != selectedZoneId ||
       old.widthFt != widthFt ||
       old.depthFt != depthFt ||
+      old.entranceJson != entranceJson ||
       old.activeVertexIdx != activeVertexIdx ||
       old.snapPreviewPoints != snapPreviewPoints;
 }

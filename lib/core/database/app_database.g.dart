@@ -2766,9 +2766,23 @@ class $StoresTableTable extends StoresTable
   late final GeneratedColumn<double> depthFt = GeneratedColumn<double>(
       'depth_ft', aliasedName, true,
       type: DriftSqlType.double, requiredDuringInsert: false);
+  static const VerificationMeta _entranceJsonMeta =
+      const VerificationMeta('entranceJson');
   @override
-  List<GeneratedColumn> get $columns =>
-      [id, name, inviteCode, createdAt, ownerUid, widthFt, depthFt];
+  late final GeneratedColumn<String> entranceJson = GeneratedColumn<String>(
+      'entrance_json', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  @override
+  List<GeneratedColumn> get $columns => [
+        id,
+        name,
+        inviteCode,
+        createdAt,
+        ownerUid,
+        widthFt,
+        depthFt,
+        entranceJson
+      ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -2818,6 +2832,12 @@ class $StoresTableTable extends StoresTable
       context.handle(_depthFtMeta,
           depthFt.isAcceptableOrUnknown(data['depth_ft']!, _depthFtMeta));
     }
+    if (data.containsKey('entrance_json')) {
+      context.handle(
+          _entranceJsonMeta,
+          entranceJson.isAcceptableOrUnknown(
+              data['entrance_json']!, _entranceJsonMeta));
+    }
     return context;
   }
 
@@ -2841,6 +2861,8 @@ class $StoresTableTable extends StoresTable
           .read(DriftSqlType.double, data['${effectivePrefix}width_ft']),
       depthFt: attachedDatabase.typeMapping
           .read(DriftSqlType.double, data['${effectivePrefix}depth_ft']),
+      entranceJson: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}entrance_json']),
     );
   }
 
@@ -2858,6 +2880,7 @@ class StoresTableData extends DataClass implements Insertable<StoresTableData> {
   final String ownerUid;
   final double? widthFt;
   final double? depthFt;
+  final String? entranceJson;
   const StoresTableData(
       {required this.id,
       required this.name,
@@ -2865,7 +2888,8 @@ class StoresTableData extends DataClass implements Insertable<StoresTableData> {
       required this.createdAt,
       required this.ownerUid,
       this.widthFt,
-      this.depthFt});
+      this.depthFt,
+      this.entranceJson});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
@@ -2879,6 +2903,9 @@ class StoresTableData extends DataClass implements Insertable<StoresTableData> {
     }
     if (!nullToAbsent || depthFt != null) {
       map['depth_ft'] = Variable<double>(depthFt);
+    }
+    if (!nullToAbsent || entranceJson != null) {
+      map['entrance_json'] = Variable<String>(entranceJson);
     }
     return map;
   }
@@ -2896,6 +2923,9 @@ class StoresTableData extends DataClass implements Insertable<StoresTableData> {
       depthFt: depthFt == null && nullToAbsent
           ? const Value.absent()
           : Value(depthFt),
+      entranceJson: entranceJson == null && nullToAbsent
+          ? const Value.absent()
+          : Value(entranceJson),
     );
   }
 
@@ -2910,6 +2940,7 @@ class StoresTableData extends DataClass implements Insertable<StoresTableData> {
       ownerUid: serializer.fromJson<String>(json['ownerUid']),
       widthFt: serializer.fromJson<double?>(json['widthFt']),
       depthFt: serializer.fromJson<double?>(json['depthFt']),
+      entranceJson: serializer.fromJson<String?>(json['entranceJson']),
     );
   }
   @override
@@ -2923,6 +2954,7 @@ class StoresTableData extends DataClass implements Insertable<StoresTableData> {
       'ownerUid': serializer.toJson<String>(ownerUid),
       'widthFt': serializer.toJson<double?>(widthFt),
       'depthFt': serializer.toJson<double?>(depthFt),
+      'entranceJson': serializer.toJson<String?>(entranceJson),
     };
   }
 
@@ -2933,7 +2965,8 @@ class StoresTableData extends DataClass implements Insertable<StoresTableData> {
           int? createdAt,
           String? ownerUid,
           Value<double?> widthFt = const Value.absent(),
-          Value<double?> depthFt = const Value.absent()}) =>
+          Value<double?> depthFt = const Value.absent(),
+          Value<String?> entranceJson = const Value.absent()}) =>
       StoresTableData(
         id: id ?? this.id,
         name: name ?? this.name,
@@ -2942,6 +2975,8 @@ class StoresTableData extends DataClass implements Insertable<StoresTableData> {
         ownerUid: ownerUid ?? this.ownerUid,
         widthFt: widthFt.present ? widthFt.value : this.widthFt,
         depthFt: depthFt.present ? depthFt.value : this.depthFt,
+        entranceJson:
+            entranceJson.present ? entranceJson.value : this.entranceJson,
       );
   StoresTableData copyWithCompanion(StoresTableCompanion data) {
     return StoresTableData(
@@ -2953,6 +2988,9 @@ class StoresTableData extends DataClass implements Insertable<StoresTableData> {
       ownerUid: data.ownerUid.present ? data.ownerUid.value : this.ownerUid,
       widthFt: data.widthFt.present ? data.widthFt.value : this.widthFt,
       depthFt: data.depthFt.present ? data.depthFt.value : this.depthFt,
+      entranceJson: data.entranceJson.present
+          ? data.entranceJson.value
+          : this.entranceJson,
     );
   }
 
@@ -2965,14 +3003,15 @@ class StoresTableData extends DataClass implements Insertable<StoresTableData> {
           ..write('createdAt: $createdAt, ')
           ..write('ownerUid: $ownerUid, ')
           ..write('widthFt: $widthFt, ')
-          ..write('depthFt: $depthFt')
+          ..write('depthFt: $depthFt, ')
+          ..write('entranceJson: $entranceJson')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, name, inviteCode, createdAt, ownerUid, widthFt, depthFt);
+  int get hashCode => Object.hash(id, name, inviteCode, createdAt, ownerUid,
+      widthFt, depthFt, entranceJson);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -2983,7 +3022,8 @@ class StoresTableData extends DataClass implements Insertable<StoresTableData> {
           other.createdAt == this.createdAt &&
           other.ownerUid == this.ownerUid &&
           other.widthFt == this.widthFt &&
-          other.depthFt == this.depthFt);
+          other.depthFt == this.depthFt &&
+          other.entranceJson == this.entranceJson);
 }
 
 class StoresTableCompanion extends UpdateCompanion<StoresTableData> {
@@ -2994,6 +3034,7 @@ class StoresTableCompanion extends UpdateCompanion<StoresTableData> {
   final Value<String> ownerUid;
   final Value<double?> widthFt;
   final Value<double?> depthFt;
+  final Value<String?> entranceJson;
   final Value<int> rowid;
   const StoresTableCompanion({
     this.id = const Value.absent(),
@@ -3003,6 +3044,7 @@ class StoresTableCompanion extends UpdateCompanion<StoresTableData> {
     this.ownerUid = const Value.absent(),
     this.widthFt = const Value.absent(),
     this.depthFt = const Value.absent(),
+    this.entranceJson = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   StoresTableCompanion.insert({
@@ -3013,6 +3055,7 @@ class StoresTableCompanion extends UpdateCompanion<StoresTableData> {
     required String ownerUid,
     this.widthFt = const Value.absent(),
     this.depthFt = const Value.absent(),
+    this.entranceJson = const Value.absent(),
     this.rowid = const Value.absent(),
   })  : id = Value(id),
         name = Value(name),
@@ -3027,6 +3070,7 @@ class StoresTableCompanion extends UpdateCompanion<StoresTableData> {
     Expression<String>? ownerUid,
     Expression<double>? widthFt,
     Expression<double>? depthFt,
+    Expression<String>? entranceJson,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -3037,6 +3081,7 @@ class StoresTableCompanion extends UpdateCompanion<StoresTableData> {
       if (ownerUid != null) 'owner_uid': ownerUid,
       if (widthFt != null) 'width_ft': widthFt,
       if (depthFt != null) 'depth_ft': depthFt,
+      if (entranceJson != null) 'entrance_json': entranceJson,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -3049,6 +3094,7 @@ class StoresTableCompanion extends UpdateCompanion<StoresTableData> {
       Value<String>? ownerUid,
       Value<double?>? widthFt,
       Value<double?>? depthFt,
+      Value<String?>? entranceJson,
       Value<int>? rowid}) {
     return StoresTableCompanion(
       id: id ?? this.id,
@@ -3058,6 +3104,7 @@ class StoresTableCompanion extends UpdateCompanion<StoresTableData> {
       ownerUid: ownerUid ?? this.ownerUid,
       widthFt: widthFt ?? this.widthFt,
       depthFt: depthFt ?? this.depthFt,
+      entranceJson: entranceJson ?? this.entranceJson,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -3086,6 +3133,9 @@ class StoresTableCompanion extends UpdateCompanion<StoresTableData> {
     if (depthFt.present) {
       map['depth_ft'] = Variable<double>(depthFt.value);
     }
+    if (entranceJson.present) {
+      map['entrance_json'] = Variable<String>(entranceJson.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -3102,6 +3152,7 @@ class StoresTableCompanion extends UpdateCompanion<StoresTableData> {
           ..write('ownerUid: $ownerUid, ')
           ..write('widthFt: $widthFt, ')
           ..write('depthFt: $depthFt, ')
+          ..write('entranceJson: $entranceJson, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -6029,6 +6080,7 @@ typedef $$StoresTableTableCreateCompanionBuilder = StoresTableCompanion
   required String ownerUid,
   Value<double?> widthFt,
   Value<double?> depthFt,
+  Value<String?> entranceJson,
   Value<int> rowid,
 });
 typedef $$StoresTableTableUpdateCompanionBuilder = StoresTableCompanion
@@ -6040,6 +6092,7 @@ typedef $$StoresTableTableUpdateCompanionBuilder = StoresTableCompanion
   Value<String> ownerUid,
   Value<double?> widthFt,
   Value<double?> depthFt,
+  Value<String?> entranceJson,
   Value<int> rowid,
 });
 
@@ -6072,6 +6125,9 @@ class $$StoresTableTableFilterComposer
 
   ColumnFilters<double> get depthFt => $composableBuilder(
       column: $table.depthFt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get entranceJson => $composableBuilder(
+      column: $table.entranceJson, builder: (column) => ColumnFilters(column));
 }
 
 class $$StoresTableTableOrderingComposer
@@ -6103,6 +6159,10 @@ class $$StoresTableTableOrderingComposer
 
   ColumnOrderings<double> get depthFt => $composableBuilder(
       column: $table.depthFt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get entranceJson => $composableBuilder(
+      column: $table.entranceJson,
+      builder: (column) => ColumnOrderings(column));
 }
 
 class $$StoresTableTableAnnotationComposer
@@ -6134,6 +6194,9 @@ class $$StoresTableTableAnnotationComposer
 
   GeneratedColumn<double> get depthFt =>
       $composableBuilder(column: $table.depthFt, builder: (column) => column);
+
+  GeneratedColumn<String> get entranceJson => $composableBuilder(
+      column: $table.entranceJson, builder: (column) => column);
 }
 
 class $$StoresTableTableTableManager extends RootTableManager<
@@ -6169,6 +6232,7 @@ class $$StoresTableTableTableManager extends RootTableManager<
             Value<String> ownerUid = const Value.absent(),
             Value<double?> widthFt = const Value.absent(),
             Value<double?> depthFt = const Value.absent(),
+            Value<String?> entranceJson = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
               StoresTableCompanion(
@@ -6179,6 +6243,7 @@ class $$StoresTableTableTableManager extends RootTableManager<
             ownerUid: ownerUid,
             widthFt: widthFt,
             depthFt: depthFt,
+            entranceJson: entranceJson,
             rowid: rowid,
           ),
           createCompanionCallback: ({
@@ -6189,6 +6254,7 @@ class $$StoresTableTableTableManager extends RootTableManager<
             required String ownerUid,
             Value<double?> widthFt = const Value.absent(),
             Value<double?> depthFt = const Value.absent(),
+            Value<String?> entranceJson = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
               StoresTableCompanion.insert(
@@ -6199,6 +6265,7 @@ class $$StoresTableTableTableManager extends RootTableManager<
             ownerUid: ownerUid,
             widthFt: widthFt,
             depthFt: depthFt,
+            entranceJson: entranceJson,
             rowid: rowid,
           ),
           withReferenceMapper: (p0) => p0

@@ -626,6 +626,7 @@ class _ZoneCanvasState extends ConsumerState<_ZoneCanvas> {
           selectedZoneId: state.selectedZoneId,
           widthFt: state.storeData?.widthFt,
           depthFt: state.storeData?.depthFt,
+          entranceJson: state.storeData?.entranceJson,
           activeVertexIdx: _dragVertexIdx,
           snapPreviewPoints: (snapPreview != null && snapPreview != _dragPoints) ? snapPreview : null,
         );

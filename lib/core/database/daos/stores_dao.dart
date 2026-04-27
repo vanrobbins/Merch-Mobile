@@ -31,6 +31,11 @@ class StoresDao extends DatabaseAccessor<AppDatabase> with _$StoresDaoMixin {
         ),
       );
 
+  Future<void> updateEntrance(String id, String? entranceJson) =>
+      (update(storesTable)..where((t) => t.id.equals(id))).write(
+        StoresTableCompanion(entranceJson: Value(entranceJson)),
+      );
+
   Future<void> deleteById(String id) =>
       (delete(storesTable)..where((t) => t.id.equals(id))).go();
 }

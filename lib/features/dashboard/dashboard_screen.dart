@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/database/app_database.dart';
 import '../../core/providers/store_provider.dart';
 import '../../core/router/app_router.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/design_tokens.dart';
+import '../zone_manager/store_entrance.dart';
 import '../zone_manager/zone_map_provider.dart';
 import 'dashboard_provider.dart';
 
@@ -232,17 +234,7 @@ class _StoreSetupCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: DesignTokens.spaceXs),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              onPressed: () async {
-                await ref.read(zoneMapNotifierProvider.notifier).addZoneOfType('entrance');
-                if (context.mounted) context.goNamed(AppRoutes.zoneMap);
-              },
-              icon: const Icon(Icons.door_front_door_outlined, size: 16),
-              label: const Text('ADD ENTRANCE'),
-            ),
-          ),
+          _EntranceRow(ref: ref, store: store),
         ],
       ),
     );
@@ -297,6 +289,163 @@ class _StoreSetupCard extends StatelessWidget {
               }
             },
             child: const Text('CONFIRM'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _EntranceRow extends StatelessWidget {
+  const _EntranceRow({required this.ref, required this.store});
+  final WidgetRef ref;
+  final StoresTableData? store;
+
+  @override
+  Widget build(BuildContext context) {
+    final entrance = StoreEntrance.fromJson(store?.entranceJson);
+    final notifier = ref.read(zoneMapNotifierProvider.notifier);
+
+    if (entrance == null) {
+      return SizedBox(
+        width: double.infinity,
+        child: OutlinedButton.icon(
+          onPressed: () => _showEditor(context, notifier, null),
+          icon: const Icon(Icons.door_front_door_outlined, size: 16),
+          label: const Text('ADD ENTRANCE'),
+        ),
+      );
+    }
+
+    return Row(
+      children: [
+        Expanded(
+          child: OutlinedButton.icon(
+            onPressed: () => _showEditor(context, notifier, entrance),
+            icon: const Icon(Icons.door_front_door_outlined, size: 16),
+            label: Text('EDIT ENTRANCE (${entrance.wallName})'),
+          ),
+        ),
+        const SizedBox(width: DesignTokens.spaceXs),
+        OutlinedButton(
+          onPressed: () => notifier.removeEntrance(),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: Colors.red.shade600,
+            side: BorderSide(color: Colors.red.shade600),
+          ),
+          child: const Text('REMOVE'),
+        ),
+      ],
+    );
+  }
+
+  void _showEditor(BuildContext context, ZoneMapNotifier notifier, StoreEntrance? current) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _EntranceEditorSheet(
+        initial: current ?? const StoreEntrance(wall: 0, pos: 0.5),
+        onSave: (e) => notifier.setEntrance(e.toJson()),
+      ),
+    );
+  }
+}
+
+class _EntranceEditorSheet extends StatefulWidget {
+  const _EntranceEditorSheet({required this.initial, required this.onSave});
+  final StoreEntrance initial;
+  final void Function(StoreEntrance) onSave;
+
+  @override
+  State<_EntranceEditorSheet> createState() => _EntranceEditorSheetState();
+}
+
+class _EntranceEditorSheetState extends State<_EntranceEditorSheet> {
+  late int _wall;
+  late double _pos;
+  late double _widthFrac;
+
+  static const _wallLabels = ['Bottom', 'Right', 'Top', 'Left'];
+
+  @override
+  void initState() {
+    super.initState();
+    _wall = widget.initial.wall;
+    _pos = widget.initial.pos;
+    _widthFrac = widget.initial.widthFrac;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      padding: EdgeInsets.fromLTRB(
+        DesignTokens.spaceMd, DesignTokens.spaceSm,
+        DesignTokens.spaceMd,
+        MediaQuery.of(context).viewInsets.bottom + MediaQuery.of(context).padding.bottom + DesignTokens.spaceMd,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Center(
+            child: Container(
+              width: 40, height: 4,
+              decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2)),
+            ),
+          ),
+          const SizedBox(height: DesignTokens.spaceSm),
+          const Text(
+            'ENTRANCE',
+            style: TextStyle(
+              fontSize: DesignTokens.typeMd,
+              fontWeight: DesignTokens.weightBold,
+              letterSpacing: DesignTokens.letterSpacingEyebrow,
+            ),
+          ),
+          const SizedBox(height: DesignTokens.spaceMd),
+          const Text('WALL', style: TextStyle(fontSize: DesignTokens.typeXs, color: AppTheme.textSecondary, fontWeight: DesignTokens.weightBold, letterSpacing: DesignTokens.letterSpacingEyebrow)),
+          const SizedBox(height: DesignTokens.spaceXs),
+          Wrap(
+            spacing: DesignTokens.spaceXs,
+            children: List.generate(4, (i) => ChoiceChip(
+              label: Text(_wallLabels[i]),
+              selected: _wall == i,
+              selectedColor: AppTheme.primary,
+              labelStyle: TextStyle(color: _wall == i ? Colors.white : null, fontSize: DesignTokens.typeXs),
+              onSelected: (_) => setState(() { _wall = i; _pos = 0.5; }),
+            )),
+          ),
+          const SizedBox(height: DesignTokens.spaceMd),
+          Text('POSITION  ${(_pos * 100).toStringAsFixed(0)}% along ${_wallLabels[_wall].toLowerCase()} wall',
+              style: const TextStyle(fontSize: DesignTokens.typeXs, color: AppTheme.textSecondary, fontWeight: DesignTokens.weightBold, letterSpacing: DesignTokens.letterSpacingEyebrow)),
+          Slider(
+            value: _pos,
+            min: 0.1, max: 0.9,
+            activeColor: AppTheme.accent,
+            onChanged: (v) => setState(() => _pos = v),
+          ),
+          const SizedBox(height: DesignTokens.spaceXs),
+          Text('WIDTH  ${(_widthFrac * 100).toStringAsFixed(0)}% of wall',
+              style: const TextStyle(fontSize: DesignTokens.typeXs, color: AppTheme.textSecondary, fontWeight: DesignTokens.weightBold, letterSpacing: DesignTokens.letterSpacingEyebrow)),
+          Slider(
+            value: _widthFrac,
+            min: 0.05, max: 0.40,
+            activeColor: AppTheme.accent,
+            onChanged: (v) => setState(() => _widthFrac = v),
+          ),
+          const SizedBox(height: DesignTokens.spaceMd),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.accent, foregroundColor: Colors.white),
+            onPressed: () {
+              widget.onSave(StoreEntrance(wall: _wall, pos: _pos, widthFrac: _widthFrac));
+              Navigator.pop(context);
+            },
+            child: const Text('SAVE ENTRANCE'),
           ),
         ],
       ),
