@@ -189,6 +189,7 @@ class _ZoneCanvasState extends ConsumerState<_ZoneCanvas> {
   String? _moveZoneId;
   Offset? _moveStartPos;
   List<Offset>? _moveStartPoints;
+  List<Offset>? _moveCurrentPoints;
 
   ZoneMapNotifier get _notifier => ref.read(zoneMapNotifierProvider.notifier);
 
@@ -221,6 +222,7 @@ class _ZoneCanvasState extends ConsumerState<_ZoneCanvas> {
     _moveZoneId = null;
     _moveStartPos = null;
     _moveStartPoints = null;
+    _moveCurrentPoints = null;
   }
 
   void _onPointerDown(PointerDownEvent event) {
@@ -278,6 +280,7 @@ class _ZoneCanvasState extends ConsumerState<_ZoneCanvas> {
             (p.dy + normDelta.dy).clamp(0.0, 1.0),
           ),
       ];
+      _moveCurrentPoints = moved;
       _notifier.updateZoneShapeLocal(_moveZoneId!, moved);
     }
   }
@@ -287,9 +290,8 @@ class _ZoneCanvasState extends ConsumerState<_ZoneCanvas> {
 
     if (_dragZoneId != null && _dragPoints != null) {
       _notifier.updateZoneShape(_dragZoneId!, _dragPoints!);
-    } else if (_moveZoneId != null && _moveStartPos != null) {
-      final normDelta = _normalizeDelta(event.localPosition - _moveStartPos!);
-      _notifier.moveZone(_moveZoneId!, normDelta);
+    } else if (_moveZoneId != null && _moveCurrentPoints != null) {
+      _notifier.updateZoneShape(_moveZoneId!, _moveCurrentPoints!);
     }
 
     setState(_resetGesture);
@@ -311,7 +313,6 @@ class _ZoneCanvasState extends ConsumerState<_ZoneCanvas> {
       zones: state.zones,
       canvasSize: _canvasSize,
       selectedZoneId: state.selectedZoneId,
-      onZoneTap: widget.onZoneTap,
       widthFt: state.storeData?.widthFt,
       depthFt: state.storeData?.depthFt,
     );

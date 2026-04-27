@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:ui';
+import 'package:collection/collection.dart';
 import 'package:drift/drift.dart' show Value;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:uuid/uuid.dart';
@@ -150,14 +151,16 @@ class ZoneMapNotifier extends _$ZoneMapNotifier {
     ZonesTableCompanion Function(ZonesTableCompanion) patch,
   ) async {
     final db = ref.read(appDatabaseProvider);
-    final zone = state.zones.firstWhere((z) => z.id == id);
+    final zone = state.zones.firstWhereOrNull((z) => z.id == id);
+    if (zone == null) return;
     final companion = patch(zone.toCompanion(true))
         .copyWith(updatedAt: Value(DateTime.now()));
     await db.zonesDao.upsert(companion);
   }
 
   List<Offset> _translatedPoints(String id, Offset normDelta) {
-    final zone = state.zones.firstWhere((z) => z.id == id);
+    final zone = state.zones.firstWhereOrNull((z) => z.id == id);
+    if (zone == null) return [];
     return [
       for (final p in ZoneShape.decode(zone.shapePoints))
         Offset(

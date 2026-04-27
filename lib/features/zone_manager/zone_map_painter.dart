@@ -8,7 +8,6 @@ class ZoneMapPainter extends CustomPainter {
     required this.zones,
     required this.canvasSize,
     this.selectedZoneId,
-    this.onZoneTap,
     this.widthFt,
     this.depthFt,
   });
@@ -16,7 +15,6 @@ class ZoneMapPainter extends CustomPainter {
   final List<ZonesTableData> zones;
   final Size canvasSize;
   final String? selectedZoneId;
-  final void Function(String zoneId)? onZoneTap;
   final double? widthFt;
   final double? depthFt;
 
