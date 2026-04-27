@@ -46,6 +46,10 @@ void main() {
       final a = await db.fixturesDao.watchByStore('a').first;
       expect(a.length, 2);
       expect(a.every((f) => f.storeId == 'a'), isTrue);
+
+      final storeB = await db.fixturesDao.watchByStore('b').first;
+      expect(storeB.length, 1);
+      expect(storeB.every((f) => f.storeId == 'b'), isTrue);
     });
 
     test('watchByZone filters on (store, zone) pair', () async {

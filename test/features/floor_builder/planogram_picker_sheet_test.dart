@@ -100,7 +100,7 @@ void main() {
 
   testWidgets('shows remove assignment when planogram is assigned',
       (tester) async {
-    await openSheet(tester, currentId: planograms.first.id);
+    await openSheet(tester, currentId: planograms.firstWhere((p) => p.id == 'p1').id);
     expect(find.text('Remove assignment'), findsOneWidget);
   });
 
@@ -111,10 +111,10 @@ void main() {
   });
 
   testWidgets('tapping remove calls onSelect with null', (tester) async {
-    String? selected = planograms.first.id;
+    String? selected = planograms.firstWhere((p) => p.id == 'p1').id;
     await openSheet(
       tester,
-      currentId: planograms.first.id,
+      currentId: planograms.firstWhere((p) => p.id == 'p1').id,
       onSelect: (id) => selected = id,
     );
     tapTileWithText(tester, 'Remove assignment');
@@ -126,9 +126,9 @@ void main() {
       (tester) async {
     String? selected;
     await openSheet(tester, onSelect: (id) => selected = id);
-    tapTileWithText(tester, planograms.first.title);
+    tapTileWithText(tester, planograms.firstWhere((p) => p.id == 'p1').title);
     await tester.pump();
-    expect(selected, planograms.first.id);
+    expect(selected, planograms.firstWhere((p) => p.id == 'p1').id);
   });
 
   testWidgets('shows empty state when search yields no results',

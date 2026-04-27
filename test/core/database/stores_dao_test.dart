@@ -75,6 +75,7 @@ void main() {
       await db.storesDao.upsert(store(id: 's2', inviteCode: 'BBB002'));
       final stores = await db.storesDao.watchAll().first;
       expect(stores.length, 2);
+      expect(stores.map((s) => s.id).toSet(), equals({'s1', 's2'}));
     });
 
     test('findById returns null for missing id', () async {
