@@ -1,6 +1,6 @@
 # Merch Mobile — Project Context for Agents
 
-> **Read this first.** This document is the single source of truth for project state, past decisions, and architecture rules. Check it before exploring the codebase. Last updated: 2026-04-27.
+> **Read this first.** This document is the single source of truth for project state, past decisions, and architecture rules. Check it before exploring the codebase. Last updated: 2026-04-27 (v0.25 complete).
 
 ---
 
@@ -76,24 +76,24 @@ lib/
 
 ---
 
-## Current Database Schema (schemaVersion = 2)
+## Current Database Schema (schemaVersion = 4)
 
 Migration strategy: `destructiveFallback` — dev only; schema version bumps wipe and recreate the DB.
 
 ### Tables currently in `app_database.dart`
 
-| Table                 | Key columns                                                                                                                                         |
-| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `stores`              | id, name, invite_code, created_at, owner_uid                                                                                                        |
-| `store_memberships`   | id, store_id→stores, user_uid, role, display_name, status, joined_at                                                                                |
-| `store_groups`        | id, name, description, created_by_uid, created_at                                                                                                   |
-| `store_group_members` | id, group_id→store_groups, store_id→stores, added_at, added_by_uid                                                                                  |
-| `zones`               | id, store_id→stores, name, color, shape_points (JSON), zone_type, notes                                                                             |
-| `fixtures`            | id, zone_id→zones, fixture_type, pos_x, pos_y, rotation, width_ft, depth_ft, label, store_id→stores, planogram_id→planograms (nullable), updated_at |
-| `products`            | id, sku, name, category, image_url, sizes_json, stock_qty, store_id→stores, updated_at                                                              |
-| `planograms`          | id, store_id→stores, name, season, (slots via separate table)                                                                                       |
-| `photo_docs`          | id, store_id→stores, zone_id, image_url, notes, status, submitted_by_uid, created_at                                                                |
-| `planogram_proposals` | id, planogram_id→planograms, store_id→stores, proposed_by_uid, proposed_at, status, notes, slot_changes (JSON), reviewed_by_uid, reviewed_at        |
+| Table                 | Key columns                                                                                                                                                                                                     |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `stores`              | id, name, invite_code, created_at, owner_uid, **width_ft REAL nullable**, **depth_ft REAL nullable**, **entrance_json TEXT nullable** (JSON: `{wall,pos,widthFrac}`)                                            |
+| `store_memberships`   | id, store_id→stores, user_uid, role, display_name, status, joined_at                                                                                                                                            |
+| `store_groups`        | id, name, description, created_by_uid, created_at                                                                                                                                                               |
+| `store_group_members` | id, group_id→store_groups, store_id→stores, added_at, added_by_uid                                                                                                                                              |
+| `zones`               | id, store_id→stores, name, color, shape_points (JSON), zone_type, notes                                                                                                                                         |
+| `fixtures`            | id, **zone_id nullable**→zones, fixture_type, pos_x, pos_y, rotation, width_ft, depth_ft, label, store_id→stores, planogram_id nullable, **planogram_id_back nullable**, **wall_adjacent BOOL default false**, updated_at |
+| `products`            | id, sku, name, category, image_url, sizes_json, stock_qty, store_id→stores, updated_at                                                                                                                          |
+| `planograms`          | id, store_id→stores, name, season, (slots via separate table)                                                                                                                                                   |
+| `photo_docs`          | id, store_id→stores, zone_id, image_url, notes, status, submitted_by_uid, created_at                                                                                                                            |
+| `planogram_proposals` | id, planogram_id→planograms, store_id→stores, proposed_by_uid, proposed_at, status, notes, slot_changes (JSON), reviewed_by_uid, reviewed_at                                                                   |
 
 > **Note:** `planogram_slots` data lives in planogram detail logic — verify exact table name in `lib/core/database/tables/` before writing queries.
 
@@ -171,22 +171,19 @@ Spec: `docs/superpowers/specs/2026-04-13-v0.2-design.md`
 
 **What this means:** Planogram detail is a stub. Dashboard is a stub. No tests exist. Most UI is functional but unpolished.
 
-### v0.25 — Spec approved, not yet implemented 📋
+### v0.25 — Complete ✅ (branch: `feature/v0.2`)
 
 Spec: `docs/superpowers/specs/2026-04-27-v0.25-design.md`
 
-v0.25 fixes the incomplete interactive layout experience before v0.3. Covers:
+v0.25 delivered the interactive layout experience:
 
-1. Store Canvas (ZoneMapScreen upgrade — bounded canvas with store dimensions, Figma-style zone drag)
-2. Fixture resize (type-aware edge handles)
-3. Planogram assignment end-to-end (badge + picker sheet + mini-panel)
-4. Store-level partitions (nullable zone_id)
+1. Store Canvas (ZoneMapScreen — bounded ft grid, Figma-style zone drag, entrance as boundary cutout with ADD/EDIT/REMOVE, zone snap to walls/vertices, self-intersect guard)
+2. Fixture resize (type-aware edge handles — all 4 for rack/table, width-only for wall/shelf, capped depth for partition)
+3. Planogram assignment end-to-end (badge + PlanogramPickerSheet + FixtureMiniPanel + wall-adjacent toggle)
+4. Store-level partitions (nullable zone_id, dual-face planogram badges)
+5. Dashboard store size dialog + entrance UI
 
-**Schema bump:** schemaVersion 2 → 3. Changes:
-
-- `stores`: add `width_ft REAL nullable`, `depth_ft REAL nullable`
-- `fixtures`: `zone_id` becomes nullable; add `planogram_id_back INT nullable`, `wall_adjacent BOOL default false`
-- New DAO methods: `StoresDao.updateDimensions`, `FixturesDao.watchByStoreId`
+**Schema changes (v2 → v4):** `stores` gained `width_ft`, `depth_ft`, `entrance_json`; `fixtures` gained `planogram_id_back`, `wall_adjacent`, and `zone_id` became nullable. 95 tests passing.
 
 ### v0.3 — Plans written, not yet implemented 📋
 
@@ -284,13 +281,11 @@ After any change to Drift table classes, `@freezed` models, or `@riverpod` provi
 
 ## Pending Work (ordered)
 
-1. **v0.25** — implement spec at `docs/superpowers/specs/2026-04-27-v0.25-design.md`
-   - No implementation plan written yet (next step after this document)
-2. **v0.2 Agent 4** — Planogram Editor + Dashboard (spec: v0.2 design doc §4–5)
-3. **v0.2 Agent 6** — UI Polish pass
-4. **v0.2 Agent 7** — Tests
-5. **v0.3** — VM merchandising layer (plans at `docs/superpowers/plans/2026-04-27-v0.3-*.md`)
-   - Prerequisite: v0.25 + v0.2 complete
+1. **v0.2 Agent 4** — Planogram Editor + Dashboard (spec: `docs/superpowers/specs/2026-04-13-v0.2-design.md` §4–5)
+2. **v0.2 Agent 6** — UI Polish pass
+3. **v0.2 Agent 7** — Tests (no test suite yet)
+4. **v0.3** — VM merchandising layer (plans at `docs/superpowers/plans/2026-04-27-v0.3-*.md`)
+   - Prerequisite: v0.25 ✅ + v0.2 Agents 4/6/7 complete
 
 ---
 
