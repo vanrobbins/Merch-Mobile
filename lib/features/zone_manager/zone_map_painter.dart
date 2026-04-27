@@ -12,6 +12,7 @@ class ZoneMapPainter extends CustomPainter {
     this.widthFt,
     this.depthFt,
     this.activeVertexIdx,
+    this.snapPreviewPoints,
   });
 
   final List<ZonesTableData> zones;
@@ -20,6 +21,8 @@ class ZoneMapPainter extends CustomPainter {
   final double? widthFt;
   final double? depthFt;
   final int? activeVertexIdx;
+  /// When non-null, draw a ghost of the shape-snapped result.
+  final List<Offset>? snapPreviewPoints;
 
   final Map<String, Path> _zonePaths = {};
 
@@ -50,6 +53,7 @@ class ZoneMapPainter extends CustomPainter {
         ? null
         : zones.where((z) => z.id == selectedZoneId).firstOrNull;
     if (selected != null) _drawVertexHandles(canvas, size, selected);
+    if (snapPreviewPoints != null) _drawSnapPreview(canvas, size, snapPreviewPoints!);
   }
 
   void _drawGrid(Canvas canvas, Size size) {
@@ -203,6 +207,25 @@ class ZoneMapPainter extends CustomPainter {
     }
   }
 
+  void _drawSnapPreview(Canvas canvas, Size size, List<Offset> normPts) {
+    final cPts = normPts.map((p) => Offset(p.dx * size.width, p.dy * size.height)).toList();
+    final path = Path()..addPolygon(cPts, true);
+    canvas.drawPath(
+      path,
+      Paint()
+        ..color = const Color(0xFFBF5534).withAlpha(40)
+        ..style = PaintingStyle.fill,
+    );
+    _drawDashedPath(
+      canvas,
+      path,
+      Paint()
+        ..color = const Color(0xFFBF5534).withAlpha(180)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.5,
+    );
+  }
+
   void _drawEdgeLabel(Canvas canvas, String text, Offset center) {
     final tp = TextPainter(
       text: TextSpan(
@@ -294,5 +317,6 @@ class ZoneMapPainter extends CustomPainter {
       old.selectedZoneId != selectedZoneId ||
       old.widthFt != widthFt ||
       old.depthFt != depthFt ||
-      old.activeVertexIdx != activeVertexIdx;
+      old.activeVertexIdx != activeVertexIdx ||
+      old.snapPreviewPoints != snapPreviewPoints;
 }

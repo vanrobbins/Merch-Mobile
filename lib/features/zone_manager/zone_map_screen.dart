@@ -180,7 +180,8 @@ class _ZoneCanvasState extends ConsumerState<_ZoneCanvas> {
     return -1;
   }
 
-  Offset _snap(Offset canvas, String dragZoneId) {
+  // Snap to nearest vertex of any OTHER zone.
+  Offset _snapToVertex(Offset canvas, String dragZoneId) {
     final threshold = _snapScreenPx / _viewScale;
     final state = ref.read(zoneMapNotifierProvider);
     Offset best = canvas;
@@ -197,6 +198,102 @@ class _ZoneCanvasState extends ConsumerState<_ZoneCanvas> {
       }
     }
     return best;
+  }
+
+  // Snap vertex X/Y to adjacent vertices' coordinates → creates right-angle edges.
+  Offset _snapOrthogonal(Offset canvas, List<Offset> normPts, int idx) {
+    final n = normPts.length;
+    final threshold = _snapScreenPx / _viewScale;
+
+    final prev = Offset(normPts[(idx - 1 + n) % n].dx * _canvasSize.width,
+        normPts[(idx - 1 + n) % n].dy * _canvasSize.height);
+    final next = Offset(normPts[(idx + 1) % n].dx * _canvasSize.width,
+        normPts[(idx + 1) % n].dy * _canvasSize.height);
+
+    double x = canvas.dx;
+    double y = canvas.dy;
+    double bestX = threshold, bestY = threshold;
+
+    for (final ax in [prev.dx, next.dx]) {
+      final d = (x - ax).abs();
+      if (d < bestX) { bestX = d; x = ax; }
+    }
+    for (final ay in [prev.dy, next.dy]) {
+      final d = (y - ay).abs();
+      if (d < bestY) { bestY = d; y = ay; }
+    }
+    return Offset(x, y);
+  }
+
+  // Combined snap: vertex-to-vertex takes priority, then orthogonal.
+  Offset _snapAll(Offset canvas, String dragZoneId, int vertexIdx) {
+    final vtx = _snapToVertex(canvas, dragZoneId);
+    if (vtx != canvas) return vtx;
+    if (_dragPoints != null) return _snapOrthogonal(canvas, _dragPoints!, vertexIdx);
+    return canvas;
+  }
+
+  // On pointer-up: try to perfect the shape into a rectangle or right triangle.
+  List<Offset>? _trySnapToShape(List<Offset> normPts) {
+    if (normPts.length == 4) return _tryRectangle(normPts);
+    if (normPts.length == 3) return _tryRightTriangle(normPts);
+    return null;
+  }
+
+  List<Offset>? _tryRectangle(List<Offset> pts) {
+    if (_canvasSize == Size.zero) return null;
+    final cPts = pts.map((p) => Offset(p.dx * _canvasSize.width, p.dy * _canvasSize.height)).toList();
+
+    double minX = cPts.map((p) => p.dx).reduce(min);
+    double maxX = cPts.map((p) => p.dx).reduce(max);
+    double minY = cPts.map((p) => p.dy).reduce(min);
+    double maxY = cPts.map((p) => p.dy).reduce(max);
+
+    final corners = [
+      Offset(minX, minY), Offset(maxX, minY),
+      Offset(maxX, maxY), Offset(minX, maxY),
+    ];
+
+    final threshold = 30.0 / _viewScale;
+    final assignments = <int>[];
+    for (final pt in cPts) {
+      int best = -1;
+      double bestDist = threshold;
+      for (var c = 0; c < 4; c++) {
+        if (assignments.contains(c)) continue;
+        final d = (corners[c] - pt).distance;
+        if (d < bestDist) { bestDist = d; best = c; }
+      }
+      if (best == -1) return null;
+      assignments.add(best);
+    }
+    if (assignments.toSet().length < 4) return null;
+
+    return List.generate(4, (i) => Offset(
+      corners[assignments[i]].dx / _canvasSize.width,
+      corners[assignments[i]].dy / _canvasSize.height,
+    ));
+  }
+
+  List<Offset>? _tryRightTriangle(List<Offset> pts) {
+    if (_canvasSize == Size.zero) return null;
+    final threshold = 25.0 / _viewScale;
+    for (var i = 0; i < 3; i++) {
+      final a = Offset(pts[i].dx * _canvasSize.width, pts[i].dy * _canvasSize.height);
+      final b = Offset(pts[(i + 1) % 3].dx * _canvasSize.width, pts[(i + 1) % 3].dy * _canvasSize.height);
+      final c = Offset(pts[(i + 2) % 3].dx * _canvasSize.width, pts[(i + 2) % 3].dy * _canvasSize.height);
+      for (final candidate in [Offset(a.dx, c.dy), Offset(c.dx, a.dy)]) {
+        if ((candidate - b).distance < threshold) {
+          final snapped = List.of(pts);
+          snapped[(i + 1) % 3] = Offset(
+            candidate.dx / _canvasSize.width,
+            candidate.dy / _canvasSize.height,
+          );
+          return snapped;
+        }
+      }
+    }
+    return null;
   }
 
   void _resetGesture() {
@@ -305,7 +402,7 @@ class _ZoneCanvasState extends ConsumerState<_ZoneCanvas> {
     final canvas = _toCanvas(event.localPosition);
 
     if (_dragZoneId != null && _dragVertexIdx != null && _dragPoints != null) {
-      final snapped = _snap(canvas, _dragZoneId!);
+      final snapped = _snapAll(canvas, _dragZoneId!, _dragVertexIdx!);
       final updated = List.of(_dragPoints!)..[_dragVertexIdx!] = _normalize(snapped);
       setState(() => _dragPoints = updated);
       _notifier.updateZoneShapeLocal(_dragZoneId!, updated);
@@ -335,7 +432,8 @@ class _ZoneCanvasState extends ConsumerState<_ZoneCanvas> {
     if (event.pointer != _primaryPointer) return;
 
     if (_dragZoneId != null && _dragPoints != null) {
-      _notifier.updateZoneShape(_dragZoneId!, _dragPoints!);
+      final shaped = _trySnapToShape(_dragPoints!);
+      _notifier.updateZoneShape(_dragZoneId!, shaped ?? _dragPoints!);
     } else if (_moveZoneId != null && _moveCurrentPoints != null) {
       _notifier.updateZoneShape(_moveZoneId!, _moveCurrentPoints!);
     }
@@ -363,6 +461,7 @@ class _ZoneCanvasState extends ConsumerState<_ZoneCanvas> {
           _hasFitView = true;
           WidgetsBinding.instance.addPostFrameCallback((_) { if (mounted) _fitZones(state.zones); });
         }
+        final snapPreview = _dragPoints != null ? _trySnapToShape(_dragPoints!) : null;
         _painter = ZoneMapPainter(
           zones: state.zones,
           canvasSize: _canvasSize,
@@ -370,6 +469,7 @@ class _ZoneCanvasState extends ConsumerState<_ZoneCanvas> {
           widthFt: state.storeData?.widthFt,
           depthFt: state.storeData?.depthFt,
           activeVertexIdx: _dragVertexIdx,
+          snapPreviewPoints: (snapPreview != null && snapPreview != _dragPoints) ? snapPreview : null,
         );
         return ClipRect(
           child: Listener(

@@ -1,3 +1,4 @@
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -56,6 +57,10 @@ class _ZonePropertiesPanelState extends ConsumerState<ZonePropertiesPanel> {
   @override
   Widget build(BuildContext context) {
     final notifier = ref.read(zoneMapNotifierProvider.notifier);
+    // Watch live zone so type/color chips react immediately to changes.
+    final liveZone = ref.watch(zoneMapNotifierProvider).zones
+        .where((z) => z.id == widget.zone.id)
+        .firstOrNull ?? widget.zone;
 
     return Container(
       decoration: const BoxDecoration(
@@ -121,7 +126,7 @@ class _ZonePropertiesPanelState extends ConsumerState<ZonePropertiesPanel> {
             spacing: DesignTokens.spaceXs,
             runSpacing: DesignTokens.spaceXs,
             children: _zoneTypes.map(((String, String) t) {
-              final isSelected = widget.zone.zoneType == t.$1;
+              final isSelected = liveZone.zoneType == t.$1;
               return ChoiceChip(
                 label: Text(t.$2),
                 selected: isSelected,
@@ -152,7 +157,7 @@ class _ZonePropertiesPanelState extends ConsumerState<ZonePropertiesPanel> {
             spacing: DesignTokens.spaceSm,
             runSpacing: DesignTokens.spaceSm,
             children: _swatches.map((c) {
-              final isSelected = widget.zone.colorValue == c;
+              final isSelected = liveZone.colorValue == c;
               return GestureDetector(
                 onTap: () => notifier.updateZoneColor(widget.zone.id, c),
                 child: Container(
