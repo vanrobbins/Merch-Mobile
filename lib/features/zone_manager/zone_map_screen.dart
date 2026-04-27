@@ -74,8 +74,9 @@ class _ZoneMapScreenState extends ConsumerState<ZoneMapScreen> {
             child: state.isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : InteractiveViewer(
+                    panEnabled: false,
                     boundaryMargin: const EdgeInsets.all(80),
-                    minScale: 0.5,
+                    minScale: 0.2,
                     maxScale: 4.0,
                     child: _ZoneCanvas(onZoneTap: _onZoneTap),
                   ),

@@ -369,9 +369,9 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
                       ),
                     // Canvas layer — gestures inside IV so coords match canvas space
                     InteractiveViewer(
-                      panEnabled: _dragFixtureId == null && _resizingFixtureId == null,
+                      panEnabled: false,
                       boundaryMargin: const EdgeInsets.all(100),
-                      minScale: 0.5,
+                      minScale: 0.2,
                       maxScale: 4.0,
                       child: GestureDetector(
                         onLongPressStart: _handleLongPressInCanvas,
