@@ -15,6 +15,8 @@ class ZoneMapPainter extends CustomPainter {
     this.entranceJson,
     this.activeVertexIdx,
     this.snapPreviewPoints,
+    this.entranceEditMode = false,
+    this.liveEntrance,
   });
 
   final List<ZonesTableData> zones;
@@ -24,8 +26,9 @@ class ZoneMapPainter extends CustomPainter {
   final double? depthFt;
   final String? entranceJson;
   final int? activeVertexIdx;
-  /// When non-null, draw a ghost of the shape-snapped result.
   final List<Offset>? snapPreviewPoints;
+  final bool entranceEditMode;
+  final StoreEntrance? liveEntrance;
 
   final Map<String, Path> _zonePaths = {};
 
@@ -47,6 +50,13 @@ class ZoneMapPainter extends CustomPainter {
     _zonePaths.clear();
     _drawGrid(canvas, size);
     if (_hasStoreDims) _drawStoreBoundary(canvas);
+    if (entranceEditMode && _hasStoreDims) {
+      if (liveEntrance != null) {
+        _drawEntranceHandles(canvas, liveEntrance!);
+      } else {
+        _drawEntrancePlacementHints(canvas);
+      }
+    }
 
     for (final zone in zones) {
       _drawZone(canvas, size, zone);
@@ -64,7 +74,7 @@ class ZoneMapPainter extends CustomPainter {
     final useFtGrid = ppf > 0 && _hasStoreDims;
 
     final paint = Paint()
-      ..color = Colors.grey.withOpacity(useFtGrid ? 0.15 : 0.10)
+      ..color = Colors.grey.withValues(alpha: useFtGrid ? 0.15 : 0.10)
       ..strokeWidth = 0.5;
 
     if (useFtGrid) {
@@ -119,8 +129,8 @@ class ZoneMapPainter extends CustomPainter {
 
     // Fill
     final fillColor = outsideBoundary
-        ? Colors.red.withOpacity(0.18)
-        : color.withOpacity(isSelected ? 0.45 : 0.20);
+        ? Colors.red.withValues(alpha: 0.18)
+        : color.withValues(alpha: isSelected ? 0.45 : 0.20);
     canvas.drawPath(path, Paint()..color = fillColor);
 
     // Stroke
@@ -137,8 +147,8 @@ class ZoneMapPainter extends CustomPainter {
     } else {
       final strokePaint = Paint()
         ..color = outsideBoundary
-            ? Colors.red.withOpacity(0.6)
-            : color.withOpacity(0.7)
+            ? Colors.red.withValues(alpha: 0.6)
+            : color.withValues(alpha: 0.7)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 1.5
         ..strokeJoin = StrokeJoin.round;
@@ -313,6 +323,85 @@ class ZoneMapPainter extends CustomPainter {
     return -1;
   }
 
+  List<(Offset, Offset)> _wallSegments(Rect rect) => [
+    (Offset(rect.right, rect.bottom), Offset(rect.left, rect.bottom)),
+    (Offset(rect.right, rect.top), Offset(rect.right, rect.bottom)),
+    (Offset(rect.left, rect.top), Offset(rect.right, rect.top)),
+    (Offset(rect.left, rect.bottom), Offset(rect.left, rect.top)),
+  ];
+
+  void _drawEntranceHandles(Canvas canvas, StoreEntrance e) {
+    final rect = _storeRect;
+    final walls = _wallSegments(rect);
+    final (from, to) = walls[e.wall];
+    final dir = to - from;
+    final gapStart = (e.pos - e.widthFrac / 2).clamp(0.0, 1.0);
+    final gapEnd = (e.pos + e.widthFrac / 2).clamp(0.0, 1.0);
+    final pCenter = from + dir * e.pos;
+    final pEnd1 = from + dir * gapStart;
+    final pEnd2 = from + dir * gapEnd;
+
+    canvas.drawLine(
+      pEnd1,
+      pEnd2,
+      Paint()
+        ..color = const Color(0xFFBF5534)
+        ..strokeWidth = 3.0
+        ..strokeCap = StrokeCap.round,
+    );
+    _drawHandle(canvas, pCenter, radius: 8.0);
+    _drawHandle(canvas, pEnd1, radius: 6.0);
+    _drawHandle(canvas, pEnd2, radius: 6.0);
+  }
+
+  void _drawHandle(Canvas canvas, Offset center, {required double radius}) {
+    canvas.drawCircle(center, radius + 1.5, Paint()..color = Colors.white);
+    canvas.drawCircle(center, radius, Paint()..color = const Color(0xFFBF5534));
+  }
+
+  void _drawEntrancePlacementHints(Canvas canvas) {
+    final rect = _storeRect;
+    final hintPaint = Paint()
+      ..color = const Color(0xFFBF5534).withValues(alpha: 0.35)
+      ..strokeWidth = 2.0
+      ..strokeCap = StrokeCap.round;
+
+    final wallMids = [
+      Offset(rect.center.dx, rect.bottom),
+      Offset(rect.right, rect.center.dy),
+      Offset(rect.center.dx, rect.top),
+      Offset(rect.left, rect.center.dy),
+    ];
+    const wallNormals = [
+      Offset(0, 1),
+      Offset(1, 0),
+      Offset(0, -1),
+      Offset(-1, 0),
+    ];
+    for (var i = 0; i < 4; i++) {
+      final mid = wallMids[i];
+      final norm = wallNormals[i];
+      canvas.drawLine(mid, mid + norm * 10, hintPaint);
+      _drawPlacementLabel(canvas, 'TAP TO PLACE', mid + norm * 22);
+    }
+  }
+
+  void _drawPlacementLabel(Canvas canvas, String text, Offset center) {
+    final tp = TextPainter(
+      text: TextSpan(
+        text: text,
+        style: TextStyle(
+          color: const Color(0xFFBF5534).withValues(alpha: 0.55),
+          fontSize: 9,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.8,
+        ),
+      ),
+      textDirection: ui.TextDirection.ltr,
+    )..layout();
+    tp.paint(canvas, center - Offset(tp.width / 2, tp.height / 2));
+  }
+
   @override
   bool shouldRepaint(ZoneMapPainter old) =>
       old.zones != zones ||
@@ -321,5 +410,7 @@ class ZoneMapPainter extends CustomPainter {
       old.depthFt != depthFt ||
       old.entranceJson != entranceJson ||
       old.activeVertexIdx != activeVertexIdx ||
-      old.snapPreviewPoints != snapPreviewPoints;
+      old.snapPreviewPoints != snapPreviewPoints ||
+      old.entranceEditMode != entranceEditMode ||
+      old.liveEntrance != liveEntrance;
 }

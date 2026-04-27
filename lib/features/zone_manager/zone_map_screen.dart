@@ -2,12 +2,14 @@ import 'dart:math';
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../core/database/app_database.dart';
 import '../../core/widgets/role_guard.dart';
 import '../../core/theme/app_theme.dart';
 import 'zone_map_painter.dart';
 import 'zone_map_provider.dart';
 import 'zone_properties_panel.dart';
+import 'store_entrance.dart';
 import 'zone_shape.dart';
 
 class ZoneMapScreen extends ConsumerStatefulWidget {
@@ -18,11 +20,21 @@ class ZoneMapScreen extends ConsumerStatefulWidget {
 }
 
 class _ZoneMapScreenState extends ConsumerState<ZoneMapScreen> {
+  bool _entranceEditMode = false;
+
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _checkStoreDimensions());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkStoreDimensions();
+      final params = GoRouterState.of(context).uri.queryParameters;
+      if (params['entranceEdit'] == 'true') _enterEntranceEditMode();
+    });
   }
+
+  void _enterEntranceEditMode() => setState(() => _entranceEditMode = true);
+
+  void _exitEntranceEditMode() => setState(() => _entranceEditMode = false);
 
   bool _needsDimensions(StoresTableData? store) =>
       store != null && (store.widthFt == null || store.depthFt == null);
@@ -74,26 +86,89 @@ class _ZoneMapScreenState extends ConsumerState<ZoneMapScreen> {
     });
 
     return Scaffold(
-      appBar: AppBar(title: const Text('ZONE MAP')),
+      appBar: AppBar(
+        title: Text(_entranceEditMode ? 'ENTRANCE' : 'ZONE MAP'),
+        bottom: _entranceEditMode
+            ? PreferredSize(
+                preferredSize: const Size.fromHeight(28),
+                child: Container(
+                  color: const Color(0xFFBF5534).withValues(alpha: 0.12),
+                  padding: const EdgeInsets.symmetric(vertical: 6),
+                  child: const Center(
+                    child: Text(
+                      'DRAG GAP · DRAG ENDS TO RESIZE · TAP WALL TO PLACE',
+                      style: TextStyle(
+                        fontSize: 9,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.8,
+                        color: Color(0xFFBF5534),
+                      ),
+                    ),
+                  ),
+                ),
+              )
+            : null,
+        actions: _entranceEditMode
+            ? [
+                TextButton(
+                  onPressed: _exitEntranceEditMode,
+                  child: const Text(
+                    'DONE',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.8,
+                    ),
+                  ),
+                ),
+              ]
+            : [
+                RoleGuard(
+                  allowedRoles: const ['coordinator', 'manager'],
+                  child: PopupMenuButton<String>(
+                    icon: const Icon(Icons.more_vert),
+                    onSelected: (value) {
+                      if (value == 'entrance') _enterEntranceEditMode();
+                    },
+                    itemBuilder: (_) => const [
+                      PopupMenuItem(
+                        value: 'entrance',
+                        child: Text('Edit Entrance'),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+      ),
       body: state.isLoading
           ? const Center(child: CircularProgressIndicator())
-          : _ZoneCanvas(onZoneTap: _onZoneTap),
-      floatingActionButton: RoleGuard(
-        allowedRoles: const ['coordinator', 'manager'],
-        child: FloatingActionButton.extended(
-          onPressed: () => ref.read(zoneMapNotifierProvider.notifier).addZone(),
-          label: const Text('ADD ZONE'),
-          icon: const Icon(Icons.add),
-          backgroundColor: AppTheme.accent,
-        ),
-      ),
+          : _ZoneCanvas(
+              onZoneTap: _entranceEditMode ? (_) {} : _onZoneTap,
+              entranceEditMode: _entranceEditMode,
+            ),
+      floatingActionButton: _entranceEditMode
+          ? null
+          : RoleGuard(
+              allowedRoles: const ['coordinator', 'manager'],
+              child: FloatingActionButton.extended(
+                onPressed: () =>
+                    ref.read(zoneMapNotifierProvider.notifier).addZone(),
+                label: const Text('ADD ZONE'),
+                icon: const Icon(Icons.add),
+                backgroundColor: AppTheme.accent,
+              ),
+            ),
     );
   }
 }
 
 class _ZoneCanvas extends ConsumerStatefulWidget {
-  const _ZoneCanvas({required this.onZoneTap});
+  const _ZoneCanvas({
+    required this.onZoneTap,
+    this.entranceEditMode = false,
+  });
   final void Function(String zoneId) onZoneTap;
+  final bool entranceEditMode;
 
   @override
   ConsumerState<_ZoneCanvas> createState() => _ZoneCanvasState();
@@ -132,6 +207,11 @@ class _ZoneCanvasState extends ConsumerState<_ZoneCanvas> {
   bool _isPanning = false;
   Offset? _panStartScreen;
   Offset? _panStartOffset;
+
+  // Entrance drag state
+  StoreEntrance? _editEntrance;
+  String? _entranceDragMode; // 'center' | 'end1' | 'end2'
+  StoreEntrance? _entranceDragStartState;
 
   bool _hasFitView = false;
 
@@ -225,7 +305,153 @@ class _ZoneCanvasState extends ConsumerState<_ZoneCanvas> {
     return (p - proj).distance;
   }
 
+  Rect get _storeRectCanvas {
+    final st = ref.read(zoneMapNotifierProvider);
+    final w = st.storeData?.widthFt;
+    final d = st.storeData?.depthFt;
+    if (w == null || d == null) return Rect.zero;
+    final ppf = (_canvasSize.width / w).clamp(0.0, _canvasSize.height / d);
+    return Rect.fromLTWH(0, 0, w * ppf, d * ppf);
+  }
+
+  List<(Offset, Offset)> _wallSegments(Rect rect) => [
+    (Offset(rect.right, rect.bottom), Offset(rect.left, rect.bottom)),
+    (Offset(rect.right, rect.top), Offset(rect.right, rect.bottom)),
+    (Offset(rect.left, rect.top), Offset(rect.right, rect.top)),
+    (Offset(rect.left, rect.bottom), Offset(rect.left, rect.top)),
+  ];
+
+  int? _hitEntranceWall(Offset canvas) {
+    final rect = _storeRectCanvas;
+    if (rect == Rect.zero) return null;
+    final threshold = 12.0 / _viewScale;
+    final walls = _wallSegments(rect);
+    int? best;
+    double bestDist = threshold;
+    for (var i = 0; i < walls.length; i++) {
+      final d = _pointToSegmentDist(canvas, walls[i].$1, walls[i].$2);
+      if (d < bestDist) { bestDist = d; best = i; }
+    }
+    return best;
+  }
+
+  double _wallFraction(int wallIdx, Offset canvas) {
+    final rect = _storeRectCanvas;
+    final walls = _wallSegments(rect);
+    final (from, to) = walls[wallIdx];
+    final dir = to - from;
+    final len2 = dir.dx * dir.dx + dir.dy * dir.dy;
+    if (len2 == 0) return 0.5;
+    final t = ((canvas - from).dx * dir.dx + (canvas - from).dy * dir.dy) / len2;
+    return t.clamp(0.0, 1.0);
+  }
+
+  ({Offset center, Offset end1, Offset end2})? _entranceHandlePositions(StoreEntrance e) {
+    final rect = _storeRectCanvas;
+    if (rect == Rect.zero) return null;
+    final walls = _wallSegments(rect);
+    final (from, to) = walls[e.wall];
+    final dir = to - from;
+    final gapStart = (e.pos - e.widthFrac / 2).clamp(0.0, 1.0);
+    final gapEnd = (e.pos + e.widthFrac / 2).clamp(0.0, 1.0);
+    return (
+      center: from + dir * e.pos,
+      end1: from + dir * gapStart,
+      end2: from + dir * gapEnd,
+    );
+  }
+
+  void _handleEntrancePointerDown(PointerDownEvent event) {
+    final canvas = _toCanvas(event.localPosition);
+    final e = _editEntrance;
+
+    if (e != null) {
+      final handles = _entranceHandlePositions(e);
+      if (handles != null) {
+        final centerR = 20.0 / _viewScale;
+        final endR = 16.0 / _viewScale;
+        if ((handles.center - canvas).distance < centerR) {
+          _primaryPointer = event.pointer;
+          setState(() {
+            _entranceDragMode = 'center';
+            _entranceDragStartState = e;
+          });
+          return;
+        }
+        if ((handles.end1 - canvas).distance < endR) {
+          _primaryPointer = event.pointer;
+          setState(() {
+            _entranceDragMode = 'end1';
+            _entranceDragStartState = e;
+          });
+          return;
+        }
+        if ((handles.end2 - canvas).distance < endR) {
+          _primaryPointer = event.pointer;
+          setState(() {
+            _entranceDragMode = 'end2';
+            _entranceDragStartState = e;
+          });
+          return;
+        }
+      }
+    }
+
+    // Tap on a wall — place or move entrance to that wall
+    final wallIdx = _hitEntranceWall(canvas);
+    if (wallIdx != null) {
+      final frac = _wallFraction(wallIdx, canvas);
+      if (e == null || wallIdx != e.wall) {
+        final newEntrance = StoreEntrance(
+          wall: wallIdx,
+          pos: frac.clamp(0.075, 0.925),
+          widthFrac: e?.widthFrac ?? 0.15,
+        );
+        setState(() => _editEntrance = newEntrance);
+        ref.read(zoneMapNotifierProvider.notifier).setEntrance(newEntrance.toJson());
+      }
+    }
+  }
+
+  void _handleEntrancePointerMove(PointerMoveEvent event) {
+    if (event.pointer != _primaryPointer) return;
+    if (_entranceDragMode == null || _entranceDragStartState == null) return;
+
+    final canvas = _toCanvas(event.localPosition);
+    final start = _entranceDragStartState!;
+
+    if (_entranceDragMode == 'center') {
+      final frac = _wallFraction(start.wall, canvas)
+          .clamp(start.widthFrac / 2, 1.0 - start.widthFrac / 2);
+      setState(() => _editEntrance = start.copyWith(pos: frac));
+    } else if (_entranceDragMode == 'end1') {
+      final frac = _wallFraction(start.wall, canvas).clamp(0.0, 1.0);
+      final end2Frac = (start.pos + start.widthFrac / 2).clamp(0.0, 1.0);
+      final newWidthFrac = (end2Frac - frac).clamp(0.05, 0.40);
+      final newPos = end2Frac - newWidthFrac / 2;
+      setState(() => _editEntrance = start.copyWith(pos: newPos, widthFrac: newWidthFrac));
+    } else if (_entranceDragMode == 'end2') {
+      final frac = _wallFraction(start.wall, canvas).clamp(0.0, 1.0);
+      final end1Frac = (start.pos - start.widthFrac / 2).clamp(0.0, 1.0);
+      final newWidthFrac = (frac - end1Frac).clamp(0.05, 0.40);
+      final newPos = end1Frac + newWidthFrac / 2;
+      setState(() => _editEntrance = start.copyWith(pos: newPos, widthFrac: newWidthFrac));
+    }
+  }
+
+  void _handleEntrancePointerUp(PointerUpEvent event) {
+    if (event.pointer != _primaryPointer) return;
+    if (_editEntrance != null) {
+      ref.read(zoneMapNotifierProvider.notifier).setEntrance(_editEntrance!.toJson());
+    }
+    setState(() {
+      _primaryPointer = null;
+      _resetEntranceGesture();
+    });
+  }
+
   void _onLongPress(LongPressStartDetails details) {
+    if (widget.entranceEditMode) return;
     final state = ref.read(zoneMapNotifierProvider);
     final selectedId = state.selectedZoneId;
     if (selectedId == null) return;
@@ -460,6 +686,11 @@ class _ZoneCanvasState extends ConsumerState<_ZoneCanvas> {
     _panStartOffset = null;
   }
 
+  void _resetEntranceGesture() {
+    _entranceDragMode = null;
+    _entranceDragStartState = null;
+  }
+
   void _resetPinch() {
     _pinchScaleStart = null;
     _pinchFocalStart = null;
@@ -502,6 +733,11 @@ class _ZoneCanvasState extends ConsumerState<_ZoneCanvas> {
     }
     if (_activePointers.length > 2) return;
     if (_primaryPointer != null) return;
+
+    if (widget.entranceEditMode) {
+      _handleEntrancePointerDown(event);
+      return;
+    }
 
     final state = ref.read(zoneMapNotifierProvider);
     final canvas = _toCanvas(event.localPosition);
@@ -549,6 +785,11 @@ class _ZoneCanvasState extends ConsumerState<_ZoneCanvas> {
       return;
     }
 
+    if (widget.entranceEditMode) {
+      _handleEntrancePointerMove(event);
+      return;
+    }
+
     if (event.pointer != _primaryPointer) return;
     final canvas = _toCanvas(event.localPosition);
 
@@ -581,6 +822,12 @@ class _ZoneCanvasState extends ConsumerState<_ZoneCanvas> {
   void _onPointerUp(PointerUpEvent event) {
     _activePointers.remove(event.pointer);
     if (_activePointers.length < 2) _resetPinch();
+
+    if (widget.entranceEditMode) {
+      _handleEntrancePointerUp(event);
+      return;
+    }
+
     if (event.pointer != _primaryPointer) return;
 
     if (_dragZoneId != null && _dragPoints != null) {
@@ -600,12 +847,30 @@ class _ZoneCanvasState extends ConsumerState<_ZoneCanvas> {
   }
 
   void _onTapUp(TapUpDetails details) {
+    if (widget.entranceEditMode) return;
     final canvas = _toCanvas(details.localPosition);
     final id = _painter?.zoneIdAt(canvas);
     if (id != null) {
       widget.onZoneTap(id);
     } else {
       _notifier.selectZone(null);
+    }
+  }
+
+  @override
+  void didUpdateWidget(_ZoneCanvas old) {
+    super.didUpdateWidget(old);
+    if (!old.entranceEditMode && widget.entranceEditMode) {
+      final entrance = StoreEntrance.fromJson(
+        ref.read(zoneMapNotifierProvider).storeData?.entranceJson,
+      );
+      setState(() => _editEntrance = entrance);
+    }
+    if (old.entranceEditMode && !widget.entranceEditMode) {
+      setState(() {
+        _editEntrance = null;
+        _resetEntranceGesture();
+      });
     }
   }
 
@@ -629,6 +894,8 @@ class _ZoneCanvasState extends ConsumerState<_ZoneCanvas> {
           entranceJson: state.storeData?.entranceJson,
           activeVertexIdx: _dragVertexIdx,
           snapPreviewPoints: (snapPreview != null && snapPreview != _dragPoints) ? snapPreview : null,
+          entranceEditMode: widget.entranceEditMode,
+          liveEntrance: _editEntrance,
         );
         return ClipRect(
           child: Listener(
