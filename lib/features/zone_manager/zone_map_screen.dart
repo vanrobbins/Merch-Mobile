@@ -250,11 +250,11 @@ class _ZoneCanvasState extends ConsumerState<_ZoneCanvas> {
   }
 
   /// Snaps the move delta so the closest vertex pair aligns with another zone.
-  Offset _trySnapZoneMove(String zoneId, Offset normDelta) {
+  /// [startPts] must be the original vertex positions at move-start so the
+  /// delta and positions stay in the same coordinate frame across frames.
+  Offset _trySnapZoneMove(String zoneId, Offset normDelta, List<Offset> startPts) {
     final st = ref.read(zoneMapNotifierProvider);
-    final zone = st.zones.firstWhereOrNull((z) => z.id == zoneId);
-    if (zone == null) return normDelta;
-    final movingPts = ZoneShape.decode(zone.shapePoints);
+    final movingPts = startPts;
     final threshold = _snapScreenPx / _viewScale;
     Offset? bestDelta;
     double bestDist = threshold;
@@ -508,7 +508,7 @@ class _ZoneCanvasState extends ConsumerState<_ZoneCanvas> {
 
     if (_moveZoneId != null && _moveStartCanvas != null && _moveStartPoints != null) {
       var normDelta = _normalizeDelta(canvas - _moveStartCanvas!);
-      normDelta = _trySnapZoneMove(_moveZoneId!, normDelta);
+      normDelta = _trySnapZoneMove(_moveZoneId!, normDelta, _moveStartPoints!);
       final moved = [
         for (final p in _moveStartPoints!)
           Offset((p.dx + normDelta.dx).clamp(0.0, 1.0), (p.dy + normDelta.dy).clamp(0.0, 1.0)),
