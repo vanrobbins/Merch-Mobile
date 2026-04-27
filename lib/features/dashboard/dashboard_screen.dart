@@ -37,12 +37,14 @@ class DashboardScreen extends ConsumerWidget {
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   // ignore: deprecated_member_use
-                  colors: [AppTheme.primary, AppTheme.primary.withOpacity(0.85)],
+                  colors: [
+                    AppTheme.primary,
+                    AppTheme.primary.withOpacity(0.85)
+                  ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
-                borderRadius:
-                    BorderRadius.circular(AppTheme.borderRadius),
+                borderRadius: BorderRadius.circular(AppTheme.borderRadius),
                 boxShadow: const [AppTheme.cardShadow],
               ),
               child: Column(
@@ -217,7 +219,8 @@ class _StoreSetupCard extends StatelessWidget {
           const SizedBox(height: DesignTokens.spaceSm),
           Row(
             children: [
-              Icon(Icons.straighten, size: DesignTokens.iconSm, color: AppTheme.textSecondary),
+              const Icon(Icons.straighten,
+                  size: DesignTokens.iconSm, color: AppTheme.textSecondary),
               const SizedBox(width: DesignTokens.spaceXs),
               Expanded(
                 child: Text(
@@ -255,36 +258,50 @@ class _StoreSetupCard extends StatelessWidget {
             children: [
               TextFormField(
                 controller: widthCtrl,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                decoration: const InputDecoration(labelText: 'Width (ft)', border: OutlineInputBorder()),
+                keyboardType:
+                    const TextInputType.numberWithOptions(decimal: true),
+                decoration: const InputDecoration(
+                    labelText: 'Width (ft)', border: OutlineInputBorder()),
                 validator: (v) {
                   final n = double.tryParse(v ?? '');
-                  return (n == null || n <= 0) ? 'Enter a positive number' : null;
+                  return (n == null || n <= 0)
+                      ? 'Enter a positive number'
+                      : null;
                 },
               ),
               const SizedBox(height: 12),
               TextFormField(
                 controller: depthCtrl,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                decoration: const InputDecoration(labelText: 'Depth (ft)', border: OutlineInputBorder()),
+                keyboardType:
+                    const TextInputType.numberWithOptions(decimal: true),
+                decoration: const InputDecoration(
+                    labelText: 'Depth (ft)', border: OutlineInputBorder()),
                 validator: (v) {
                   final n = double.tryParse(v ?? '');
-                  return (n == null || n <= 0) ? 'Enter a positive number' : null;
+                  return (n == null || n <= 0)
+                      ? 'Enter a positive number'
+                      : null;
                 },
               ),
             ],
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(dialogCtx), child: const Text('CANCEL')),
+          TextButton(
+              onPressed: () => Navigator.pop(dialogCtx),
+              child: const Text('CANCEL')),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.accent, foregroundColor: Colors.white),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.accent,
+                foregroundColor: Colors.white),
             onPressed: () {
               if (formKey.currentState!.validate()) {
-                ref.read(zoneMapNotifierProvider.notifier).updateStoreDimensions(
-                  double.parse(widthCtrl.text),
-                  double.parse(depthCtrl.text),
-                );
+                ref
+                    .read(zoneMapNotifierProvider.notifier)
+                    .updateStoreDimensions(
+                      double.parse(widthCtrl.text),
+                      double.parse(depthCtrl.text),
+                    );
                 Navigator.pop(dialogCtx);
               }
             },
@@ -339,7 +356,8 @@ class _EntranceRow extends StatelessWidget {
     );
   }
 
-  void _showEditor(BuildContext context, ZoneMapNotifier notifier, StoreEntrance? current) {
+  void _showEditor(
+      BuildContext context, ZoneMapNotifier notifier, StoreEntrance? current) {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -384,9 +402,12 @@ class _EntranceEditorSheetState extends State<_EntranceEditorSheet> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
       padding: EdgeInsets.fromLTRB(
-        DesignTokens.spaceMd, DesignTokens.spaceSm,
         DesignTokens.spaceMd,
-        MediaQuery.of(context).viewInsets.bottom + MediaQuery.of(context).padding.bottom + DesignTokens.spaceMd,
+        DesignTokens.spaceSm,
+        DesignTokens.spaceMd,
+        MediaQuery.of(context).viewInsets.bottom +
+            MediaQuery.of(context).padding.bottom +
+            DesignTokens.spaceMd,
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -394,8 +415,11 @@ class _EntranceEditorSheetState extends State<_EntranceEditorSheet> {
         children: [
           Center(
             child: Container(
-              width: 40, height: 4,
-              decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2)),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2)),
             ),
           ),
           const SizedBox(height: DesignTokens.spaceSm),
@@ -408,41 +432,67 @@ class _EntranceEditorSheetState extends State<_EntranceEditorSheet> {
             ),
           ),
           const SizedBox(height: DesignTokens.spaceMd),
-          const Text('WALL', style: TextStyle(fontSize: DesignTokens.typeXs, color: AppTheme.textSecondary, fontWeight: DesignTokens.weightBold, letterSpacing: DesignTokens.letterSpacingEyebrow)),
+          const Text('WALL',
+              style: TextStyle(
+                  fontSize: DesignTokens.typeXs,
+                  color: AppTheme.textSecondary,
+                  fontWeight: DesignTokens.weightBold,
+                  letterSpacing: DesignTokens.letterSpacingEyebrow)),
           const SizedBox(height: DesignTokens.spaceXs),
           Wrap(
             spacing: DesignTokens.spaceXs,
-            children: List.generate(4, (i) => ChoiceChip(
-              label: Text(_wallLabels[i]),
-              selected: _wall == i,
-              selectedColor: AppTheme.primary,
-              labelStyle: TextStyle(color: _wall == i ? Colors.white : null, fontSize: DesignTokens.typeXs),
-              onSelected: (_) => setState(() { _wall = i; _pos = 0.5; }),
-            )),
+            children: List.generate(
+                4,
+                (i) => ChoiceChip(
+                      label: Text(_wallLabels[i]),
+                      selected: _wall == i,
+                      selectedColor: AppTheme.primary,
+                      labelStyle: TextStyle(
+                          color: _wall == i ? Colors.white : null,
+                          fontSize: DesignTokens.typeXs),
+                      onSelected: (_) => setState(() {
+                        _wall = i;
+                        _pos = 0.5;
+                      }),
+                    )),
           ),
           const SizedBox(height: DesignTokens.spaceMd),
-          Text('POSITION  ${(_pos * 100).toStringAsFixed(0)}% along ${_wallLabels[_wall].toLowerCase()} wall',
-              style: const TextStyle(fontSize: DesignTokens.typeXs, color: AppTheme.textSecondary, fontWeight: DesignTokens.weightBold, letterSpacing: DesignTokens.letterSpacingEyebrow)),
+          Text(
+              'POSITION  ${(_pos * 100).toStringAsFixed(0)}% along ${_wallLabels[_wall].toLowerCase()} wall',
+              style: const TextStyle(
+                  fontSize: DesignTokens.typeXs,
+                  color: AppTheme.textSecondary,
+                  fontWeight: DesignTokens.weightBold,
+                  letterSpacing: DesignTokens.letterSpacingEyebrow)),
           Slider(
             value: _pos,
-            min: 0.1, max: 0.9,
+            min: 0.1,
+            max: 0.9,
             activeColor: AppTheme.accent,
             onChanged: (v) => setState(() => _pos = v),
           ),
           const SizedBox(height: DesignTokens.spaceXs),
           Text('WIDTH  ${(_widthFrac * 100).toStringAsFixed(0)}% of wall',
-              style: const TextStyle(fontSize: DesignTokens.typeXs, color: AppTheme.textSecondary, fontWeight: DesignTokens.weightBold, letterSpacing: DesignTokens.letterSpacingEyebrow)),
+              style: const TextStyle(
+                  fontSize: DesignTokens.typeXs,
+                  color: AppTheme.textSecondary,
+                  fontWeight: DesignTokens.weightBold,
+                  letterSpacing: DesignTokens.letterSpacingEyebrow)),
           Slider(
             value: _widthFrac,
-            min: 0.05, max: 0.40,
+            min: 0.05,
+            max: 0.40,
             activeColor: AppTheme.accent,
             onChanged: (v) => setState(() => _widthFrac = v),
           ),
           const SizedBox(height: DesignTokens.spaceMd),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.accent, foregroundColor: Colors.white),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.accent,
+                foregroundColor: Colors.white),
             onPressed: () {
-              widget.onSave(StoreEntrance(wall: _wall, pos: _pos, widthFrac: _widthFrac));
+              widget.onSave(
+                  StoreEntrance(wall: _wall, pos: _pos, widthFrac: _widthFrac));
               Navigator.pop(context);
             },
             child: const Text('SAVE ENTRANCE'),
@@ -506,9 +556,7 @@ class _StatCard extends StatelessWidget {
           decoration: BoxDecoration(
             color: Colors.white,
             border: Border.all(
-              color: highlighted
-                  ? AppTheme.accent
-                  : Colors.grey.shade200,
+              color: highlighted ? AppTheme.accent : Colors.grey.shade200,
               width: highlighted ? 1.5 : 1.0,
             ),
             borderRadius: borderRadius,
@@ -523,9 +571,8 @@ class _StatCard extends StatelessWidget {
                   Icon(
                     item.icon,
                     size: DesignTokens.iconMd,
-                    color: highlighted
-                        ? AppTheme.accent
-                        : AppTheme.textSecondary,
+                    color:
+                        highlighted ? AppTheme.accent : AppTheme.textSecondary,
                   ),
                   const Spacer(),
                   if (highlighted)
