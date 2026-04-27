@@ -254,7 +254,7 @@ class _StoreSetupCard extends StatelessWidget {
     final formKey = GlobalKey<FormState>();
     showDialog<void>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (dialogCtx) => AlertDialog(
         title: const Text('STORE DIMENSIONS'),
         content: Form(
           key: formKey,
@@ -284,7 +284,7 @@ class _StoreSetupCard extends StatelessWidget {
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('CANCEL')),
+          TextButton(onPressed: () => Navigator.pop(dialogCtx), child: const Text('CANCEL')),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: AppTheme.accent, foregroundColor: Colors.white),
             onPressed: () {
@@ -293,7 +293,7 @@ class _StoreSetupCard extends StatelessWidget {
                   double.parse(widthCtrl.text),
                   double.parse(depthCtrl.text),
                 );
-                Navigator.pop(context);
+                Navigator.pop(dialogCtx);
               }
             },
             child: const Text('CONFIRM'),
