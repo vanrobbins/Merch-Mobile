@@ -31,17 +31,17 @@ class BuilderCanvasPainter extends CustomPainter {
   final List<ZoneEdge>? wallEdges;
   final Map<String, PlanogramsTableData> planograms;
 
-  final Map<String, Rect> fixtureRects = {};
-  final Map<String, Map<String, Rect>> resizeHandleRects = {};
-  final Map<String, Rect> badgeRects = {};
-  final Map<String, Rect> badgeBackRects = {};
+  Map<String, Rect> fixtureRects = {};
+  Map<String, Map<String, Rect>> resizeHandleRects = {};
+  Map<String, Rect> badgeRects = {};
+  Map<String, Rect> badgeBackRects = {};
 
   @override
   void paint(Canvas canvas, Size size) {
-    fixtureRects.clear();
-    resizeHandleRects.clear();
-    badgeRects.clear();
-    badgeBackRects.clear();
+    fixtureRects = {};
+    resizeHandleRects = {};
+    badgeRects = {};
+    badgeBackRects = {};
     _drawZoneBackground(canvas, size);
     for (final fixture in fixtures) {
       _drawFixture(canvas, fixture);
@@ -440,6 +440,7 @@ class BuilderCanvasPainter extends CustomPainter {
       old.fixtures != fixtures ||
       old.selectedFixtureId != selectedFixtureId ||
       old.ghostPos != ghostPos ||
+      old.ghostType != ghostType ||
       old.wallEdges != wallEdges ||
       old.planograms != planograms;
 }

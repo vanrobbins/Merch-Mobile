@@ -150,7 +150,8 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
         final fixture = ref
             .read(floorBuilderNotifierProvider)
             .fixtures
-            .firstWhere((f) => f.id == entry.key, orElse: () => throw StateError('not found'));
+            .firstWhereOrNull((f) => f.id == entry.key);
+        if (fixture == null) continue;
         _onFixtureLongPress(fixture.id, fixture.label.isNotEmpty ? fixture.label : fixture.fixtureType.toUpperCase());
         return;
       }

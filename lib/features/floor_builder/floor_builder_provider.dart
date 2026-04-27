@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:collection/collection.dart';
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:riverpod/riverpod.dart' show Ref;
@@ -117,10 +118,11 @@ class FloorBuilderNotifier extends _$FloorBuilderNotifier {
   }
 
   /// Looks up the fixture by [id], applies [mutate], and persists the result.
-  Future<void> _updateFixture(String id, Fixture Function(Fixture) mutate) {
-    final fixture = state.fixtures.firstWhere((f) => f.id == id);
+  Future<void> _updateFixture(String id, Fixture Function(Fixture) mutate) async {
+    final fixture = state.fixtures.firstWhereOrNull((f) => f.id == id);
+    if (fixture == null) return;
     final updated = mutate(fixture).copyWith(updatedAt: DateTime.now());
-    return _dao.upsert(_fixtureToCompanion(updated));
+    await _dao.upsert(_fixtureToCompanion(updated));
   }
 
   void loadFixtures(String zoneId) {
