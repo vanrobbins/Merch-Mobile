@@ -6,7 +6,7 @@ part of 'floor_builder_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$zoneByIdHash() => r'583c200d6217104490e552e5bc19059e7d6a971c';
+String _$zoneByIdHash() => r'1120c625654f9a40fc40a34a2a62e214e2fa9ab0';
 
 /// Copied from Dart SDK
 class _SystemHash {

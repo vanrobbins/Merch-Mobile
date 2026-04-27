@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
+import 'package:riverpod/riverpod.dart' show Ref;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:uuid/uuid.dart';
 import '../../core/database/app_database.dart';
@@ -259,5 +260,5 @@ class FloorBuilderNotifier extends _$FloorBuilderNotifier {
 }
 
 @riverpod
-Future<ZonesTableData?> zoneById(ZoneByIdRef ref, String zoneId) =>
+Future<ZonesTableData?> zoneById(Ref ref, String zoneId) =>
     ref.watch(appDatabaseProvider).zonesDao.findById(zoneId);
