@@ -9,7 +9,7 @@ part of 'fixture.dart';
 _$FixtureImpl _$$FixtureImplFromJson(Map<String, dynamic> json) =>
     _$FixtureImpl(
       id: json['id'] as String,
-      zoneId: json['zoneId'] as String,
+      zoneId: json['zoneId'] as String?,
       fixtureType: json['fixtureType'] as String,
       posX: (json['posX'] as num?)?.toDouble() ?? 0.0,
       posY: (json['posY'] as num?)?.toDouble() ?? 0.0,
@@ -17,6 +17,9 @@ _$FixtureImpl _$$FixtureImplFromJson(Map<String, dynamic> json) =>
       widthFt: (json['widthFt'] as num?)?.toDouble() ?? 4.0,
       depthFt: (json['depthFt'] as num?)?.toDouble() ?? 2.0,
       label: json['label'] as String? ?? '',
+      planogramId: json['planogramId'] as String?,
+      planogramIdBack: json['planogramIdBack'] as String?,
+      wallAdjacent: json['wallAdjacent'] as bool? ?? false,
       updatedAt: DateTime.parse(json['updatedAt'] as String),
     );
 
@@ -31,5 +34,8 @@ Map<String, dynamic> _$$FixtureImplToJson(_$FixtureImpl instance) =>
       'widthFt': instance.widthFt,
       'depthFt': instance.depthFt,
       'label': instance.label,
+      'planogramId': instance.planogramId,
+      'planogramIdBack': instance.planogramIdBack,
+      'wallAdjacent': instance.wallAdjacent,
       'updatedAt': instance.updatedAt.toIso8601String(),
     };

@@ -52,6 +52,9 @@ Fixture _rowToFixture(FixturesTableData r) => Fixture(
       depthFt: r.depthFt,
       label: r.label,
       updatedAt: r.updatedAt,
+      planogramId: r.planogramId,
+      planogramIdBack: r.planogramIdBack,
+      wallAdjacent: r.wallAdjacent,
     );
 
 FixturesTableCompanion _fixtureToCompanion(Fixture f) => FixturesTableCompanion(
@@ -65,6 +68,9 @@ FixturesTableCompanion _fixtureToCompanion(Fixture f) => FixturesTableCompanion(
       depthFt: Value(f.depthFt),
       label: Value(f.label),
       updatedAt: Value(f.updatedAt),
+      planogramId: Value(f.planogramId),
+      planogramIdBack: Value(f.planogramIdBack),
+      wallAdjacent: Value(f.wallAdjacent),
     );
 
 // ---------------------------------------------------------------------------

@@ -2,44 +2,33 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Project Status
-
-Flutter foundation scaffold complete. Feature agents (2–5) are being developed in parallel on the `feature/build-flutter-app` branch.
-
 ## Project Context
 
-**Merch-Mobile** — offline-first retail VM mobile app for a C490 course (Spring 2026).
+**Merch-Mobile** — offline-first retail visual merchandising (VM) mobile app. Coordinators, managers, and staff manage store zones, floor layouts, planogram assignments, and mannequin outfits. Built as a C490 capstone (Spring 2026). See `docs/PROJECT_CONTEXT.md` for full architecture, schema, routes, and pending work — read it before exploring the codebase.
+
+**Current branch:** `feature/v0.2` | **Current milestone:** v0.25 complete, v0.2 Agents 4/6/7 + v0.3 pending.
 
 ## Stack
 
-- **Framework:** Flutter (Dart)
-- **State:** Riverpod (flutter_riverpod ^2.5.1 + riverpod_annotation)
-- **Navigation:** GoRouter ^14.2.7 with role-based guards
-- **Persistence:** Drift ^2.18.0 + drift_flutter (SQLite, offline-first)
-- **Auth:** Firebase Auth ^5.1.4 with custom claims (coordinator/staff/manager)
-- **Photos:** Firebase Storage + image_picker
-- **HTTP:** Dio ^5.5.0+1 with Bearer token interceptor
-- **Models:** @freezed with fromJson/toJson
+| Layer | Library |
+|---|---|
+| Framework | Flutter (Dart) |
+| State | Riverpod 2.5+ with `riverpod_annotation` (code-gen) |
+| Navigation | GoRouter 14+ with role-based guards |
+| Local DB | Drift 2.18+ (SQLite, offline-first), schemaVersion = 4 |
+| Auth | Firebase Auth 5+ with custom claims (coordinator/manager/staff) |
+| Photos | Firebase Storage + image_picker |
+| HTTP | Dio 5.5+ with Bearer token interceptor |
+| Models | `@freezed` with fromJson/toJson |
 
 ## Build Commands
 
 ```bash
-# Install dependencies
 flutter pub get
-
-# Run code generation (Drift, Riverpod, Freezed)
-dart run build_runner build --delete-conflicting-outputs
-
-# Analyze
+dart run build_runner build --delete-conflicting-outputs  # after any schema/annotation change
 flutter analyze
-
-# Run tests
 flutter test
-
-# Run on device/emulator
 flutter run
-
-# Build release APK
 flutter build apk --release
 ```
 
@@ -51,23 +40,27 @@ lib/
 ├── app.dart                   # MaterialApp.router + GoRouter
 ├── core/
 │   ├── database/
-│   │   ├── app_database.dart  # DriftDatabase (all tables + DAOs)
-│   │   ├── tables/            # ZonesTable, FixturesTable, ProductsTable, PlanogramsTable, PhotoDocsTable
-│   │   └── daos/              # One DAO per table with watchAll/watchByParentId/upsert/deleteById
-│   ├── models/                # @freezed models: AppUser, StoreZone, Fixture, Product, Planogram, PlanogramSlot, PhotoDoc
-│   ├── providers/             # appDatabaseProvider, authStateProvider, currentUserProvider, connectivityProvider
-│   ├── router/                # GoRouter with 11 named routes + auth guards
-│   ├── services/              # AuthService, ApiClient (Dio), SyncService, firebase_options.dart
-│   ├── theme/                 # AppTheme (warm-neutral palette), design_tokens.dart (Agent 4)
-│   └── widgets/               # AppScaffold (4-tab), LoadingIndicator, mm_* components (Agent 4)
+│   │   ├── app_database.dart  # DriftDatabase — all tables + DAOs, schemaVersion = 4
+│   │   ├── tables/            # One file per table
+│   │   └── daos/              # One DAO file per table
+│   ├── models/                # @freezed models
+│   ├── providers/             # appDatabaseProvider, authStateProvider, activeStoreProvider,
+│   │                          # currentMembershipProvider, connectivityProvider
+│   ├── router/                # app_router.dart — GoRouter + AppRoutes/AppPaths constants
+│   ├── services/              # AuthService, ApiClient (Dio), SyncService
+│   ├── theme/                 # AppTheme, design_tokens.dart
+│   └── widgets/               # AppScaffold (4-tab), RoleGuard, shared mm_* components
 └── features/
-    ├── auth/                  # SplashScreen, LoginScreen, LoginNotifier
-    ├── zone_manager/          # (Agent 2) ZoneMapScreen, ZoneMapPainter, ZoneLegendPanel
-    ├── floor_builder/         # (Agent 3) FloorBuilderScreen, BuilderCanvasPainter
-    ├── auto_build/            # (Agent 3) AutoBuildScreen, BeforeAfterPreview
-    ├── planogram/             # (Agent 2 secondary) PlanogramListScreen, PlanogramDetailScreen
-    ├── product_catalog/       # (Agent 2 secondary) CatalogScreen, ProductCard
-    └── photo_docs/            # (Agent 1 secondary) PhotoListScreen, PhotoDetailScreen
+    ├── auth/                  # SplashScreen, LoginScreen
+    ├── store/                 # StoreGateScreen, CreateStoreScreen, JoinStoreScreen,
+    │                          # PendingApprovalScreen, MembersScreen, GroupManagementScreen
+    ├── dashboard/             # DashboardScreen
+    ├── zone_manager/          # ZoneMapScreen, ZoneDetailScreen
+    ├── floor_builder/         # FloorBuilderScreen, BuilderCanvasPainter, FloorBuilderProvider
+    ├── auto_build/            # AutoBuildScreen (stub)
+    ├── planogram/             # PlanogramListScreen, PlanogramDetailScreen, ProposalReviewScreen
+    ├── product_catalog/       # CatalogScreen, ProductCard
+    └── photo_docs/            # PhotoListScreen, PhotoDetailScreen
 ```
 
 ## Theme
@@ -77,14 +70,47 @@ lib/
 - Canvas background: `#F2EFE8` (warm off-white)
 - Border radius: 2px throughout
 - AppBar titles: ALL CAPS
+- Mini-panel background: `#1A1917` (dark)
+
+## Architecture Rules
+
+1. **Store Canvas boundary** — `ZoneMapScreen` reads zones only, never fixtures.
+2. **Store-scoped queries** — all DAOs scope to `storeId` via `activeStoreProvider`.
+3. **RoleGuard** — every write action (FAB, edit button, delete) must be wrapped in `RoleGuard`. No raw role checks in build methods.
+4. **Schema migrations** — bump `schemaVersion` + `destructiveFallback`. No incremental steps.
+5. **Code generation** — after any Drift table, `@freezed`, or `@riverpod` change: run `build_runner build`.
+
+## Skills to Use
+
+Always check for applicable skills before starting any task. Key skills for this project:
+
+- **`superpowers:brainstorming`** — before any new feature, refactor, or design decision
+- **`superpowers:writing-plans`** — before implementing a multi-step agent scope
+- **`superpowers:executing-plans`** — when working from a written plan
+- **`superpowers:systematic-debugging`** — before investigating any bug or test failure
+- **`superpowers:test-driven-development`** — when writing any feature or fix
+- **`superpowers:verification-before-completion`** — before claiming work is done
+- **`superpowers:finishing-a-development-branch`** — when a milestone is ready to merge/tag
+- **`superpowers:requesting-code-review`** — after completing a major feature or agent scope
+- **`frontend-design:frontend-design`** — when building or polishing any UI screen or component
+- **`simplify`** — after implementing a feature, to clean up the changed code
+
+## Keeping Context Current
+
+After completing any meaningful work, update `docs/PROJECT_CONTEXT.md`:
+
+- Bump `schemaVersion` in the schema table when it changes
+- Update table column lists when columns are added/removed
+- Mark agent/milestone status as ✅ Complete (with branch and date) when done
+- Update the **Pending Work** section — remove completed items, reorder if priorities shift
+- Update the **Last updated** datestamp at the top
+
+Do this at the end of every session. Also save notable decisions, preferences, and project state to memory files in `.claude/memory/`.
 
 ## Cross-Agent File Ownership
 
-- `lib/core/` — Agent 1 only (Agent 4 may add to `lib/core/widgets/` only)
-- `lib/features/auth/` — Agent 1
-- `lib/features/photo_docs/` — Agent 1 Secondary
-- `lib/features/zone_manager/` — Agent 2 Primary
-- `lib/features/planogram/`, `lib/features/product_catalog/` — Agent 2 Secondary
-- `lib/features/floor_builder/`, `lib/features/auto_build/` — Agent 3
-- `lib/core/widgets/` (shared only), `lib/core/theme/design_tokens.dart` — Agent 4
-- `test/` — Agent 5 only
+- `lib/core/` — foundation agent only (exception: `lib/core/widgets/` is shared)
+- `lib/features/zone_manager/` — zone/canvas agents
+- `lib/features/floor_builder/` — floor builder agents
+- `lib/features/planogram/` — planogram agents
+- `test/` — test agent only

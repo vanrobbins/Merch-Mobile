@@ -1,22 +1,21 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/design_tokens.dart';
 import 'zone_map_provider.dart';
 
 class ZoneShapePicker {
-  static void show(BuildContext context, WidgetRef ref, String zoneId) {
+  static void show(BuildContext context, ZoneMapNotifier notifier, String zoneId) {
     showModalBottomSheet<void>(
       context: context,
-      builder: (_) => _ZoneShapePickerSheet(zoneId: zoneId, ref: ref),
+      builder: (_) => _ZoneShapePickerSheet(zoneId: zoneId, notifier: notifier),
     );
   }
 }
 
 class _ZoneShapePickerSheet extends StatelessWidget {
-  const _ZoneShapePickerSheet({required this.zoneId, required this.ref});
+  const _ZoneShapePickerSheet({required this.zoneId, required this.notifier});
   final String zoneId;
-  final WidgetRef ref;
+  final ZoneMapNotifier notifier;
 
   static const _shapes = [
     ('rectangle', 'Rectangle', Icons.crop_square),
@@ -48,9 +47,7 @@ class _ZoneShapePickerSheet extends StatelessWidget {
             children: _shapes.map(((String, String, IconData) s) {
               return GestureDetector(
                 onTap: () {
-                  ref
-                      .read(zoneMapNotifierProvider.notifier)
-                      .applyPreset(zoneId, s.$1);
+                  notifier.applyPreset(zoneId, s.$1);
                   Navigator.pop(context);
                 },
                 child: Container(

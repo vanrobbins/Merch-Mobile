@@ -11,7 +11,8 @@
       "Write(*)",
       "Edit(*)",
       "Read(*)",
-      "Bash(adb shell:*)"
+      "Bash(adb shell:*)",
+      "Bash(grep \"^export\\\\|Ref$\\\\|show Ref\\\\|hide.*Ref\")"
     ]
   }
 }

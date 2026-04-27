@@ -1,5 +1,6 @@
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
+import '../../core/database/app_database.dart';
 import '../../core/models/fixture.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/design_tokens.dart';
@@ -16,6 +17,7 @@ class BuilderCanvasPainter extends CustomPainter {
     this.zoneColor,
     this.zoneName,
     this.wallEdges,
+    this.planograms = const {},
   });
 
   final List<Fixture> fixtures;
@@ -27,12 +29,19 @@ class BuilderCanvasPainter extends CustomPainter {
   final Color? zoneColor;
   final String? zoneName;
   final List<ZoneEdge>? wallEdges;
+  final Map<String, PlanogramsTableData> planograms;
 
-  final Map<String, Rect> fixtureRects = {};
+  Map<String, Rect> fixtureRects = {};
+  Map<String, Map<String, Rect>> resizeHandleRects = {};
+  Map<String, Rect> badgeRects = {};
+  Map<String, Rect> badgeBackRects = {};
 
   @override
   void paint(Canvas canvas, Size size) {
-    fixtureRects.clear();
+    fixtureRects = {};
+    resizeHandleRects = {};
+    badgeRects = {};
+    badgeBackRects = {};
     _drawZoneBackground(canvas, size);
     for (final fixture in fixtures) {
       _drawFixture(canvas, fixture);
@@ -42,6 +51,12 @@ class BuilderCanvasPainter extends CustomPainter {
     }
     if (wallEdges != null) {
       _drawEdgeHandles(canvas, wallEdges!);
+    }
+    for (final fixture in fixtures) {
+      if (fixture.id == selectedFixtureId) {
+        _drawResizeHandles(canvas, fixture);
+      }
+      _drawPlanogramBadges(canvas, fixture);
     }
   }
 
@@ -283,10 +298,149 @@ class BuilderCanvasPainter extends CustomPainter {
     );
   }
 
+  void _drawResizeHandles(Canvas canvas, Fixture fixture) {
+    final rect = fixtureRects[fixture.id];
+    if (rect == null) return;
+    final handles = _handlesForType(fixture.fixtureType);
+    final handleRects = <String, Rect>{};
+    const handleSize = 18.0;
+    for (final h in handles) {
+      Offset center;
+      switch (h) {
+        case 'top':
+          center = Offset(rect.center.dx, rect.top);
+        case 'bottom':
+          center = Offset(rect.center.dx, rect.bottom);
+        case 'left':
+          center = Offset(rect.left, rect.center.dy);
+        case 'right':
+          center = Offset(rect.right, rect.center.dy);
+        default:
+          continue;
+      }
+      final hr = Rect.fromCenter(center: center, width: handleSize, height: handleSize);
+      handleRects[h] = hr;
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(hr, const Radius.circular(4)),
+        Paint()..color = AppTheme.accent..style = PaintingStyle.fill,
+      );
+      _drawArrow(canvas, center, h == 'left' || h == 'right');
+    }
+    resizeHandleRects[fixture.id] = handleRects;
+  }
+
+  List<String> _handlesForType(String fixtureType) {
+    switch (fixtureType) {
+      case 'wall':
+      case 'shelf':
+        return ['left', 'right'];
+      case 'rack':
+      case 'table':
+      case 'partition':
+      default:
+        return ['top', 'bottom', 'left', 'right'];
+    }
+  }
+
+  void _drawArrow(Canvas canvas, Offset center, bool horizontal) {
+    final paint = Paint()
+      ..color = Colors.white
+      ..strokeWidth = 1.5
+      ..strokeCap = StrokeCap.round;
+    const arm = 4.0;
+    // `axis` runs along the arrow shaft; `cross` is the perpendicular barb width.
+    final axis = horizontal ? const Offset(arm, 0) : const Offset(0, arm);
+    final cross = horizontal ? const Offset(0, 2) : const Offset(2, 0);
+    final inward = axis * (2 / arm); // 2-pixel step from each tip toward center
+    final tip1 = center - axis;
+    final tip2 = center + axis;
+    canvas.drawLine(tip1, tip2, paint);
+    canvas.drawLine(tip1, tip1 + inward - cross, paint);
+    canvas.drawLine(tip1, tip1 + inward + cross, paint);
+    canvas.drawLine(tip2, tip2 - inward - cross, paint);
+    canvas.drawLine(tip2, tip2 - inward + cross, paint);
+  }
+
+  void _drawPlanogramBadges(Canvas canvas, Fixture fixture) {
+    final rect = fixtureRects[fixture.id];
+    if (rect == null) return;
+    if (fixture.fixtureType == 'partition') {
+      _drawPartitionBadges(canvas, fixture, rect);
+    } else {
+      final badgeRect = _badgeRect(Offset(rect.right - 2, rect.bottom - 2), anchor: 'bottomRight');
+      badgeRects[fixture.id] = badgeRect;
+      _paintBadge(canvas, badgeRect, fixture.planogramId, planograms[fixture.planogramId]?.title);
+    }
+  }
+
+  void _drawPartitionBadges(Canvas canvas, Fixture fixture, Rect rect) {
+    final isWide = rect.width >= rect.height;
+    if (isWide) {
+      final frontRect = _badgeRect(Offset(rect.center.dx, rect.bottom - 2), anchor: 'bottomCenter');
+      badgeRects[fixture.id] = frontRect;
+      _paintBadge(canvas, frontRect, fixture.planogramId, planograms[fixture.planogramId]?.title);
+      if (!fixture.wallAdjacent) {
+        final backRect = _badgeRect(Offset(rect.center.dx, rect.top + 2), anchor: 'topCenter');
+        badgeBackRects[fixture.id] = backRect;
+        _paintBadge(canvas, backRect, fixture.planogramIdBack, planograms[fixture.planogramIdBack]?.title);
+      }
+    } else {
+      final frontRect = _badgeRect(Offset(rect.right - 2, rect.center.dy), anchor: 'rightCenter');
+      badgeRects[fixture.id] = frontRect;
+      _paintBadge(canvas, frontRect, fixture.planogramId, planograms[fixture.planogramId]?.title);
+      if (!fixture.wallAdjacent) {
+        final backRect = _badgeRect(Offset(rect.left + 2, rect.center.dy), anchor: 'leftCenter');
+        badgeBackRects[fixture.id] = backRect;
+        _paintBadge(canvas, backRect, fixture.planogramIdBack, planograms[fixture.planogramIdBack]?.title);
+      }
+    }
+  }
+
+  Rect _badgeRect(Offset anchorPt, {required String anchor}) {
+    const w = 44.0;
+    const h = 18.0;
+    switch (anchor) {
+      case 'bottomRight':
+        return Rect.fromLTWH(anchorPt.dx - w, anchorPt.dy - h, w, h);
+      case 'bottomCenter':
+        return Rect.fromCenter(center: Offset(anchorPt.dx, anchorPt.dy - h / 2), width: w, height: h);
+      case 'topCenter':
+        return Rect.fromCenter(center: Offset(anchorPt.dx, anchorPt.dy + h / 2), width: w, height: h);
+      case 'rightCenter':
+        return Rect.fromLTWH(anchorPt.dx - w, anchorPt.dy - h / 2, w, h);
+      case 'leftCenter':
+        return Rect.fromLTWH(anchorPt.dx, anchorPt.dy - h / 2, w, h);
+      default:
+        return Rect.fromCenter(center: anchorPt, width: w, height: h);
+    }
+  }
+
+  void _paintBadge(Canvas canvas, Rect rect, String? planogramId, String? title) {
+    final isAssigned = planogramId != null;
+    final bgColor = isAssigned ? AppTheme.accent : Colors.grey.shade400;
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(rect, const Radius.circular(3)),
+      Paint()..color = bgColor,
+    );
+    final label = isAssigned
+        ? (title != null && title.length > 14 ? '${title.substring(0, 13)}\u2026' : (title ?? '\u2014'))
+        : '\u2014';
+    final tp = TextPainter(
+      text: TextSpan(
+        text: label,
+        style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.w700),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout(maxWidth: rect.width - 4);
+    tp.paint(canvas, Offset(rect.left + (rect.width - tp.width) / 2, rect.top + (rect.height - tp.height) / 2));
+  }
+
   @override
   bool shouldRepaint(BuilderCanvasPainter old) =>
       old.fixtures != fixtures ||
       old.selectedFixtureId != selectedFixtureId ||
       old.ghostPos != ghostPos ||
-      old.wallEdges != wallEdges;
+      old.ghostType != ghostType ||
+      old.wallEdges != wallEdges ||
+      old.planograms != planograms;
 }

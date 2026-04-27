@@ -1,0 +1,81 @@
+<h2>How should zones be moved and edited?</h2>
+<p class="subtitle">Currently you can only drag vertices. v0.25 adds whole-zone movement — which model feels right?</p>
+
+<div class="options">
+  <div class="option" data-choice="two-mode" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Two-mode: Select → Move or Edit</h3>
+      <p>Tap a zone to select it. Selected zone shows two controls: a <strong>move handle</strong> (drag from center icon to reposition the whole zone) and <strong>vertex handles</strong> (drag corners to reshape). Tapping empty space deselects.</p>
+      <div style="margin-top:14px;background:#f2efe8;border:1px solid #d4cfc6;border-radius:2px;padding:12px;">
+        <!-- mockup -->
+        <div style="position:relative;height:140px;background:#fff;border:1px solid #ccc;border-radius:2px;overflow:hidden;">
+          <!-- Zone polygon mockup -->
+          <svg width="100%" height="100%" style="position:absolute;top:0;left:0;">
+            <polygon points="60,20 200,20 200,100 120,120 60,100" fill="rgba(59,107,194,0.12)" stroke="#3B6BC2" stroke-width="2"/>
+            <!-- vertex handles -->
+            <circle cx="60" cy="20" r="7" fill="#3B6BC2" stroke="white" stroke-width="2"/>
+            <circle cx="200" cy="20" r="7" fill="#3B6BC2" stroke="white" stroke-width="2"/>
+            <circle cx="200" cy="100" r="7" fill="#3B6BC2" stroke="white" stroke-width="2"/>
+            <circle cx="120" cy="120" r="7" fill="#3B6BC2" stroke="white" stroke-width="2"/>
+            <circle cx="60" cy="100" r="7" fill="#3B6BC2" stroke="white" stroke-width="2"/>
+            <!-- center move handle -->
+            <circle cx="128" cy="72" r="14" fill="#BF5534" stroke="white" stroke-width="2"/>
+            <text x="128" y="77" text-anchor="middle" fill="white" font-size="14">⊕</text>
+            <text x="128" y="42" text-anchor="middle" fill="#3B6BC2" font-size="10" font-weight="700" letter-spacing="1">WOMENS</text>
+          </svg>
+          <div style="position:absolute;bottom:8px;right:8px;font-size:10px;color:#888;">Drag ⊕ to move · Drag circles to reshape</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="figma-style" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Figma-style: drag interior = move, drag vertex = reshape</h3>
+      <p>Tap to select. Drag from inside the zone polygon = moves whole zone. Drag a vertex = reshapes. No separate move handle — the behavior changes based on where you touch.</p>
+      <div style="margin-top:14px;background:#f2efe8;border:1px solid #d4cfc6;border-radius:2px;padding:12px;">
+        <div style="position:relative;height:140px;background:#fff;border:1px solid #ccc;border-radius:2px;overflow:hidden;">
+          <svg width="100%" height="100%" style="position:absolute;top:0;left:0;">
+            <polygon points="60,20 200,20 200,100 120,120 60,100" fill="rgba(59,107,194,0.15)" stroke="#BF5534" stroke-width="2.5" stroke-dasharray="5,3"/>
+            <!-- vertex handles -->
+            <circle cx="60" cy="20" r="7" fill="white" stroke="#BF5534" stroke-width="2"/>
+            <circle cx="200" cy="20" r="7" fill="white" stroke="#BF5534" stroke-width="2"/>
+            <circle cx="200" cy="100" r="7" fill="white" stroke="#BF5534" stroke-width="2"/>
+            <circle cx="120" cy="120" r="7" fill="white" stroke="#BF5534" stroke-width="2"/>
+            <circle cx="60" cy="100" r="7" fill="white" stroke="#BF5534" stroke-width="2"/>
+            <!-- interior drag hint -->
+            <text x="128" y="66" text-anchor="middle" fill="#3B6BC2" font-size="10" font-weight="700" letter-spacing="1">WOMENS</text>
+            <text x="128" y="82" text-anchor="middle" fill="#888" font-size="10">drag here to move</text>
+          </svg>
+          <div style="position:absolute;bottom:8px;right:8px;font-size:10px;color:#888;">Dashed = selected · white circles = reshape handles</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="toolbar-mode" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Toolbar mode toggle: Move vs Edit Shape</h3>
+      <p>A small toolbar (or FAB) lets you toggle between <strong>Move Mode</strong> (drag anywhere on zone to reposition it) and <strong>Edit Mode</strong> (vertex handles appear to reshape). Clear, explicit, no ambiguity.</p>
+      <div style="margin-top:14px;background:#f2efe8;border:1px solid #d4cfc6;border-radius:2px;padding:12px;">
+        <div style="position:relative;height:140px;background:#fff;border:1px solid #ccc;border-radius:2px;overflow:hidden;">
+          <!-- toolbar -->
+          <div style="position:absolute;top:8px;right:8px;display:flex;gap:4px;z-index:10;">
+            <div style="background:#1A1917;color:white;border-radius:2px;padding:4px 8px;font-size:10px;font-weight:700;">MOVE</div>
+            <div style="background:#f2efe8;color:#888;border:1px solid #ccc;border-radius:2px;padding:4px 8px;font-size:10px;">SHAPE</div>
+          </div>
+          <svg width="100%" height="100%" style="position:absolute;top:0;left:0;">
+            <polygon points="60,20 200,20 200,100 120,120 60,100" fill="rgba(59,107,194,0.12)" stroke="#3B6BC2" stroke-width="2"/>
+            <text x="128" y="66" text-anchor="middle" fill="#3B6BC2" font-size="10" font-weight="700" letter-spacing="1">WOMENS</text>
+            <text x="128" y="82" text-anchor="middle" fill="#888" font-size="10">drag anywhere to move</text>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<p style="margin-top:16px;font-size:13px;color:#6b6762;">I lean toward <strong>B (Figma-style)</strong> — it's the most intuitive once you understand it, and matches what designers expect. But <strong>A</strong> is more explicit and easier to discover for non-designers.</p>

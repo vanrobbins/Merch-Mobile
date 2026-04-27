@@ -47,7 +47,7 @@ class ProductCard extends ConsumerWidget {
                     ),
                     // Stock badge (coordinator/manager only)
                     RoleGuard(
-                      allowedRoles: ['coordinator', 'manager'],
+                      allowedRoles: const ['coordinator', 'manager'],
                       child: Positioned(
                         top: DesignTokens.spaceXs,
                         right: DesignTokens.spaceXs,

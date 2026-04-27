@@ -1,0 +1,71 @@
+<h2>Store size and grid</h2>
+<p class="subtitle">Should the canvas have defined physical dimensions, or be open-ended?</p>
+
+<div class="options">
+  <div class="option" data-choice="defined-size" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Defined store dimensions (recommended)</h3>
+      <p>Coordinator sets store width × depth in feet (e.g. 60ft × 40ft) in a one-time setup step. The canvas draws a bordered <strong>store boundary rectangle</strong> at that size, with a ft grid inside. Zones must fit within the boundary. Fixtures outside a zone but inside the store are allowed.</p>
+      <div style="margin-top:12px;background:#f2efe8;padding:10px;border:1px solid #d4cfc6;border-radius:2px;">
+        <div style="position:relative;height:120px;background:#fff;border:2px solid #1A1917;border-radius:2px;overflow:hidden;">
+          <!-- grid lines -->
+          <svg width="100%" height="100%" style="position:absolute;top:0;left:0;">
+            <!-- vertical grid lines every ~30px (= 3ft at 10px/ft) -->
+            <line x1="30" y1="0" x2="30" y2="120" stroke="#e0ddd6" stroke-width="0.5"/>
+            <line x1="60" y1="0" x2="60" y2="120" stroke="#e0ddd6" stroke-width="0.5"/>
+            <line x1="90" y1="0" x2="90" y2="120" stroke="#e0ddd6" stroke-width="0.5"/>
+            <line x1="120" y1="0" x2="120" y2="120" stroke="#e0ddd6" stroke-width="0.5"/>
+            <line x1="150" y1="0" x2="150" y2="120" stroke="#e0ddd6" stroke-width="0.5"/>
+            <line x1="180" y1="0" x2="180" y2="120" stroke="#e0ddd6" stroke-width="0.5"/>
+            <line x1="210" y1="0" x2="210" y2="120" stroke="#e0ddd6" stroke-width="0.5"/>
+            <line x1="240" y1="0" x2="240" y2="120" stroke="#e0ddd6" stroke-width="0.5"/>
+            <line x1="270" y1="0" x2="270" y2="120" stroke="#e0ddd6" stroke-width="0.5"/>
+            <line x1="300" y1="0" x2="300" y2="120" stroke="#e0ddd6" stroke-width="0.5"/>
+            <!-- horizontal grid lines -->
+            <line x1="0" y1="30" x2="400" y2="30" stroke="#e0ddd6" stroke-width="0.5"/>
+            <line x1="0" y1="60" x2="400" y2="60" stroke="#e0ddd6" stroke-width="0.5"/>
+            <line x1="0" y1="90" x2="400" y2="90" stroke="#e0ddd6" stroke-width="0.5"/>
+            <!-- zone polygon -->
+            <polygon points="40,15 140,15 140,75 90,85 40,75" fill="rgba(59,107,194,0.12)" stroke="#3B6BC2" stroke-width="1.5"/>
+            <polygon points="160,20 260,20 260,90 160,90" fill="rgba(191,85,52,0.1)" stroke="#BF5534" stroke-width="1.5"/>
+            <!-- dimension labels -->
+            <text x="2" y="115" font-size="8" fill="#9E9890">0</text>
+            <text x="295" y="115" font-size="8" fill="#9E9890">60ft</text>
+            <text x="2" y="10" font-size="8" fill="#9E9890">40ft</text>
+          </svg>
+          <div style="position:absolute;bottom:4px;right:4px;font-size:9px;color:#9E9890;background:rgba(255,255,255,0.8);padding:2px 4px;">Store: 60 × 40 ft</div>
+        </div>
+      </div>
+      <p style="margin-top:8px;font-size:12px;color:#6b6762;">Store dimensions saved in a new <code>stores.width_ft / depth_ft</code> column. One-time setup, editable from store settings.</p>
+    </div>
+  </div>
+
+  <div class="option" data-choice="open-canvas" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Open canvas — grid only, no boundary</h3>
+      <p>No store size defined. The grid is purely a visual reference for spacing. Canvas is infinite — zones can go anywhere. Simpler to implement, but you lose the ability to know if zones fit in your real store.</p>
+      <div style="margin-top:12px;background:#f2efe8;padding:10px;border:1px solid #d4cfc6;border-radius:2px;">
+        <div style="position:relative;height:120px;background:#fff;overflow:hidden;border-radius:2px;border:1px solid #ccc;">
+          <svg width="100%" height="100%" style="position:absolute;top:0;left:0;">
+            <line x1="30" y1="0" x2="30" y2="120" stroke="#ebe8e2" stroke-width="0.5"/>
+            <line x1="60" y1="0" x2="60" y2="120" stroke="#ebe8e2" stroke-width="0.5"/>
+            <line x1="90" y1="0" x2="90" y2="120" stroke="#ebe8e2" stroke-width="0.5"/>
+            <line x1="120" y1="0" x2="120" y2="120" stroke="#ebe8e2" stroke-width="0.5"/>
+            <line x1="150" y1="0" x2="150" y2="120" stroke="#ebe8e2" stroke-width="0.5"/>
+            <line x1="180" y1="0" x2="180" y2="120" stroke="#ebe8e2" stroke-width="0.5"/>
+            <line x1="0" y1="30" x2="400" y2="30" stroke="#ebe8e2" stroke-width="0.5"/>
+            <line x1="0" y1="60" x2="400" y2="60" stroke="#ebe8e2" stroke-width="0.5"/>
+            <line x1="0" y1="90" x2="400" y2="90" stroke="#ebe8e2" stroke-width="0.5"/>
+            <polygon points="40,15 140,15 140,75 90,85 40,75" fill="rgba(59,107,194,0.12)" stroke="#3B6BC2" stroke-width="1.5"/>
+            <polygon points="160,20 260,20 260,90 160,90" fill="rgba(191,85,52,0.1)" stroke="#BF5534" stroke-width="1.5"/>
+          </svg>
+          <div style="position:absolute;bottom:4px;right:4px;font-size:9px;color:#aaa;background:rgba(255,255,255,0.8);padding:2px 4px;">Grid: 3ft squares</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<p style="margin-top:16px;font-size:13px;color:#6b6762;">I recommend <strong>A</strong> — the store boundary makes placement meaningful. Requires adding <code>width_ft / depth_ft</code> to the stores table, which is a small schema change.</p>

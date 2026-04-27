@@ -1,15 +1,20 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/database/app_database.dart';
 import '../../core/providers/store_provider.dart';
 import '../../core/router/app_router.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/design_tokens.dart';
+import '../store/store_switcher_sheet.dart';
+import '../zone_manager/store_entrance.dart';
+import '../zone_manager/zone_map_provider.dart';
 import 'dashboard_provider.dart';
 
 /// Role-aware home screen for the active store.
-/// - Coordinator: zones, fixtures, products, join requests, proposals.
+/// - Coordinator: zones, fixtures, products, join requests, proposals, store setup.
 /// - Manager: products, join requests, proposals.
 /// - Staff: my photos, my proposals.
 class DashboardScreen extends ConsumerWidget {
@@ -21,8 +26,42 @@ class DashboardScreen extends ConsumerWidget {
     final membership = ref.watch(currentMembershipProvider).value;
     final role = membership?.role ?? 'staff';
 
+    final activeStore = ref.watch(activeStoreProvider).value;
+
     return Scaffold(
-      appBar: AppBar(title: const Text('DASHBOARD')),
+      appBar: AppBar(
+        title: GestureDetector(
+          onTap: () => StoreSwitcherSheet.show(context),
+          behavior: HitTestBehavior.opaque,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Flexible(
+                child: Text(
+                  activeStore?.name.toUpperCase() ?? 'MERCH MOBILE',
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: DesignTokens.typeMd,
+                    fontWeight: DesignTokens.weightBold,
+                    letterSpacing: DesignTokens.letterSpacingAppBar,
+                  ),
+                ),
+              ),
+              const Icon(Icons.keyboard_arrow_down, size: 18),
+            ],
+          ),
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            tooltip: 'Log out',
+            onPressed: () async {
+              await ref.read(activeStoreIdProvider.notifier).clearStore();
+              await FirebaseAuth.instance.signOut();
+            },
+          ),
+        ],
+      ),
       body: statsAsync.when(
         data: (stats) => ListView(
           padding: const EdgeInsets.all(DesignTokens.spaceMd),
@@ -33,13 +72,14 @@ class DashboardScreen extends ConsumerWidget {
               margin: const EdgeInsets.only(bottom: DesignTokens.spaceMd),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  // ignore: deprecated_member_use
-                  colors: [AppTheme.primary, AppTheme.primary.withOpacity(0.85)],
+                  colors: [
+                    AppTheme.primary,
+                    AppTheme.primary.withValues(alpha: 0.85),
+                  ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
-                borderRadius:
-                    BorderRadius.circular(AppTheme.borderRadius),
+                borderRadius: BorderRadius.circular(AppTheme.borderRadius),
                 boxShadow: const [AppTheme.cardShadow],
               ),
               child: Column(
@@ -68,6 +108,8 @@ class DashboardScreen extends ConsumerWidget {
             ),
 
             if (role == 'coordinator') ...[
+              _StoreSetupCard(ref: ref),
+              const SizedBox(height: DesignTokens.spaceMd),
               _StatsGrid(items: [
                 _StatItem(
                   'Zones',
@@ -179,6 +221,323 @@ class DashboardScreen extends ConsumerWidget {
   }
 }
 
+class _StoreSetupCard extends StatelessWidget {
+  const _StoreSetupCard({required this.ref});
+  final WidgetRef ref;
+
+  @override
+  Widget build(BuildContext context) {
+    final zoneState = ref.watch(zoneMapNotifierProvider);
+    final store = zoneState.storeData;
+    final hasDims = store?.widthFt != null && store?.depthFt != null;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: Colors.grey.shade200),
+        borderRadius: BorderRadius.circular(AppTheme.borderRadius),
+        boxShadow: const [AppTheme.cardShadow],
+      ),
+      padding: const EdgeInsets.all(DesignTokens.spaceMd),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'STORE SETUP',
+            style: TextStyle(
+              fontSize: DesignTokens.typeXs,
+              fontWeight: DesignTokens.weightBold,
+              letterSpacing: DesignTokens.letterSpacingEyebrow,
+              color: AppTheme.textSecondary,
+            ),
+          ),
+          const SizedBox(height: DesignTokens.spaceSm),
+          Row(
+            children: [
+              const Icon(Icons.straighten,
+                  size: DesignTokens.iconSm, color: AppTheme.textSecondary),
+              const SizedBox(width: DesignTokens.spaceXs),
+              Expanded(
+                child: Text(
+                  hasDims
+                      ? '${store!.widthFt!.toStringAsFixed(0)} ft × ${store.depthFt!.toStringAsFixed(0)} ft'
+                      : 'No dimensions set',
+                  style: const TextStyle(fontSize: DesignTokens.typeSm),
+                ),
+              ),
+              TextButton(
+                onPressed: () => _showDimensionsDialog(context),
+                child: Text(hasDims ? 'EDIT' : 'SET SIZE'),
+              ),
+            ],
+          ),
+          const SizedBox(height: DesignTokens.spaceXs),
+          _EntranceRow(ref: ref, store: store),
+        ],
+      ),
+    );
+  }
+
+  void _showDimensionsDialog(BuildContext context) {
+    final widthCtrl = TextEditingController();
+    final depthCtrl = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+    showDialog<void>(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        title: const Text('STORE DIMENSIONS'),
+        content: Form(
+          key: formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextFormField(
+                controller: widthCtrl,
+                keyboardType:
+                    const TextInputType.numberWithOptions(decimal: true),
+                decoration: const InputDecoration(
+                    labelText: 'Width (ft)', border: OutlineInputBorder()),
+                validator: (v) {
+                  final n = double.tryParse(v ?? '');
+                  return (n == null || n <= 0)
+                      ? 'Enter a positive number'
+                      : null;
+                },
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: depthCtrl,
+                keyboardType:
+                    const TextInputType.numberWithOptions(decimal: true),
+                decoration: const InputDecoration(
+                    labelText: 'Depth (ft)', border: OutlineInputBorder()),
+                validator: (v) {
+                  final n = double.tryParse(v ?? '');
+                  return (n == null || n <= 0)
+                      ? 'Enter a positive number'
+                      : null;
+                },
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(dialogCtx),
+              child: const Text('CANCEL')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.accent,
+                foregroundColor: Colors.white),
+            onPressed: () {
+              if (formKey.currentState!.validate()) {
+                ref
+                    .read(zoneMapNotifierProvider.notifier)
+                    .updateStoreDimensions(
+                      double.parse(widthCtrl.text),
+                      double.parse(depthCtrl.text),
+                    );
+                Navigator.pop(dialogCtx);
+              }
+            },
+            child: const Text('CONFIRM'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _EntranceRow extends StatelessWidget {
+  const _EntranceRow({required this.ref, required this.store});
+  final WidgetRef ref;
+  final StoresTableData? store;
+
+  @override
+  Widget build(BuildContext context) {
+    final entrance = StoreEntrance.fromJson(store?.entranceJson);
+    final notifier = ref.read(zoneMapNotifierProvider.notifier);
+
+    if (entrance == null) {
+      return SizedBox(
+        width: double.infinity,
+        child: OutlinedButton.icon(
+          onPressed: () => _showEditor(context, notifier, null),
+          icon: const Icon(Icons.door_front_door_outlined, size: 16),
+          label: const Text('ADD ENTRANCE'),
+        ),
+      );
+    }
+
+    return Row(
+      children: [
+        Expanded(
+          child: OutlinedButton.icon(
+            onPressed: () => _showEditor(context, notifier, entrance),
+            icon: const Icon(Icons.door_front_door_outlined, size: 16),
+            label: Text('EDIT ENTRANCE (${entrance.wallName})'),
+          ),
+        ),
+        const SizedBox(width: DesignTokens.spaceXs),
+        OutlinedButton(
+          onPressed: () => notifier.removeEntrance(),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: Colors.red.shade600,
+            side: BorderSide(color: Colors.red.shade600),
+          ),
+          child: const Text('REMOVE'),
+        ),
+      ],
+    );
+  }
+
+  void _showEditor(
+      BuildContext context, ZoneMapNotifier notifier, StoreEntrance? current) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _EntranceEditorSheet(
+        initial: current ?? const StoreEntrance(wall: 0, pos: 0.5),
+        onSave: (e) => notifier.setEntrance(e.toJson()),
+      ),
+    );
+  }
+}
+
+class _EntranceEditorSheet extends StatefulWidget {
+  const _EntranceEditorSheet({required this.initial, required this.onSave});
+  final StoreEntrance initial;
+  final void Function(StoreEntrance) onSave;
+
+  @override
+  State<_EntranceEditorSheet> createState() => _EntranceEditorSheetState();
+}
+
+class _EntranceEditorSheetState extends State<_EntranceEditorSheet> {
+  late int _wall;
+  late double _pos;
+  late double _widthFrac;
+
+  static const _wallLabels = ['Bottom', 'Right', 'Top', 'Left'];
+
+  @override
+  void initState() {
+    super.initState();
+    _wall = widget.initial.wall;
+    _pos = widget.initial.pos;
+    _widthFrac = widget.initial.widthFrac;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      padding: EdgeInsets.fromLTRB(
+        DesignTokens.spaceMd,
+        DesignTokens.spaceSm,
+        DesignTokens.spaceMd,
+        MediaQuery.of(context).viewInsets.bottom +
+            MediaQuery.of(context).padding.bottom +
+            DesignTokens.spaceMd,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2)),
+            ),
+          ),
+          const SizedBox(height: DesignTokens.spaceSm),
+          const Text(
+            'ENTRANCE',
+            style: TextStyle(
+              fontSize: DesignTokens.typeMd,
+              fontWeight: DesignTokens.weightBold,
+              letterSpacing: DesignTokens.letterSpacingEyebrow,
+            ),
+          ),
+          const SizedBox(height: DesignTokens.spaceMd),
+          const Text('WALL',
+              style: TextStyle(
+                  fontSize: DesignTokens.typeXs,
+                  color: AppTheme.textSecondary,
+                  fontWeight: DesignTokens.weightBold,
+                  letterSpacing: DesignTokens.letterSpacingEyebrow)),
+          const SizedBox(height: DesignTokens.spaceXs),
+          Wrap(
+            spacing: DesignTokens.spaceXs,
+            children: List.generate(
+                4,
+                (i) => ChoiceChip(
+                      label: Text(_wallLabels[i]),
+                      selected: _wall == i,
+                      selectedColor: AppTheme.primary,
+                      labelStyle: TextStyle(
+                          color: _wall == i ? Colors.white : null,
+                          fontSize: DesignTokens.typeXs),
+                      onSelected: (_) => setState(() {
+                        _wall = i;
+                        _pos = 0.5;
+                      }),
+                    )),
+          ),
+          const SizedBox(height: DesignTokens.spaceMd),
+          Text(
+              'POSITION  ${(_pos * 100).toStringAsFixed(0)}% along ${_wallLabels[_wall].toLowerCase()} wall',
+              style: const TextStyle(
+                  fontSize: DesignTokens.typeXs,
+                  color: AppTheme.textSecondary,
+                  fontWeight: DesignTokens.weightBold,
+                  letterSpacing: DesignTokens.letterSpacingEyebrow)),
+          Slider(
+            value: _pos,
+            min: 0.1,
+            max: 0.9,
+            activeColor: AppTheme.accent,
+            onChanged: (v) => setState(() => _pos = v),
+          ),
+          const SizedBox(height: DesignTokens.spaceXs),
+          Text('WIDTH  ${(_widthFrac * 100).toStringAsFixed(0)}% of wall',
+              style: const TextStyle(
+                  fontSize: DesignTokens.typeXs,
+                  color: AppTheme.textSecondary,
+                  fontWeight: DesignTokens.weightBold,
+                  letterSpacing: DesignTokens.letterSpacingEyebrow)),
+          Slider(
+            value: _widthFrac,
+            min: 0.05,
+            max: 0.40,
+            activeColor: AppTheme.accent,
+            onChanged: (v) => setState(() => _widthFrac = v),
+          ),
+          const SizedBox(height: DesignTokens.spaceMd),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.accent,
+                foregroundColor: Colors.white),
+            onPressed: () {
+              widget.onSave(
+                  StoreEntrance(wall: _wall, pos: _pos, widthFrac: _widthFrac));
+              Navigator.pop(context);
+            },
+            child: const Text('SAVE ENTRANCE'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _StatsGrid extends StatelessWidget {
   const _StatsGrid({required this.items});
   final List<_StatItem> items;
@@ -232,9 +591,7 @@ class _StatCard extends StatelessWidget {
           decoration: BoxDecoration(
             color: Colors.white,
             border: Border.all(
-              color: highlighted
-                  ? AppTheme.accent
-                  : Colors.grey.shade200,
+              color: highlighted ? AppTheme.accent : Colors.grey.shade200,
               width: highlighted ? 1.5 : 1.0,
             ),
             borderRadius: borderRadius,
@@ -249,9 +606,8 @@ class _StatCard extends StatelessWidget {
                   Icon(
                     item.icon,
                     size: DesignTokens.iconMd,
-                    color: highlighted
-                        ? AppTheme.accent
-                        : AppTheme.textSecondary,
+                    color:
+                        highlighted ? AppTheme.accent : AppTheme.textSecondary,
                   ),
                   const Spacer(),
                   if (highlighted)

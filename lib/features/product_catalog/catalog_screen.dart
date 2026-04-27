@@ -35,8 +35,8 @@ class CatalogScreen extends ConsumerWidget {
                   .toList();
 
           // Unique categories for chip filter
-          final categories =
-              allProducts.map((p) => p.category).toSet().toList()..sort();
+          final categories = allProducts.map((p) => p.category).toSet().toList()
+            ..sort();
 
           return _CatalogBody(
             allProducts: allProducts,
@@ -50,7 +50,7 @@ class CatalogScreen extends ConsumerWidget {
         error: (e, _) => Center(child: Text('Error: $e')),
       ),
       floatingActionButton: RoleGuard(
-        allowedRoles: ['coordinator', 'manager'],
+        allowedRoles: const ['coordinator', 'manager'],
         child: FloatingActionButton.extended(
           onPressed: () => Navigator.push<void>(
             context,

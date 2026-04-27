@@ -558,8 +558,8 @@ class $FixturesTableTable extends FixturesTable
   static const VerificationMeta _zoneIdMeta = const VerificationMeta('zoneId');
   @override
   late final GeneratedColumn<String> zoneId = GeneratedColumn<String>(
-      'zone_id', aliasedName, false,
-      type: DriftSqlType.string, requiredDuringInsert: true);
+      'zone_id', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
   static const VerificationMeta _fixtureTypeMeta =
       const VerificationMeta('fixtureType');
   @override
@@ -619,6 +619,28 @@ class $FixturesTableTable extends FixturesTable
       type: DriftSqlType.string,
       requiredDuringInsert: false,
       defaultValue: const Constant(''));
+  static const VerificationMeta _planogramIdMeta =
+      const VerificationMeta('planogramId');
+  @override
+  late final GeneratedColumn<String> planogramId = GeneratedColumn<String>(
+      'planogram_id', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _planogramIdBackMeta =
+      const VerificationMeta('planogramIdBack');
+  @override
+  late final GeneratedColumn<String> planogramIdBack = GeneratedColumn<String>(
+      'planogram_id_back', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _wallAdjacentMeta =
+      const VerificationMeta('wallAdjacent');
+  @override
+  late final GeneratedColumn<bool> wallAdjacent = GeneratedColumn<bool>(
+      'wall_adjacent', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("wall_adjacent" IN (0, 1))'),
+      defaultValue: const Constant(false));
   static const VerificationMeta _updatedAtMeta =
       const VerificationMeta('updatedAt');
   @override
@@ -637,6 +659,9 @@ class $FixturesTableTable extends FixturesTable
         depthFt,
         label,
         storeId,
+        planogramId,
+        planogramIdBack,
+        wallAdjacent,
         updatedAt
       ];
   @override
@@ -657,8 +682,6 @@ class $FixturesTableTable extends FixturesTable
     if (data.containsKey('zone_id')) {
       context.handle(_zoneIdMeta,
           zoneId.isAcceptableOrUnknown(data['zone_id']!, _zoneIdMeta));
-    } else if (isInserting) {
-      context.missing(_zoneIdMeta);
     }
     if (data.containsKey('fixture_type')) {
       context.handle(
@@ -696,6 +719,24 @@ class $FixturesTableTable extends FixturesTable
       context.handle(_storeIdMeta,
           storeId.isAcceptableOrUnknown(data['store_id']!, _storeIdMeta));
     }
+    if (data.containsKey('planogram_id')) {
+      context.handle(
+          _planogramIdMeta,
+          planogramId.isAcceptableOrUnknown(
+              data['planogram_id']!, _planogramIdMeta));
+    }
+    if (data.containsKey('planogram_id_back')) {
+      context.handle(
+          _planogramIdBackMeta,
+          planogramIdBack.isAcceptableOrUnknown(
+              data['planogram_id_back']!, _planogramIdBackMeta));
+    }
+    if (data.containsKey('wall_adjacent')) {
+      context.handle(
+          _wallAdjacentMeta,
+          wallAdjacent.isAcceptableOrUnknown(
+              data['wall_adjacent']!, _wallAdjacentMeta));
+    }
     if (data.containsKey('updated_at')) {
       context.handle(_updatedAtMeta,
           updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta));
@@ -714,7 +755,7 @@ class $FixturesTableTable extends FixturesTable
       id: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
       zoneId: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}zone_id'])!,
+          .read(DriftSqlType.string, data['${effectivePrefix}zone_id']),
       fixtureType: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}fixture_type'])!,
       posX: attachedDatabase.typeMapping
@@ -731,6 +772,12 @@ class $FixturesTableTable extends FixturesTable
           .read(DriftSqlType.string, data['${effectivePrefix}label'])!,
       storeId: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}store_id'])!,
+      planogramId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}planogram_id']),
+      planogramIdBack: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}planogram_id_back']),
+      wallAdjacent: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}wall_adjacent'])!,
       updatedAt: attachedDatabase.typeMapping
           .read(DriftSqlType.dateTime, data['${effectivePrefix}updated_at'])!,
     );
@@ -745,7 +792,7 @@ class $FixturesTableTable extends FixturesTable
 class FixturesTableData extends DataClass
     implements Insertable<FixturesTableData> {
   final String id;
-  final String zoneId;
+  final String? zoneId;
   final String fixtureType;
   final double posX;
   final double posY;
@@ -754,10 +801,13 @@ class FixturesTableData extends DataClass
   final double depthFt;
   final String label;
   final String storeId;
+  final String? planogramId;
+  final String? planogramIdBack;
+  final bool wallAdjacent;
   final DateTime updatedAt;
   const FixturesTableData(
       {required this.id,
-      required this.zoneId,
+      this.zoneId,
       required this.fixtureType,
       required this.posX,
       required this.posY,
@@ -766,12 +816,17 @@ class FixturesTableData extends DataClass
       required this.depthFt,
       required this.label,
       required this.storeId,
+      this.planogramId,
+      this.planogramIdBack,
+      required this.wallAdjacent,
       required this.updatedAt});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['id'] = Variable<String>(id);
-    map['zone_id'] = Variable<String>(zoneId);
+    if (!nullToAbsent || zoneId != null) {
+      map['zone_id'] = Variable<String>(zoneId);
+    }
     map['fixture_type'] = Variable<String>(fixtureType);
     map['pos_x'] = Variable<double>(posX);
     map['pos_y'] = Variable<double>(posY);
@@ -780,6 +835,13 @@ class FixturesTableData extends DataClass
     map['depth_ft'] = Variable<double>(depthFt);
     map['label'] = Variable<String>(label);
     map['store_id'] = Variable<String>(storeId);
+    if (!nullToAbsent || planogramId != null) {
+      map['planogram_id'] = Variable<String>(planogramId);
+    }
+    if (!nullToAbsent || planogramIdBack != null) {
+      map['planogram_id_back'] = Variable<String>(planogramIdBack);
+    }
+    map['wall_adjacent'] = Variable<bool>(wallAdjacent);
     map['updated_at'] = Variable<DateTime>(updatedAt);
     return map;
   }
@@ -787,7 +849,8 @@ class FixturesTableData extends DataClass
   FixturesTableCompanion toCompanion(bool nullToAbsent) {
     return FixturesTableCompanion(
       id: Value(id),
-      zoneId: Value(zoneId),
+      zoneId:
+          zoneId == null && nullToAbsent ? const Value.absent() : Value(zoneId),
       fixtureType: Value(fixtureType),
       posX: Value(posX),
       posY: Value(posY),
@@ -796,6 +859,13 @@ class FixturesTableData extends DataClass
       depthFt: Value(depthFt),
       label: Value(label),
       storeId: Value(storeId),
+      planogramId: planogramId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(planogramId),
+      planogramIdBack: planogramIdBack == null && nullToAbsent
+          ? const Value.absent()
+          : Value(planogramIdBack),
+      wallAdjacent: Value(wallAdjacent),
       updatedAt: Value(updatedAt),
     );
   }
@@ -805,7 +875,7 @@ class FixturesTableData extends DataClass
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return FixturesTableData(
       id: serializer.fromJson<String>(json['id']),
-      zoneId: serializer.fromJson<String>(json['zoneId']),
+      zoneId: serializer.fromJson<String?>(json['zoneId']),
       fixtureType: serializer.fromJson<String>(json['fixtureType']),
       posX: serializer.fromJson<double>(json['posX']),
       posY: serializer.fromJson<double>(json['posY']),
@@ -814,6 +884,9 @@ class FixturesTableData extends DataClass
       depthFt: serializer.fromJson<double>(json['depthFt']),
       label: serializer.fromJson<String>(json['label']),
       storeId: serializer.fromJson<String>(json['storeId']),
+      planogramId: serializer.fromJson<String?>(json['planogramId']),
+      planogramIdBack: serializer.fromJson<String?>(json['planogramIdBack']),
+      wallAdjacent: serializer.fromJson<bool>(json['wallAdjacent']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
     );
   }
@@ -822,7 +895,7 @@ class FixturesTableData extends DataClass
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
       'id': serializer.toJson<String>(id),
-      'zoneId': serializer.toJson<String>(zoneId),
+      'zoneId': serializer.toJson<String?>(zoneId),
       'fixtureType': serializer.toJson<String>(fixtureType),
       'posX': serializer.toJson<double>(posX),
       'posY': serializer.toJson<double>(posY),
@@ -831,13 +904,16 @@ class FixturesTableData extends DataClass
       'depthFt': serializer.toJson<double>(depthFt),
       'label': serializer.toJson<String>(label),
       'storeId': serializer.toJson<String>(storeId),
+      'planogramId': serializer.toJson<String?>(planogramId),
+      'planogramIdBack': serializer.toJson<String?>(planogramIdBack),
+      'wallAdjacent': serializer.toJson<bool>(wallAdjacent),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
     };
   }
 
   FixturesTableData copyWith(
           {String? id,
-          String? zoneId,
+          Value<String?> zoneId = const Value.absent(),
           String? fixtureType,
           double? posX,
           double? posY,
@@ -846,10 +922,13 @@ class FixturesTableData extends DataClass
           double? depthFt,
           String? label,
           String? storeId,
+          Value<String?> planogramId = const Value.absent(),
+          Value<String?> planogramIdBack = const Value.absent(),
+          bool? wallAdjacent,
           DateTime? updatedAt}) =>
       FixturesTableData(
         id: id ?? this.id,
-        zoneId: zoneId ?? this.zoneId,
+        zoneId: zoneId.present ? zoneId.value : this.zoneId,
         fixtureType: fixtureType ?? this.fixtureType,
         posX: posX ?? this.posX,
         posY: posY ?? this.posY,
@@ -858,6 +937,11 @@ class FixturesTableData extends DataClass
         depthFt: depthFt ?? this.depthFt,
         label: label ?? this.label,
         storeId: storeId ?? this.storeId,
+        planogramId: planogramId.present ? planogramId.value : this.planogramId,
+        planogramIdBack: planogramIdBack.present
+            ? planogramIdBack.value
+            : this.planogramIdBack,
+        wallAdjacent: wallAdjacent ?? this.wallAdjacent,
         updatedAt: updatedAt ?? this.updatedAt,
       );
   FixturesTableData copyWithCompanion(FixturesTableCompanion data) {
@@ -873,6 +957,14 @@ class FixturesTableData extends DataClass
       depthFt: data.depthFt.present ? data.depthFt.value : this.depthFt,
       label: data.label.present ? data.label.value : this.label,
       storeId: data.storeId.present ? data.storeId.value : this.storeId,
+      planogramId:
+          data.planogramId.present ? data.planogramId.value : this.planogramId,
+      planogramIdBack: data.planogramIdBack.present
+          ? data.planogramIdBack.value
+          : this.planogramIdBack,
+      wallAdjacent: data.wallAdjacent.present
+          ? data.wallAdjacent.value
+          : this.wallAdjacent,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
     );
   }
@@ -890,14 +982,30 @@ class FixturesTableData extends DataClass
           ..write('depthFt: $depthFt, ')
           ..write('label: $label, ')
           ..write('storeId: $storeId, ')
+          ..write('planogramId: $planogramId, ')
+          ..write('planogramIdBack: $planogramIdBack, ')
+          ..write('wallAdjacent: $wallAdjacent, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, zoneId, fixtureType, posX, posY, rotation,
-      widthFt, depthFt, label, storeId, updatedAt);
+  int get hashCode => Object.hash(
+      id,
+      zoneId,
+      fixtureType,
+      posX,
+      posY,
+      rotation,
+      widthFt,
+      depthFt,
+      label,
+      storeId,
+      planogramId,
+      planogramIdBack,
+      wallAdjacent,
+      updatedAt);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -912,12 +1020,15 @@ class FixturesTableData extends DataClass
           other.depthFt == this.depthFt &&
           other.label == this.label &&
           other.storeId == this.storeId &&
+          other.planogramId == this.planogramId &&
+          other.planogramIdBack == this.planogramIdBack &&
+          other.wallAdjacent == this.wallAdjacent &&
           other.updatedAt == this.updatedAt);
 }
 
 class FixturesTableCompanion extends UpdateCompanion<FixturesTableData> {
   final Value<String> id;
-  final Value<String> zoneId;
+  final Value<String?> zoneId;
   final Value<String> fixtureType;
   final Value<double> posX;
   final Value<double> posY;
@@ -926,6 +1037,9 @@ class FixturesTableCompanion extends UpdateCompanion<FixturesTableData> {
   final Value<double> depthFt;
   final Value<String> label;
   final Value<String> storeId;
+  final Value<String?> planogramId;
+  final Value<String?> planogramIdBack;
+  final Value<bool> wallAdjacent;
   final Value<DateTime> updatedAt;
   final Value<int> rowid;
   const FixturesTableCompanion({
@@ -939,12 +1053,15 @@ class FixturesTableCompanion extends UpdateCompanion<FixturesTableData> {
     this.depthFt = const Value.absent(),
     this.label = const Value.absent(),
     this.storeId = const Value.absent(),
+    this.planogramId = const Value.absent(),
+    this.planogramIdBack = const Value.absent(),
+    this.wallAdjacent = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   FixturesTableCompanion.insert({
     required String id,
-    required String zoneId,
+    this.zoneId = const Value.absent(),
     required String fixtureType,
     this.posX = const Value.absent(),
     this.posY = const Value.absent(),
@@ -953,10 +1070,12 @@ class FixturesTableCompanion extends UpdateCompanion<FixturesTableData> {
     this.depthFt = const Value.absent(),
     this.label = const Value.absent(),
     this.storeId = const Value.absent(),
+    this.planogramId = const Value.absent(),
+    this.planogramIdBack = const Value.absent(),
+    this.wallAdjacent = const Value.absent(),
     required DateTime updatedAt,
     this.rowid = const Value.absent(),
   })  : id = Value(id),
-        zoneId = Value(zoneId),
         fixtureType = Value(fixtureType),
         updatedAt = Value(updatedAt);
   static Insertable<FixturesTableData> custom({
@@ -970,6 +1089,9 @@ class FixturesTableCompanion extends UpdateCompanion<FixturesTableData> {
     Expression<double>? depthFt,
     Expression<String>? label,
     Expression<String>? storeId,
+    Expression<String>? planogramId,
+    Expression<String>? planogramIdBack,
+    Expression<bool>? wallAdjacent,
     Expression<DateTime>? updatedAt,
     Expression<int>? rowid,
   }) {
@@ -984,6 +1106,9 @@ class FixturesTableCompanion extends UpdateCompanion<FixturesTableData> {
       if (depthFt != null) 'depth_ft': depthFt,
       if (label != null) 'label': label,
       if (storeId != null) 'store_id': storeId,
+      if (planogramId != null) 'planogram_id': planogramId,
+      if (planogramIdBack != null) 'planogram_id_back': planogramIdBack,
+      if (wallAdjacent != null) 'wall_adjacent': wallAdjacent,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (rowid != null) 'rowid': rowid,
     });
@@ -991,7 +1116,7 @@ class FixturesTableCompanion extends UpdateCompanion<FixturesTableData> {
 
   FixturesTableCompanion copyWith(
       {Value<String>? id,
-      Value<String>? zoneId,
+      Value<String?>? zoneId,
       Value<String>? fixtureType,
       Value<double>? posX,
       Value<double>? posY,
@@ -1000,6 +1125,9 @@ class FixturesTableCompanion extends UpdateCompanion<FixturesTableData> {
       Value<double>? depthFt,
       Value<String>? label,
       Value<String>? storeId,
+      Value<String?>? planogramId,
+      Value<String?>? planogramIdBack,
+      Value<bool>? wallAdjacent,
       Value<DateTime>? updatedAt,
       Value<int>? rowid}) {
     return FixturesTableCompanion(
@@ -1013,6 +1141,9 @@ class FixturesTableCompanion extends UpdateCompanion<FixturesTableData> {
       depthFt: depthFt ?? this.depthFt,
       label: label ?? this.label,
       storeId: storeId ?? this.storeId,
+      planogramId: planogramId ?? this.planogramId,
+      planogramIdBack: planogramIdBack ?? this.planogramIdBack,
+      wallAdjacent: wallAdjacent ?? this.wallAdjacent,
       updatedAt: updatedAt ?? this.updatedAt,
       rowid: rowid ?? this.rowid,
     );
@@ -1051,6 +1182,15 @@ class FixturesTableCompanion extends UpdateCompanion<FixturesTableData> {
     if (storeId.present) {
       map['store_id'] = Variable<String>(storeId.value);
     }
+    if (planogramId.present) {
+      map['planogram_id'] = Variable<String>(planogramId.value);
+    }
+    if (planogramIdBack.present) {
+      map['planogram_id_back'] = Variable<String>(planogramIdBack.value);
+    }
+    if (wallAdjacent.present) {
+      map['wall_adjacent'] = Variable<bool>(wallAdjacent.value);
+    }
     if (updatedAt.present) {
       map['updated_at'] = Variable<DateTime>(updatedAt.value);
     }
@@ -1073,6 +1213,9 @@ class FixturesTableCompanion extends UpdateCompanion<FixturesTableData> {
           ..write('depthFt: $depthFt, ')
           ..write('label: $label, ')
           ..write('storeId: $storeId, ')
+          ..write('planogramId: $planogramId, ')
+          ..write('planogramIdBack: $planogramIdBack, ')
+          ..write('wallAdjacent: $wallAdjacent, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -2611,9 +2754,35 @@ class $StoresTableTable extends StoresTable
   late final GeneratedColumn<String> ownerUid = GeneratedColumn<String>(
       'owner_uid', aliasedName, false,
       type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _widthFtMeta =
+      const VerificationMeta('widthFt');
   @override
-  List<GeneratedColumn> get $columns =>
-      [id, name, inviteCode, createdAt, ownerUid];
+  late final GeneratedColumn<double> widthFt = GeneratedColumn<double>(
+      'width_ft', aliasedName, true,
+      type: DriftSqlType.double, requiredDuringInsert: false);
+  static const VerificationMeta _depthFtMeta =
+      const VerificationMeta('depthFt');
+  @override
+  late final GeneratedColumn<double> depthFt = GeneratedColumn<double>(
+      'depth_ft', aliasedName, true,
+      type: DriftSqlType.double, requiredDuringInsert: false);
+  static const VerificationMeta _entranceJsonMeta =
+      const VerificationMeta('entranceJson');
+  @override
+  late final GeneratedColumn<String> entranceJson = GeneratedColumn<String>(
+      'entrance_json', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  @override
+  List<GeneratedColumn> get $columns => [
+        id,
+        name,
+        inviteCode,
+        createdAt,
+        ownerUid,
+        widthFt,
+        depthFt,
+        entranceJson
+      ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -2655,6 +2824,20 @@ class $StoresTableTable extends StoresTable
     } else if (isInserting) {
       context.missing(_ownerUidMeta);
     }
+    if (data.containsKey('width_ft')) {
+      context.handle(_widthFtMeta,
+          widthFt.isAcceptableOrUnknown(data['width_ft']!, _widthFtMeta));
+    }
+    if (data.containsKey('depth_ft')) {
+      context.handle(_depthFtMeta,
+          depthFt.isAcceptableOrUnknown(data['depth_ft']!, _depthFtMeta));
+    }
+    if (data.containsKey('entrance_json')) {
+      context.handle(
+          _entranceJsonMeta,
+          entranceJson.isAcceptableOrUnknown(
+              data['entrance_json']!, _entranceJsonMeta));
+    }
     return context;
   }
 
@@ -2674,6 +2857,12 @@ class $StoresTableTable extends StoresTable
           .read(DriftSqlType.int, data['${effectivePrefix}created_at'])!,
       ownerUid: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}owner_uid'])!,
+      widthFt: attachedDatabase.typeMapping
+          .read(DriftSqlType.double, data['${effectivePrefix}width_ft']),
+      depthFt: attachedDatabase.typeMapping
+          .read(DriftSqlType.double, data['${effectivePrefix}depth_ft']),
+      entranceJson: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}entrance_json']),
     );
   }
 
@@ -2689,12 +2878,18 @@ class StoresTableData extends DataClass implements Insertable<StoresTableData> {
   final String inviteCode;
   final int createdAt;
   final String ownerUid;
+  final double? widthFt;
+  final double? depthFt;
+  final String? entranceJson;
   const StoresTableData(
       {required this.id,
       required this.name,
       required this.inviteCode,
       required this.createdAt,
-      required this.ownerUid});
+      required this.ownerUid,
+      this.widthFt,
+      this.depthFt,
+      this.entranceJson});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
@@ -2703,6 +2898,15 @@ class StoresTableData extends DataClass implements Insertable<StoresTableData> {
     map['invite_code'] = Variable<String>(inviteCode);
     map['created_at'] = Variable<int>(createdAt);
     map['owner_uid'] = Variable<String>(ownerUid);
+    if (!nullToAbsent || widthFt != null) {
+      map['width_ft'] = Variable<double>(widthFt);
+    }
+    if (!nullToAbsent || depthFt != null) {
+      map['depth_ft'] = Variable<double>(depthFt);
+    }
+    if (!nullToAbsent || entranceJson != null) {
+      map['entrance_json'] = Variable<String>(entranceJson);
+    }
     return map;
   }
 
@@ -2713,6 +2917,15 @@ class StoresTableData extends DataClass implements Insertable<StoresTableData> {
       inviteCode: Value(inviteCode),
       createdAt: Value(createdAt),
       ownerUid: Value(ownerUid),
+      widthFt: widthFt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(widthFt),
+      depthFt: depthFt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(depthFt),
+      entranceJson: entranceJson == null && nullToAbsent
+          ? const Value.absent()
+          : Value(entranceJson),
     );
   }
 
@@ -2725,6 +2938,9 @@ class StoresTableData extends DataClass implements Insertable<StoresTableData> {
       inviteCode: serializer.fromJson<String>(json['inviteCode']),
       createdAt: serializer.fromJson<int>(json['createdAt']),
       ownerUid: serializer.fromJson<String>(json['ownerUid']),
+      widthFt: serializer.fromJson<double?>(json['widthFt']),
+      depthFt: serializer.fromJson<double?>(json['depthFt']),
+      entranceJson: serializer.fromJson<String?>(json['entranceJson']),
     );
   }
   @override
@@ -2736,6 +2952,9 @@ class StoresTableData extends DataClass implements Insertable<StoresTableData> {
       'inviteCode': serializer.toJson<String>(inviteCode),
       'createdAt': serializer.toJson<int>(createdAt),
       'ownerUid': serializer.toJson<String>(ownerUid),
+      'widthFt': serializer.toJson<double?>(widthFt),
+      'depthFt': serializer.toJson<double?>(depthFt),
+      'entranceJson': serializer.toJson<String?>(entranceJson),
     };
   }
 
@@ -2744,13 +2963,20 @@ class StoresTableData extends DataClass implements Insertable<StoresTableData> {
           String? name,
           String? inviteCode,
           int? createdAt,
-          String? ownerUid}) =>
+          String? ownerUid,
+          Value<double?> widthFt = const Value.absent(),
+          Value<double?> depthFt = const Value.absent(),
+          Value<String?> entranceJson = const Value.absent()}) =>
       StoresTableData(
         id: id ?? this.id,
         name: name ?? this.name,
         inviteCode: inviteCode ?? this.inviteCode,
         createdAt: createdAt ?? this.createdAt,
         ownerUid: ownerUid ?? this.ownerUid,
+        widthFt: widthFt.present ? widthFt.value : this.widthFt,
+        depthFt: depthFt.present ? depthFt.value : this.depthFt,
+        entranceJson:
+            entranceJson.present ? entranceJson.value : this.entranceJson,
       );
   StoresTableData copyWithCompanion(StoresTableCompanion data) {
     return StoresTableData(
@@ -2760,6 +2986,11 @@ class StoresTableData extends DataClass implements Insertable<StoresTableData> {
           data.inviteCode.present ? data.inviteCode.value : this.inviteCode,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       ownerUid: data.ownerUid.present ? data.ownerUid.value : this.ownerUid,
+      widthFt: data.widthFt.present ? data.widthFt.value : this.widthFt,
+      depthFt: data.depthFt.present ? data.depthFt.value : this.depthFt,
+      entranceJson: data.entranceJson.present
+          ? data.entranceJson.value
+          : this.entranceJson,
     );
   }
 
@@ -2770,13 +3001,17 @@ class StoresTableData extends DataClass implements Insertable<StoresTableData> {
           ..write('name: $name, ')
           ..write('inviteCode: $inviteCode, ')
           ..write('createdAt: $createdAt, ')
-          ..write('ownerUid: $ownerUid')
+          ..write('ownerUid: $ownerUid, ')
+          ..write('widthFt: $widthFt, ')
+          ..write('depthFt: $depthFt, ')
+          ..write('entranceJson: $entranceJson')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, name, inviteCode, createdAt, ownerUid);
+  int get hashCode => Object.hash(id, name, inviteCode, createdAt, ownerUid,
+      widthFt, depthFt, entranceJson);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -2785,7 +3020,10 @@ class StoresTableData extends DataClass implements Insertable<StoresTableData> {
           other.name == this.name &&
           other.inviteCode == this.inviteCode &&
           other.createdAt == this.createdAt &&
-          other.ownerUid == this.ownerUid);
+          other.ownerUid == this.ownerUid &&
+          other.widthFt == this.widthFt &&
+          other.depthFt == this.depthFt &&
+          other.entranceJson == this.entranceJson);
 }
 
 class StoresTableCompanion extends UpdateCompanion<StoresTableData> {
@@ -2794,6 +3032,9 @@ class StoresTableCompanion extends UpdateCompanion<StoresTableData> {
   final Value<String> inviteCode;
   final Value<int> createdAt;
   final Value<String> ownerUid;
+  final Value<double?> widthFt;
+  final Value<double?> depthFt;
+  final Value<String?> entranceJson;
   final Value<int> rowid;
   const StoresTableCompanion({
     this.id = const Value.absent(),
@@ -2801,6 +3042,9 @@ class StoresTableCompanion extends UpdateCompanion<StoresTableData> {
     this.inviteCode = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.ownerUid = const Value.absent(),
+    this.widthFt = const Value.absent(),
+    this.depthFt = const Value.absent(),
+    this.entranceJson = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   StoresTableCompanion.insert({
@@ -2809,6 +3053,9 @@ class StoresTableCompanion extends UpdateCompanion<StoresTableData> {
     required String inviteCode,
     required int createdAt,
     required String ownerUid,
+    this.widthFt = const Value.absent(),
+    this.depthFt = const Value.absent(),
+    this.entranceJson = const Value.absent(),
     this.rowid = const Value.absent(),
   })  : id = Value(id),
         name = Value(name),
@@ -2821,6 +3068,9 @@ class StoresTableCompanion extends UpdateCompanion<StoresTableData> {
     Expression<String>? inviteCode,
     Expression<int>? createdAt,
     Expression<String>? ownerUid,
+    Expression<double>? widthFt,
+    Expression<double>? depthFt,
+    Expression<String>? entranceJson,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -2829,6 +3079,9 @@ class StoresTableCompanion extends UpdateCompanion<StoresTableData> {
       if (inviteCode != null) 'invite_code': inviteCode,
       if (createdAt != null) 'created_at': createdAt,
       if (ownerUid != null) 'owner_uid': ownerUid,
+      if (widthFt != null) 'width_ft': widthFt,
+      if (depthFt != null) 'depth_ft': depthFt,
+      if (entranceJson != null) 'entrance_json': entranceJson,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -2839,6 +3092,9 @@ class StoresTableCompanion extends UpdateCompanion<StoresTableData> {
       Value<String>? inviteCode,
       Value<int>? createdAt,
       Value<String>? ownerUid,
+      Value<double?>? widthFt,
+      Value<double?>? depthFt,
+      Value<String?>? entranceJson,
       Value<int>? rowid}) {
     return StoresTableCompanion(
       id: id ?? this.id,
@@ -2846,6 +3102,9 @@ class StoresTableCompanion extends UpdateCompanion<StoresTableData> {
       inviteCode: inviteCode ?? this.inviteCode,
       createdAt: createdAt ?? this.createdAt,
       ownerUid: ownerUid ?? this.ownerUid,
+      widthFt: widthFt ?? this.widthFt,
+      depthFt: depthFt ?? this.depthFt,
+      entranceJson: entranceJson ?? this.entranceJson,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -2868,6 +3127,15 @@ class StoresTableCompanion extends UpdateCompanion<StoresTableData> {
     if (ownerUid.present) {
       map['owner_uid'] = Variable<String>(ownerUid.value);
     }
+    if (widthFt.present) {
+      map['width_ft'] = Variable<double>(widthFt.value);
+    }
+    if (depthFt.present) {
+      map['depth_ft'] = Variable<double>(depthFt.value);
+    }
+    if (entranceJson.present) {
+      map['entrance_json'] = Variable<String>(entranceJson.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -2882,6 +3150,9 @@ class StoresTableCompanion extends UpdateCompanion<StoresTableData> {
           ..write('inviteCode: $inviteCode, ')
           ..write('createdAt: $createdAt, ')
           ..write('ownerUid: $ownerUid, ')
+          ..write('widthFt: $widthFt, ')
+          ..write('depthFt: $depthFt, ')
+          ..write('entranceJson: $entranceJson, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -4758,7 +5029,7 @@ typedef $$ZonesTableTableProcessedTableManager = ProcessedTableManager<
 typedef $$FixturesTableTableCreateCompanionBuilder = FixturesTableCompanion
     Function({
   required String id,
-  required String zoneId,
+  Value<String?> zoneId,
   required String fixtureType,
   Value<double> posX,
   Value<double> posY,
@@ -4767,13 +5038,16 @@ typedef $$FixturesTableTableCreateCompanionBuilder = FixturesTableCompanion
   Value<double> depthFt,
   Value<String> label,
   Value<String> storeId,
+  Value<String?> planogramId,
+  Value<String?> planogramIdBack,
+  Value<bool> wallAdjacent,
   required DateTime updatedAt,
   Value<int> rowid,
 });
 typedef $$FixturesTableTableUpdateCompanionBuilder = FixturesTableCompanion
     Function({
   Value<String> id,
-  Value<String> zoneId,
+  Value<String?> zoneId,
   Value<String> fixtureType,
   Value<double> posX,
   Value<double> posY,
@@ -4782,6 +5056,9 @@ typedef $$FixturesTableTableUpdateCompanionBuilder = FixturesTableCompanion
   Value<double> depthFt,
   Value<String> label,
   Value<String> storeId,
+  Value<String?> planogramId,
+  Value<String?> planogramIdBack,
+  Value<bool> wallAdjacent,
   Value<DateTime> updatedAt,
   Value<int> rowid,
 });
@@ -4824,6 +5101,16 @@ class $$FixturesTableTableFilterComposer
 
   ColumnFilters<String> get storeId => $composableBuilder(
       column: $table.storeId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get planogramId => $composableBuilder(
+      column: $table.planogramId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get planogramIdBack => $composableBuilder(
+      column: $table.planogramIdBack,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get wallAdjacent => $composableBuilder(
+      column: $table.wallAdjacent, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<DateTime> get updatedAt => $composableBuilder(
       column: $table.updatedAt, builder: (column) => ColumnFilters(column));
@@ -4868,6 +5155,17 @@ class $$FixturesTableTableOrderingComposer
   ColumnOrderings<String> get storeId => $composableBuilder(
       column: $table.storeId, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<String> get planogramId => $composableBuilder(
+      column: $table.planogramId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get planogramIdBack => $composableBuilder(
+      column: $table.planogramIdBack,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get wallAdjacent => $composableBuilder(
+      column: $table.wallAdjacent,
+      builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
       column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
 }
@@ -4911,6 +5209,15 @@ class $$FixturesTableTableAnnotationComposer
   GeneratedColumn<String> get storeId =>
       $composableBuilder(column: $table.storeId, builder: (column) => column);
 
+  GeneratedColumn<String> get planogramId => $composableBuilder(
+      column: $table.planogramId, builder: (column) => column);
+
+  GeneratedColumn<String> get planogramIdBack => $composableBuilder(
+      column: $table.planogramIdBack, builder: (column) => column);
+
+  GeneratedColumn<bool> get wallAdjacent => $composableBuilder(
+      column: $table.wallAdjacent, builder: (column) => column);
+
   GeneratedColumn<DateTime> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => column);
 }
@@ -4942,7 +5249,7 @@ class $$FixturesTableTableTableManager extends RootTableManager<
               $$FixturesTableTableAnnotationComposer($db: db, $table: table),
           updateCompanionCallback: ({
             Value<String> id = const Value.absent(),
-            Value<String> zoneId = const Value.absent(),
+            Value<String?> zoneId = const Value.absent(),
             Value<String> fixtureType = const Value.absent(),
             Value<double> posX = const Value.absent(),
             Value<double> posY = const Value.absent(),
@@ -4951,6 +5258,9 @@ class $$FixturesTableTableTableManager extends RootTableManager<
             Value<double> depthFt = const Value.absent(),
             Value<String> label = const Value.absent(),
             Value<String> storeId = const Value.absent(),
+            Value<String?> planogramId = const Value.absent(),
+            Value<String?> planogramIdBack = const Value.absent(),
+            Value<bool> wallAdjacent = const Value.absent(),
             Value<DateTime> updatedAt = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
@@ -4965,12 +5275,15 @@ class $$FixturesTableTableTableManager extends RootTableManager<
             depthFt: depthFt,
             label: label,
             storeId: storeId,
+            planogramId: planogramId,
+            planogramIdBack: planogramIdBack,
+            wallAdjacent: wallAdjacent,
             updatedAt: updatedAt,
             rowid: rowid,
           ),
           createCompanionCallback: ({
             required String id,
-            required String zoneId,
+            Value<String?> zoneId = const Value.absent(),
             required String fixtureType,
             Value<double> posX = const Value.absent(),
             Value<double> posY = const Value.absent(),
@@ -4979,6 +5292,9 @@ class $$FixturesTableTableTableManager extends RootTableManager<
             Value<double> depthFt = const Value.absent(),
             Value<String> label = const Value.absent(),
             Value<String> storeId = const Value.absent(),
+            Value<String?> planogramId = const Value.absent(),
+            Value<String?> planogramIdBack = const Value.absent(),
+            Value<bool> wallAdjacent = const Value.absent(),
             required DateTime updatedAt,
             Value<int> rowid = const Value.absent(),
           }) =>
@@ -4993,6 +5309,9 @@ class $$FixturesTableTableTableManager extends RootTableManager<
             depthFt: depthFt,
             label: label,
             storeId: storeId,
+            planogramId: planogramId,
+            planogramIdBack: planogramIdBack,
+            wallAdjacent: wallAdjacent,
             updatedAt: updatedAt,
             rowid: rowid,
           ),
@@ -5759,6 +6078,9 @@ typedef $$StoresTableTableCreateCompanionBuilder = StoresTableCompanion
   required String inviteCode,
   required int createdAt,
   required String ownerUid,
+  Value<double?> widthFt,
+  Value<double?> depthFt,
+  Value<String?> entranceJson,
   Value<int> rowid,
 });
 typedef $$StoresTableTableUpdateCompanionBuilder = StoresTableCompanion
@@ -5768,6 +6090,9 @@ typedef $$StoresTableTableUpdateCompanionBuilder = StoresTableCompanion
   Value<String> inviteCode,
   Value<int> createdAt,
   Value<String> ownerUid,
+  Value<double?> widthFt,
+  Value<double?> depthFt,
+  Value<String?> entranceJson,
   Value<int> rowid,
 });
 
@@ -5794,6 +6119,15 @@ class $$StoresTableTableFilterComposer
 
   ColumnFilters<String> get ownerUid => $composableBuilder(
       column: $table.ownerUid, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get widthFt => $composableBuilder(
+      column: $table.widthFt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get depthFt => $composableBuilder(
+      column: $table.depthFt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get entranceJson => $composableBuilder(
+      column: $table.entranceJson, builder: (column) => ColumnFilters(column));
 }
 
 class $$StoresTableTableOrderingComposer
@@ -5819,6 +6153,16 @@ class $$StoresTableTableOrderingComposer
 
   ColumnOrderings<String> get ownerUid => $composableBuilder(
       column: $table.ownerUid, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<double> get widthFt => $composableBuilder(
+      column: $table.widthFt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<double> get depthFt => $composableBuilder(
+      column: $table.depthFt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get entranceJson => $composableBuilder(
+      column: $table.entranceJson,
+      builder: (column) => ColumnOrderings(column));
 }
 
 class $$StoresTableTableAnnotationComposer
@@ -5844,6 +6188,15 @@ class $$StoresTableTableAnnotationComposer
 
   GeneratedColumn<String> get ownerUid =>
       $composableBuilder(column: $table.ownerUid, builder: (column) => column);
+
+  GeneratedColumn<double> get widthFt =>
+      $composableBuilder(column: $table.widthFt, builder: (column) => column);
+
+  GeneratedColumn<double> get depthFt =>
+      $composableBuilder(column: $table.depthFt, builder: (column) => column);
+
+  GeneratedColumn<String> get entranceJson => $composableBuilder(
+      column: $table.entranceJson, builder: (column) => column);
 }
 
 class $$StoresTableTableTableManager extends RootTableManager<
@@ -5877,6 +6230,9 @@ class $$StoresTableTableTableManager extends RootTableManager<
             Value<String> inviteCode = const Value.absent(),
             Value<int> createdAt = const Value.absent(),
             Value<String> ownerUid = const Value.absent(),
+            Value<double?> widthFt = const Value.absent(),
+            Value<double?> depthFt = const Value.absent(),
+            Value<String?> entranceJson = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
               StoresTableCompanion(
@@ -5885,6 +6241,9 @@ class $$StoresTableTableTableManager extends RootTableManager<
             inviteCode: inviteCode,
             createdAt: createdAt,
             ownerUid: ownerUid,
+            widthFt: widthFt,
+            depthFt: depthFt,
+            entranceJson: entranceJson,
             rowid: rowid,
           ),
           createCompanionCallback: ({
@@ -5893,6 +6252,9 @@ class $$StoresTableTableTableManager extends RootTableManager<
             required String inviteCode,
             required int createdAt,
             required String ownerUid,
+            Value<double?> widthFt = const Value.absent(),
+            Value<double?> depthFt = const Value.absent(),
+            Value<String?> entranceJson = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
               StoresTableCompanion.insert(
@@ -5901,6 +6263,9 @@ class $$StoresTableTableTableManager extends RootTableManager<
             inviteCode: inviteCode,
             createdAt: createdAt,
             ownerUid: ownerUid,
+            widthFt: widthFt,
+            depthFt: depthFt,
+            entranceJson: entranceJson,
             rowid: rowid,
           ),
           withReferenceMapper: (p0) => p0

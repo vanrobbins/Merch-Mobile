@@ -10,14 +10,17 @@ class FixturesDao extends DatabaseAccessor<AppDatabase> with _$FixturesDaoMixin 
 
   Stream<List<FixturesTableData>> watchAll() => select(fixturesTable).watch();
 
-  /// All fixtures in a store (used by dashboard stats).
   Stream<List<FixturesTableData>> watchByStore(String storeId) =>
       (select(fixturesTable)..where((t) => t.storeId.equals(storeId))).watch();
 
-  /// Primary query: fixtures for a specific zone within a store.
   Stream<List<FixturesTableData>> watchByZone(String storeId, String zoneId) =>
       (select(fixturesTable)
             ..where((t) => t.storeId.equals(storeId) & t.zoneId.equals(zoneId)))
+          .watch();
+
+  Stream<List<FixturesTableData>> watchStoreLevelByStore(String storeId) =>
+      (select(fixturesTable)
+            ..where((t) => t.storeId.equals(storeId) & t.zoneId.isNull()))
           .watch();
 
   /// Legacy alias (zoneId only) — used by ZoneDetailScreen.

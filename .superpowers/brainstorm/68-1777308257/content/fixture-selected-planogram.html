@@ -1,0 +1,87 @@
+<h2>Selected fixture — how do you see the planogram?</h2>
+<p class="subtitle">Tap-to-select already works. Badge tap = assign/change. But the user should also see planogram info on selection.</p>
+
+<div class="options">
+  <div class="option" data-choice="mini-panel" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Selection mini-panel (recommended)</h3>
+      <p>Selecting a fixture slides up a compact panel from the bottom of the canvas (not full-screen). Shows fixture name, dimensions, and the assigned planogram with a <strong>View →</strong> button that navigates to the full PlanogramDetailScreen.</p>
+      <div style="margin-top:12px;background:#f2efe8;border:1px solid #d4cfc6;border-radius:2px;overflow:hidden;">
+        <!-- Canvas area -->
+        <div style="position:relative;height:90px;background:#fff;">
+          <svg width="100%" height="100%" style="position:absolute;">
+            <rect x="60" y="15" width="80" height="50" fill="rgba(191,85,52,0.12)" stroke="#BF5534" stroke-width="2"/>
+            <text x="100" y="38" text-anchor="middle" fill="#1A1917" font-size="9" font-weight="700">RACK B</text>
+            <!-- badge -->
+            <rect x="95" y="51" width="52" height="11" rx="1" fill="#BF5534"/>
+            <text x="121" y="60" text-anchor="middle" fill="white" font-size="7" font-weight="700">Womens SS 24</text>
+            <!-- selection handles -->
+            <rect x="58" y="13" width="84" height="54" fill="none" stroke="#BF5534" stroke-width="1" stroke-dasharray="3,2"/>
+          </svg>
+        </div>
+        <!-- Mini panel -->
+        <div style="background:#1A1917;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;">
+          <div>
+            <div style="color:white;font-size:11px;font-weight:700;letter-spacing:1px;">RACK B — 4 × 2ft</div>
+            <div style="color:#9E9890;font-size:10px;margin-top:2px;">📋 Womens SS 24 &nbsp;·&nbsp; 12 slots, 8 assigned</div>
+          </div>
+          <div style="display:flex;gap:6px;">
+            <div style="background:#BF5534;color:white;font-size:9px;font-weight:700;padding:5px 10px;border-radius:2px;">VIEW →</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="expanded-badge" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Badge expands on selection</h3>
+      <p>When the fixture is selected, its planogram badge expands in-place to show the planogram name + slot summary + a View button. No panel — everything stays on the canvas. Deselecting collapses it back to the small badge.</p>
+      <div style="margin-top:12px;background:#f2efe8;border:1px solid #d4cfc6;border-radius:2px;padding:10px;">
+        <div style="position:relative;height:110px;background:#fff;border-radius:2px;border:1px solid #ccc;overflow:hidden;">
+          <svg width="100%" height="50" style="position:absolute;top:0;left:0;">
+            <rect x="40" y="8" width="80" height="40" fill="rgba(191,85,52,0.12)" stroke="#BF5534" stroke-width="2"/>
+            <text x="80" y="30" text-anchor="middle" fill="#1A1917" font-size="9" font-weight="700">RACK B</text>
+            <rect x="38" y="6" width="84" height="44" fill="none" stroke="#BF5534" stroke-width="1" stroke-dasharray="3,2"/>
+          </svg>
+          <!-- Expanded badge floating below fixture -->
+          <div style="position:absolute;top:50px;left:30px;background:#1A1917;color:white;border-radius:2px;padding:6px 10px;min-width:160px;">
+            <div style="font-size:9px;font-weight:700;color:#BF5534;margin-bottom:2px;">WOMENS SS 24</div>
+            <div style="font-size:9px;color:#9E9890;">12 slots · 8 assigned</div>
+            <div style="margin-top:4px;background:#BF5534;color:white;font-size:8px;font-weight:700;padding:3px 8px;border-radius:2px;display:inline-block;">VIEW PLANOGRAM →</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="combined" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Combined: badge tap = assign, selection = mini-panel + inline badge</h3>
+      <p>Both at once: the badge is always visible (and tappable to assign), AND selecting shows the mini-panel at the bottom with full planogram detail + View button. Most information visible, most surface area used.</p>
+      <div style="margin-top:12px;background:#f2efe8;border:1px solid #d4cfc6;border-radius:2px;overflow:hidden;">
+        <div style="position:relative;height:80px;background:#fff;">
+          <svg width="100%" height="100%" style="position:absolute;">
+            <rect x="60" y="10" width="80" height="50" fill="rgba(191,85,52,0.12)" stroke="#BF5534" stroke-width="2"/>
+            <text x="100" y="32" text-anchor="middle" fill="#1A1917" font-size="9" font-weight="700">RACK B</text>
+            <rect x="92" y="47" width="55" height="11" rx="1" fill="#BF5534"/>
+            <text x="119" y="56" text-anchor="middle" fill="white" font-size="7" font-weight="700">Womens SS 24 ✎</text>
+            <rect x="58" y="8" width="84" height="54" fill="none" stroke="#BF5534" stroke-width="1" stroke-dasharray="3,2"/>
+          </svg>
+        </div>
+        <div style="background:#1A1917;padding:8px 14px;display:flex;align-items:center;justify-content:space-between;">
+          <div>
+            <div style="color:white;font-size:10px;font-weight:700;">RACK B — 4 × 2ft</div>
+            <div style="color:#9E9890;font-size:9px;margin-top:1px;">Womens SS 24 · 8/12 slots assigned</div>
+          </div>
+          <div style="background:#BF5534;color:white;font-size:9px;font-weight:700;padding:4px 8px;border-radius:2px;">VIEW →</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<p style="margin-top:16px;font-size:13px;color:#6b6762;">I recommend <strong>A</strong> — the mini-panel is clean, readable, and doesn't clutter the canvas. The badge still handles assign/change. <strong>C</strong> is equally good if you want both simultaneously.</p>

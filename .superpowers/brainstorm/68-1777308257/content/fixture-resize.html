@@ -1,0 +1,86 @@
+<h2>Fixture resize handles</h2>
+<p class="subtitle">When a fixture is selected, how do you resize it?</p>
+
+<div class="options">
+  <div class="option" data-choice="corner-handles" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Corner + edge handles (Figma-style)</h3>
+      <p>Selected fixture shows 8 handles: 4 corners (drag to resize proportionally or freely) and 4 edge midpoints (drag to resize on one axis only). Rotation handle appears above the fixture.</p>
+      <div style="margin-top:10px;background:#f2efe8;padding:10px;border:1px solid #d4cfc6;border-radius:2px;">
+        <div style="position:relative;height:100px;background:#fff;border:1px solid #ccc;border-radius:2px;overflow:hidden;">
+          <svg width="100%" height="100%" style="position:absolute;">
+            <!-- Fixture -->
+            <rect x="70" y="25" width="100" height="55" fill="rgba(191,85,52,0.1)" stroke="#BF5534" stroke-width="1.5"/>
+            <text x="120" y="53" text-anchor="middle" fill="#1A1917" font-size="9" font-weight="700">RACK B</text>
+            <!-- Corner handles -->
+            <rect x="63" y="18" width="10" height="10" fill="white" stroke="#BF5534" stroke-width="1.5" rx="1"/>
+            <rect x="157" y="18" width="10" height="10" fill="white" stroke="#BF5534" stroke-width="1.5" rx="1"/>
+            <rect x="63" y="72" width="10" height="10" fill="white" stroke="#BF5534" stroke-width="1.5" rx="1"/>
+            <rect x="157" y="72" width="10" height="10" fill="white" stroke="#BF5534" stroke-width="1.5" rx="1"/>
+            <!-- Edge midpoint handles -->
+            <rect x="112" y="18" width="10" height="10" fill="white" stroke="#BF5534" stroke-width="1.5" rx="1"/>
+            <rect x="112" y="72" width="10" height="10" fill="white" stroke="#BF5534" stroke-width="1.5" rx="1"/>
+            <rect x="63" y="47" width="10" height="10" fill="white" stroke="#BF5534" stroke-width="1.5" rx="1"/>
+            <rect x="157" y="47" width="10" height="10" fill="white" stroke="#BF5534" stroke-width="1.5" rx="1"/>
+            <!-- Rotate handle -->
+            <line x1="120" y1="18" x2="120" y2="8" stroke="#BF5534" stroke-width="1" stroke-dasharray="2,2"/>
+            <circle cx="120" cy="5" r="5" fill="white" stroke="#BF5534" stroke-width="1.5"/>
+            <text x="120" y="8.5" text-anchor="middle" fill="#BF5534" font-size="7">↻</text>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="edge-only" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Edge-only handles (simpler)</h3>
+      <p>Selected fixture shows only 4 edge-midpoint handles (top/bottom/left/right). Drag an edge to change width or depth. Simpler gesture model — no ambiguity between corner resize and move. Rotation stays on long-press action sheet.</p>
+      <div style="margin-top:10px;background:#f2efe8;padding:10px;border:1px solid #d4cfc6;border-radius:2px;">
+        <div style="position:relative;height:100px;background:#fff;border:1px solid #ccc;border-radius:2px;overflow:hidden;">
+          <svg width="100%" height="100%" style="position:absolute;">
+            <rect x="70" y="25" width="100" height="55" fill="rgba(191,85,52,0.1)" stroke="#BF5534" stroke-width="1.5"/>
+            <text x="120" y="53" text-anchor="middle" fill="#1A1917" font-size="9" font-weight="700">RACK B</text>
+            <!-- Edge midpoint handles only — larger, easier to hit -->
+            <rect x="112" y="16" width="16" height="16" rx="2" fill="#BF5534"/>
+            <text x="120" y="27" text-anchor="middle" fill="white" font-size="10">↕</text>
+            <rect x="112" y="69" width="16" height="16" rx="2" fill="#BF5534"/>
+            <text x="120" y="80" text-anchor="middle" fill="white" font-size="10">↕</text>
+            <rect x="56" y="44" width="16" height="16" rx="2" fill="#BF5534"/>
+            <text x="64" y="55" text-anchor="middle" fill="white" font-size="10">↔</text>
+            <rect x="168" y="44" width="16" height="16" rx="2" fill="#BF5534"/>
+            <text x="176" y="55" text-anchor="middle" fill="white" font-size="10">↔</text>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="panel-only" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>No drag handles — resize via the mini-panel</h3>
+      <p>No on-canvas resize handles. The selection mini-panel shows editable width/depth fields. Type the new dimensions and the fixture updates. Simpler canvas, no accidental resizes, but less tactile.</p>
+      <div style="margin-top:10px;background:#f2efe8;padding:10px;border:1px solid #d4cfc6;border-radius:2px;">
+        <div style="background:#1A1917;padding:10px 14px;">
+          <div style="color:white;font-size:11px;font-weight:700;letter-spacing:1px;margin-bottom:6px;">RACK B</div>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <div style="display:flex;align-items:center;gap:4px;">
+              <span style="color:#9E9890;font-size:9px;">W</span>
+              <div style="background:#2a2927;border:1px solid #444;border-radius:2px;color:white;font-size:10px;padding:3px 8px;width:40px;text-align:center;">4 ft</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:4px;">
+              <span style="color:#9E9890;font-size:9px;">D</span>
+              <div style="background:#2a2927;border:1px solid #444;border-radius:2px;color:white;font-size:10px;padding:3px 8px;width:40px;text-align:center;">2 ft</div>
+            </div>
+            <div style="background:#BF5534;color:white;font-size:9px;font-weight:700;padding:4px 8px;border-radius:2px;margin-left:auto;">VIEW →</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<p style="margin-top:16px;font-size:13px;color:#6b6762;">I recommend <strong>B</strong> for a mobile app — edge handles are large enough to hit on a touchscreen without accidental triggers. Corner handles (A) are more Figma-like but cramped on small screens.</p>

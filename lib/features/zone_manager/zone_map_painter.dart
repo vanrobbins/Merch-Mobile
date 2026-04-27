@@ -1,6 +1,8 @@
+import 'dart:math';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import '../../core/database/app_database.dart';
+import 'store_entrance.dart';
 import 'zone_shape.dart';
 
 class ZoneMapPainter extends CustomPainter {
@@ -8,44 +10,97 @@ class ZoneMapPainter extends CustomPainter {
     required this.zones,
     required this.canvasSize,
     this.selectedZoneId,
-    this.onZoneTap,
+    this.widthFt,
+    this.depthFt,
+    this.entranceJson,
+    this.activeVertexIdx,
+    this.snapPreviewPoints,
   });
 
   final List<ZonesTableData> zones;
   final Size canvasSize;
   final String? selectedZoneId;
-  final void Function(String zoneId)? onZoneTap;
+  final double? widthFt;
+  final double? depthFt;
+  final String? entranceJson;
+  final int? activeVertexIdx;
+  /// When non-null, draw a ghost of the shape-snapped result.
+  final List<Offset>? snapPreviewPoints;
 
-  // Cache hit-test paths for tap detection
   final Map<String, Path> _zonePaths = {};
+
+  bool get _hasStoreDims => widthFt != null && depthFt != null;
+
+  double get _pixelsPerFt {
+    if (!_hasStoreDims) return 0;
+    return (canvasSize.width / widthFt!).clamp(0, canvasSize.height / depthFt!);
+  }
+
+  Rect get _storeRect {
+    final ppf = _pixelsPerFt;
+    if (ppf == 0) return Rect.zero;
+    return Rect.fromLTWH(0, 0, widthFt! * ppf, depthFt! * ppf);
+  }
 
   @override
   void paint(Canvas canvas, Size size) {
     _zonePaths.clear();
     _drawGrid(canvas, size);
+    if (_hasStoreDims) _drawStoreBoundary(canvas);
+
     for (final zone in zones) {
       _drawZone(canvas, size, zone);
     }
-    // Draw vertex handles on selected zone
-    if (selectedZoneId != null) {
-      final selected = zones.where((z) => z.id == selectedZoneId).firstOrNull;
-      if (selected != null) {
-        _drawVertexHandles(canvas, size, selected);
+
+    final selected = selectedZoneId == null
+        ? null
+        : zones.where((z) => z.id == selectedZoneId).firstOrNull;
+    if (selected != null) _drawVertexHandles(canvas, size, selected);
+    if (snapPreviewPoints != null) _drawSnapPreview(canvas, size, snapPreviewPoints!);
+  }
+
+  void _drawGrid(Canvas canvas, Size size) {
+    final ppf = _pixelsPerFt;
+    final useFtGrid = ppf > 0 && _hasStoreDims;
+
+    final paint = Paint()
+      ..color = Colors.grey.withOpacity(useFtGrid ? 0.15 : 0.10)
+      ..strokeWidth = 0.5;
+
+    if (useFtGrid) {
+      const ftStep = 5.0;
+      final stepPx = ftStep * ppf;
+      final boundary = _storeRect;
+      for (double x = 0; x <= boundary.width + 0.1; x += stepPx) {
+        canvas.drawLine(Offset(x, 0), Offset(x, boundary.height), paint);
+      }
+      for (double y = 0; y <= boundary.height + 0.1; y += stepPx) {
+        canvas.drawLine(Offset(0, y), Offset(boundary.width, y), paint);
+      }
+    } else {
+      const step = 40.0;
+      for (double x = 0; x < size.width; x += step) {
+        canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
+      }
+      for (double y = 0; y < size.height; y += step) {
+        canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
       }
     }
   }
 
-  void _drawGrid(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.grey.withOpacity(0.15)
-      ..strokeWidth = 0.5;
-    const step = 40.0;
-    for (double x = 0; x < size.width; x += step) {
-      canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
-    }
-    for (double y = 0; y < size.height; y += step) {
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
-    }
+  void _drawStoreBoundary(Canvas canvas) {
+    final rect = _storeRect;
+    canvas.drawRect(rect, Paint()..color = const Color(0xFFF2EFE8));
+    final entrance = StoreEntrance.fromJson(entranceJson);
+    final path = StoreEntrance.boundaryPath(rect, entrance);
+    canvas.drawPath(
+      path,
+      Paint()
+        ..color = const Color(0xFF1A1917)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2.5
+        ..strokeCap = StrokeCap.square,
+    );
   }
 
   void _drawZone(Canvas canvas, Size size, ZonesTableData zone) {
@@ -59,29 +114,42 @@ class ZoneMapPainter extends CustomPainter {
     final isSelected = zone.id == selectedZoneId;
     final isDisplay = zone.zoneType == 'display';
 
-    // Fill — selected zones are noticeably brighter
-    canvas.drawPath(
-      path,
-      Paint()
-        ..color = color.withOpacity(isSelected ? 0.45 : 0.20)
-        ..style = PaintingStyle.fill,
-    );
+    final centroid = _centroid(points);
+    final outsideBoundary = _hasStoreDims && !_storeRect.contains(centroid);
 
-    // Stroke — selected uses accent + thick border; unselected uses zone color
-    final strokePaint = Paint()
-      ..color = isSelected ? const Color(0xFFBF5534) : color.withOpacity(0.7)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = isSelected ? 3.5 : 1.5
-      ..strokeJoin = StrokeJoin.round;
+    // Fill
+    final fillColor = outsideBoundary
+        ? Colors.red.withOpacity(0.18)
+        : color.withOpacity(isSelected ? 0.45 : 0.20);
+    canvas.drawPath(path, Paint()..color = fillColor);
 
-    if (!isDisplay) {
-      _drawDashedPath(canvas, path, strokePaint);
+    // Stroke
+    if (isSelected) {
+      _drawDashedPath(
+        canvas,
+        path,
+        Paint()
+          ..color = const Color(0xFFBF5534)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2.5
+          ..strokeJoin = StrokeJoin.round,
+      );
     } else {
-      canvas.drawPath(path, strokePaint);
+      final strokePaint = Paint()
+        ..color = outsideBoundary
+            ? Colors.red.withOpacity(0.6)
+            : color.withOpacity(0.7)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.5
+        ..strokeJoin = StrokeJoin.round;
+      if (isDisplay) {
+        canvas.drawPath(path, strokePaint);
+      } else {
+        _drawDashedPath(canvas, path, strokePaint);
+      }
     }
 
-    // Zone name label — white halo improves contrast over the fill.
-    final centroid = _centroid(points);
+    // Label
     final tp = TextPainter(
       text: TextSpan(
         text: zone.name.toUpperCase(),
@@ -96,7 +164,6 @@ class ZoneMapPainter extends CustomPainter {
               // ignore: deprecated_member_use
               color: Colors.white.withOpacity(0.7),
               blurRadius: 3,
-              offset: const Offset(0, 0),
             ),
           ],
         ),
@@ -108,12 +175,31 @@ class ZoneMapPainter extends CustomPainter {
 
   void _drawVertexHandles(Canvas canvas, Size size, ZonesTableData zone) {
     final points = _getPoints(zone, size);
-    final color = Color(zone.colorValue);
+
+    // Draw edge length labels when a vertex is actively dragged.
+    if (activeVertexIdx != null && _hasStoreDims) {
+      final normPts = ZoneShape.decode(zone.shapePoints);
+      final n = normPts.length;
+      for (var i = 0; i < n; i++) {
+        // Only draw edges that involve the active vertex.
+        final next = (i + 1) % n;
+        if (i != activeVertexIdx && next != activeVertexIdx) continue;
+
+        final dxFt = (normPts[next].dx - normPts[i].dx) * widthFt!;
+        final dyFt = (normPts[next].dy - normPts[i].dy) * depthFt!;
+        final lengthFt = sqrt(dxFt * dxFt + dyFt * dyFt);
+        final label = '${lengthFt.toStringAsFixed(1)} ft';
+
+        final mid = (points[i] + points[next]) / 2;
+        _drawEdgeLabel(canvas, label, mid);
+      }
+    }
+
     final fillPaint = Paint()
-      ..color = Colors.white
+      ..color = const Color(0xFFBF5534)
       ..style = PaintingStyle.fill;
     final strokePaint = Paint()
-      ..color = color
+      ..color = Colors.white
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2.0;
 
@@ -123,32 +209,77 @@ class ZoneMapPainter extends CustomPainter {
     }
   }
 
+  void _drawSnapPreview(Canvas canvas, Size size, List<Offset> normPts) {
+    final cPts = normPts.map((p) => Offset(p.dx * size.width, p.dy * size.height)).toList();
+    final path = Path()..addPolygon(cPts, true);
+    canvas.drawPath(
+      path,
+      Paint()
+        ..color = const Color(0xFFBF5534).withAlpha(40)
+        ..style = PaintingStyle.fill,
+    );
+    _drawDashedPath(
+      canvas,
+      path,
+      Paint()
+        ..color = const Color(0xFFBF5534).withAlpha(180)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.5,
+    );
+  }
+
+  void _drawEdgeLabel(Canvas canvas, String text, Offset center) {
+    final tp = TextPainter(
+      text: TextSpan(
+        text: text,
+        style: const TextStyle(
+          color: Color(0xFF1A1917),
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+      textDirection: ui.TextDirection.ltr,
+    )..layout();
+
+    const hPad = 6.0;
+    const vPad = 3.0;
+    final bgRect = RRect.fromRectAndRadius(
+      Rect.fromCenter(
+        center: center,
+        width: tp.width + hPad * 2,
+        height: tp.height + vPad * 2,
+      ),
+      const Radius.circular(4),
+    );
+    canvas.drawRRect(bgRect, Paint()..color = const Color(0xFFF2EFE8));
+    canvas.drawRRect(
+      bgRect,
+      Paint()
+        ..color = const Color(0xFFBF5534)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.0,
+    );
+    tp.paint(canvas, center - Offset(tp.width / 2, tp.height / 2));
+  }
+
   List<Offset> _getPoints(ZonesTableData zone, Size size) {
     final decoded = ZoneShape.decode(zone.shapePoints);
     if (decoded.isNotEmpty) {
-      // shapePoints stores normalized 0..1 coords — scale to canvas
-      return decoded
-          .map((p) => Offset(p.dx * size.width, p.dy * size.height))
-          .toList();
+      return [
+        for (final p in decoded) Offset(p.dx * size.width, p.dy * size.height),
+      ];
     }
-    // Fallback to posX/posY/width/height (legacy)
     final x = zone.posX * size.width;
     final y = zone.posY * size.height;
     final w = zone.width * size.width;
     final h = zone.height * size.height;
-    return [
-      Offset(x, y),
-      Offset(x + w, y),
-      Offset(x + w, y + h),
-      Offset(x, y + h),
-    ];
+    return [Offset(x, y), Offset(x + w, y), Offset(x + w, y + h), Offset(x, y + h)];
   }
 
   void _drawDashedPath(Canvas canvas, Path path, Paint paint) {
     const dashLen = 8.0;
     const gapLen = 5.0;
-    final metrics = path.computeMetrics();
-    for (final metric in metrics) {
+    for (final metric in path.computeMetrics()) {
       double dist = 0;
       while (dist < metric.length) {
         final end = (dist + dashLen).clamp(0.0, metric.length);
@@ -159,17 +290,11 @@ class ZoneMapPainter extends CustomPainter {
   }
 
   Offset _centroid(List<Offset> pts) {
-    var x = 0.0, y = 0.0;
-    for (final p in pts) {
-      x += p.dx;
-      y += p.dy;
-    }
-    return Offset(x / pts.length, y / pts.length);
+    final sum = pts.fold<Offset>(Offset.zero, (acc, p) => acc + p);
+    return sum / pts.length.toDouble();
   }
 
-  /// Returns the zone ID at [position], or null. Not an override of CustomPainter.hitTest.
   String? zoneIdAt(Offset position) {
-    // Iterate in reverse so topmost zone is hit first
     for (final zone in zones.reversed) {
       final path = _zonePaths[zone.id];
       if (path != null && path.contains(position)) return zone.id;
@@ -177,7 +302,24 @@ class ZoneMapPainter extends CustomPainter {
     return null;
   }
 
+  int vertexIndexAt(String zoneId, Offset position, Size size,
+      {double hitRadius = 20.0}) {
+    final zone = zones.where((z) => z.id == zoneId).firstOrNull;
+    if (zone == null) return -1;
+    final pts = _getPoints(zone, size);
+    for (var i = 0; i < pts.length; i++) {
+      if ((pts[i] - position).distance < hitRadius) return i;
+    }
+    return -1;
+  }
+
   @override
   bool shouldRepaint(ZoneMapPainter old) =>
-      old.zones != zones || old.selectedZoneId != selectedZoneId;
+      old.zones != zones ||
+      old.selectedZoneId != selectedZoneId ||
+      old.widthFt != widthFt ||
+      old.depthFt != depthFt ||
+      old.entranceJson != entranceJson ||
+      old.activeVertexIdx != activeVertexIdx ||
+      old.snapPreviewPoints != snapPreviewPoints;
 }
