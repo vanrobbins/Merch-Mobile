@@ -445,7 +445,7 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
                 if (box == null) return;
                 final localPos = box.globalToLocal(details.offset);
                 setState(() {
-                  _ghostPos = localPos;
+                  _ghostPos = _toCanvas(localPos);
                   _ghostType = details.data;
                 });
               },
@@ -460,7 +460,7 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
                 final localPos = box != null
                     ? box.globalToLocal(details.offset)
                     : details.offset;
-                final normalizedPos = _normalizeOffset(localPos);
+                final normalizedPos = _normalizeOffset(_toCanvas(localPos));
                 ref.read(floorBuilderNotifierProvider.notifier).addFixture(details.data, normalizedPos);
                 setState(() {
                   _ghostPos = null;

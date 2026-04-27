@@ -295,14 +295,16 @@ class _ZoneCanvasState extends ConsumerState<_ZoneCanvas> {
     return bestEdge;
   }
 
-  double _pointToSegmentDist(Offset p, Offset a, Offset b) {
+  double _pointToSegmentDist(Offset p, Offset a, Offset b) =>
+      (p - _projectOntoSegment(p, a, b)).distance;
+
+  Offset _projectOntoSegment(Offset p, Offset a, Offset b) {
     final ab = b - a;
     final len2 = ab.dx * ab.dx + ab.dy * ab.dy;
-    if (len2 == 0) return (p - a).distance;
+    if (len2 == 0) return a;
     final t = ((p - a).dx * ab.dx + (p - a).dy * ab.dy) / len2;
-    final clamped = t.clamp(0.0, 1.0);
-    final proj = a + Offset(ab.dx * clamped, ab.dy * clamped);
-    return (p - proj).distance;
+    final c = t.clamp(0.0, 1.0);
+    return a + Offset(ab.dx * c, ab.dy * c);
   }
 
   Rect get _storeRectCanvas {
@@ -503,6 +505,35 @@ class _ZoneCanvasState extends ConsumerState<_ZoneCanvas> {
     }
     if (bestDelta != null) return bestDelta;
 
+    // Zone-to-edge snap (vertex of moved zone snaps to nearest point on another zone's edge).
+    bestDist = threshold;
+    for (final pt in startPts) {
+      final movedCanvas = Offset(
+        (pt.dx + normDelta.dx) * _canvasSize.width,
+        (pt.dy + normDelta.dy) * _canvasSize.height,
+      );
+      for (final other in st.zones) {
+        if (other.id == zoneId) continue;
+        final normPts = ZoneShape.decode(other.shapePoints);
+        final n = normPts.length;
+        for (var i = 0; i < n; i++) {
+          final a = Offset(normPts[i].dx * _canvasSize.width, normPts[i].dy * _canvasSize.height);
+          final b = Offset(normPts[(i + 1) % n].dx * _canvasSize.width,
+              normPts[(i + 1) % n].dy * _canvasSize.height);
+          final proj = _projectOntoSegment(movedCanvas, a, b);
+          final d = (proj - movedCanvas).distance;
+          if (d < bestDist) {
+            bestDist = d;
+            bestDelta = Offset(
+              proj.dx / _canvasSize.width - pt.dx,
+              proj.dy / _canvasSize.height - pt.dy,
+            );
+          }
+        }
+      }
+    }
+    if (bestDelta != null) return bestDelta;
+
     // Store boundary snap (X and Y axes independently).
     final widthFt = st.storeData?.widthFt;
     final depthFt = st.storeData?.depthFt;
@@ -552,6 +583,27 @@ class _ZoneCanvasState extends ConsumerState<_ZoneCanvas> {
     return best;
   }
 
+  // Snap to nearest point on any edge of any other zone.
+  Offset _snapToEdge(Offset canvas, String dragZoneId) {
+    final threshold = _snapScreenPx / _viewScale;
+    final state = ref.read(zoneMapNotifierProvider);
+    Offset best = canvas;
+    double bestDist = threshold;
+    for (final zone in state.zones) {
+      if (zone.id == dragZoneId) continue;
+      final normPts = ZoneShape.decode(zone.shapePoints);
+      final n = normPts.length;
+      for (var i = 0; i < n; i++) {
+        final a = Offset(normPts[i].dx * _canvasSize.width, normPts[i].dy * _canvasSize.height);
+        final b = Offset(normPts[(i + 1) % n].dx * _canvasSize.width, normPts[(i + 1) % n].dy * _canvasSize.height);
+        final proj = _projectOntoSegment(canvas, a, b);
+        final d = (proj - canvas).distance;
+        if (d < bestDist) { bestDist = d; best = proj; }
+      }
+    }
+    return best;
+  }
+
   // Snap vertex X/Y to adjacent vertices' coordinates → creates right-angle edges.
   Offset _snapOrthogonal(Offset canvas, List<Offset> normPts, int idx) {
     final n = normPts.length;
@@ -577,10 +629,12 @@ class _ZoneCanvasState extends ConsumerState<_ZoneCanvas> {
     return Offset(x, y);
   }
 
-  // Combined snap: vertex-to-vertex takes priority, then orthogonal.
+  // Combined snap: vertex-to-vertex → edge → orthogonal.
   Offset _snapAll(Offset canvas, String dragZoneId, int vertexIdx) {
     final vtx = _snapToVertex(canvas, dragZoneId);
     if (vtx != canvas) return vtx;
+    final edge = _snapToEdge(canvas, dragZoneId);
+    if (edge != canvas) return edge;
     if (_dragPoints != null) return _snapOrthogonal(canvas, _dragPoints!, vertexIdx);
     return canvas;
   }
