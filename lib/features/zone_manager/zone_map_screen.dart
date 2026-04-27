@@ -120,6 +120,7 @@ class _ZoneCanvasState extends ConsumerState<_ZoneCanvas> {
   String? _dragZoneId;
   int? _dragVertexIdx;
   List<Offset>? _dragPoints;
+  List<Offset>? _dragStartPoints; // original shape at drag start for revert
 
   // Whole-zone move state
   String? _moveZoneId;
@@ -400,6 +401,29 @@ class _ZoneCanvasState extends ConsumerState<_ZoneCanvas> {
     ));
   }
 
+  bool _segmentsIntersect(Offset p1, Offset p2, Offset p3, Offset p4) {
+    final d1 = p2 - p1;
+    final d2 = p4 - p3;
+    final cross = d1.dx * d2.dy - d1.dy * d2.dx;
+    if (cross.abs() < 1e-10) return false;
+    final t = ((p3.dx - p1.dx) * d2.dy - (p3.dy - p1.dy) * d2.dx) / cross;
+    final u = ((p3.dx - p1.dx) * d1.dy - (p3.dy - p1.dy) * d1.dx) / cross;
+    return t > 1e-10 && t < 1 - 1e-10 && u > 1e-10 && u < 1 - 1e-10;
+  }
+
+  bool _isSelfIntersecting(List<Offset> pts) {
+    final n = pts.length;
+    for (var i = 0; i < n; i++) {
+      final a = pts[i]; final b = pts[(i + 1) % n];
+      for (var j = i + 2; j < n; j++) {
+        if (i == 0 && j == n - 1) continue; // adjacent wrap
+        final c = pts[j]; final d = pts[(j + 1) % n];
+        if (_segmentsIntersect(a, b, c, d)) return true;
+      }
+    }
+    return false;
+  }
+
   List<Offset>? _tryRightTriangle(List<Offset> pts) {
     if (_canvasSize == Size.zero) return null;
     final threshold = 25.0 / _viewScale;
@@ -426,6 +450,7 @@ class _ZoneCanvasState extends ConsumerState<_ZoneCanvas> {
     _dragZoneId = null;
     _dragVertexIdx = null;
     _dragPoints = null;
+    _dragStartPoints = null;
     _moveZoneId = null;
     _moveStartCanvas = null;
     _moveStartPoints = null;
@@ -491,6 +516,7 @@ class _ZoneCanvasState extends ConsumerState<_ZoneCanvas> {
             _dragZoneId = state.selectedZoneId;
             _dragVertexIdx = idx;
             _dragPoints = ZoneShape.decode(zone.shapePoints);
+            _dragStartPoints = List.of(_dragPoints!);
           });
           return;
         }
@@ -559,7 +585,13 @@ class _ZoneCanvasState extends ConsumerState<_ZoneCanvas> {
 
     if (_dragZoneId != null && _dragPoints != null) {
       final shaped = _trySnapToShape(_dragPoints!);
-      _notifier.updateZoneShape(_dragZoneId!, shaped ?? _dragPoints!);
+      final finalPts = shaped ?? _dragPoints!;
+      if (_isSelfIntersecting(finalPts)) {
+        // Revert to the shape before this drag
+        _notifier.updateZoneShape(_dragZoneId!, _dragStartPoints ?? _dragPoints!);
+      } else {
+        _notifier.updateZoneShape(_dragZoneId!, finalPts);
+      }
     } else if (_moveZoneId != null && _moveCurrentPoints != null) {
       _notifier.updateZoneShape(_moveZoneId!, _moveCurrentPoints!);
     }
