@@ -14,17 +14,20 @@ class ZoneMapState {
   final List<ZonesTableData> zones;
   final String? selectedZoneId;
   final bool isLoading;
+  final StoresTableData? storeData;
 
   const ZoneMapState({
     required this.zones,
     this.selectedZoneId,
     this.isLoading = false,
+    this.storeData,
   });
 
   ZoneMapState copyWith({
     List<ZonesTableData>? zones,
     Object? selectedZoneId = _sentinel,
     bool? isLoading,
+    Object? storeData = _sentinel,
   }) {
     return ZoneMapState(
       zones: zones ?? this.zones,
@@ -32,6 +35,9 @@ class ZoneMapState {
           ? this.selectedZoneId
           : selectedZoneId as String?,
       isLoading: isLoading ?? this.isLoading,
+      storeData: storeData == _sentinel
+          ? this.storeData
+          : storeData as StoresTableData?,
     );
   }
 }
@@ -40,7 +46,8 @@ const _sentinel = Object();
 
 @riverpod
 class ZoneMapNotifier extends _$ZoneMapNotifier {
-  StreamSubscription<List<ZonesTableData>>? _sub;
+  StreamSubscription<List<ZonesTableData>>? _zoneSub;
+  StreamSubscription<StoresTableData?>? _storeSub;
 
   @override
   ZoneMapState build() {
@@ -48,13 +55,20 @@ class ZoneMapNotifier extends _$ZoneMapNotifier {
     final storeIdAsync = ref.watch(activeStoreIdProvider);
     final storeId = storeIdAsync.value;
 
-    _sub?.cancel();
+    _zoneSub?.cancel();
+    _storeSub?.cancel();
     if (storeId != null && storeId.isNotEmpty) {
-      _sub = db.zonesDao.watchByStore(storeId).listen((rows) {
+      _zoneSub = db.zonesDao.watchByStore(storeId).listen((rows) {
         state = state.copyWith(zones: rows, isLoading: false);
       });
+      _storeSub = db.storesDao.watchById(storeId).listen((store) {
+        state = state.copyWith(storeData: store);
+      });
     }
-    ref.onDispose(() => _sub?.cancel());
+    ref.onDispose(() {
+      _zoneSub?.cancel();
+      _storeSub?.cancel();
+    });
 
     return const ZoneMapState(zones: [], isLoading: true);
   }
@@ -117,13 +131,39 @@ class ZoneMapNotifier extends _$ZoneMapNotifier {
         ));
   }
 
-  /// Updates zone shape in local state only (no DB write) — used for smooth vertex drag.
+  /// Updates zone shape in local state only — used for smooth vertex drag.
   void updateZoneShapeLocal(String id, List<Offset> points) {
     final updated = state.zones.map((z) {
       if (z.id != id) return z;
       return z.copyWith(shapePoints: Value(ZoneShape.encode(points)));
     }).toList();
     state = state.copyWith(zones: updated);
+  }
+
+  /// Translates all vertices of a zone by the given normalized delta, persists to DB.
+  Future<void> moveZone(String id, Offset normDelta) async {
+    final zone = state.zones.firstWhere((z) => z.id == id);
+    final pts = ZoneShape.decode(zone.shapePoints);
+    final moved = pts
+        .map((p) => Offset(
+              (p.dx + normDelta.dx).clamp(0.0, 1.0),
+              (p.dy + normDelta.dy).clamp(0.0, 1.0),
+            ))
+        .toList();
+    await updateZoneShape(id, moved);
+  }
+
+  /// Translates all vertices in local state only — used for smooth drag preview.
+  void moveZoneLocal(String id, Offset normDelta) {
+    final zone = state.zones.firstWhere((z) => z.id == id);
+    final pts = ZoneShape.decode(zone.shapePoints);
+    final moved = pts
+        .map((p) => Offset(
+              (p.dx + normDelta.dx).clamp(0.0, 1.0),
+              (p.dy + normDelta.dy).clamp(0.0, 1.0),
+            ))
+        .toList();
+    updateZoneShapeLocal(id, moved);
   }
 
   Future<void> deleteZone(String id) async {
@@ -139,5 +179,11 @@ class ZoneMapNotifier extends _$ZoneMapNotifier {
     final center = Offset(zone.posX, zone.posY);
     final points = ZoneShape.presetAt(presetName, center);
     await updateZoneShape(id, points);
+  }
+
+  Future<void> updateStoreDimensions(double widthFt, double depthFt) async {
+    final db = ref.read(appDatabaseProvider);
+    final storeId = ref.read(activeStoreIdProvider).value ?? '';
+    await db.storesDao.updateDimensions(storeId, widthFt, depthFt);
   }
 }
