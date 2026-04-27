@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/database/app_database.dart';
 import '../../core/theme/app_theme.dart';
+import 'planogram_slot_count.dart';
 
 class PlanogramPickerSheet extends StatefulWidget {
   const PlanogramPickerSheet({
@@ -107,7 +108,7 @@ class _PlanogramPickerSheetState extends State<PlanogramPickerSheet> {
                     ],
                     ..._filtered.map((p) {
                       final isSelected = p.id == widget.currentPlanogramId;
-                      final slotCount = _countSlots(p.slotsJson);
+                      final slotCount = countPlanogramSlots(p.slotsJson);
                       return ListTile(
                         leading: Container(
                           width: 36,
@@ -154,8 +155,4 @@ class _PlanogramPickerSheetState extends State<PlanogramPickerSheet> {
     );
   }
 
-  int _countSlots(String slotsJson) {
-    if (slotsJson == '[]') return 0;
-    return '['.allMatches(slotsJson).length - 1;
-  }
 }

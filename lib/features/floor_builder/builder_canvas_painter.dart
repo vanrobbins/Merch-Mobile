@@ -322,7 +322,7 @@ class BuilderCanvasPainter extends CustomPainter {
       handleRects[h] = hr;
       canvas.drawRRect(
         RRect.fromRectAndRadius(hr, const Radius.circular(4)),
-        Paint()..color = const Color(0xFFBF5534)..style = PaintingStyle.fill,
+        Paint()..color = AppTheme.accent..style = PaintingStyle.fill,
       );
       _drawArrow(canvas, center, h == 'left' || h == 'right');
     }
@@ -348,19 +348,17 @@ class BuilderCanvasPainter extends CustomPainter {
       ..strokeWidth = 1.5
       ..strokeCap = StrokeCap.round;
     const arm = 4.0;
-    if (horizontal) {
-      canvas.drawLine(center.translate(-arm, 0), center.translate(arm, 0), paint);
-      canvas.drawLine(center.translate(-arm, 0), center.translate(-arm + 2, -2), paint);
-      canvas.drawLine(center.translate(-arm, 0), center.translate(-arm + 2, 2), paint);
-      canvas.drawLine(center.translate(arm, 0), center.translate(arm - 2, -2), paint);
-      canvas.drawLine(center.translate(arm, 0), center.translate(arm - 2, 2), paint);
-    } else {
-      canvas.drawLine(center.translate(0, -arm), center.translate(0, arm), paint);
-      canvas.drawLine(center.translate(0, -arm), center.translate(-2, -arm + 2), paint);
-      canvas.drawLine(center.translate(0, -arm), center.translate(2, -arm + 2), paint);
-      canvas.drawLine(center.translate(0, arm), center.translate(-2, arm - 2), paint);
-      canvas.drawLine(center.translate(0, arm), center.translate(2, arm - 2), paint);
-    }
+    // `axis` runs along the arrow shaft; `cross` is the perpendicular barb width.
+    final axis = horizontal ? const Offset(arm, 0) : const Offset(0, arm);
+    final cross = horizontal ? const Offset(0, 2) : const Offset(2, 0);
+    final inward = axis * (2 / arm); // 2-pixel step from each tip toward center
+    final tip1 = center - axis;
+    final tip2 = center + axis;
+    canvas.drawLine(tip1, tip2, paint);
+    canvas.drawLine(tip1, tip1 + inward - cross, paint);
+    canvas.drawLine(tip1, tip1 + inward + cross, paint);
+    canvas.drawLine(tip2, tip2 - inward - cross, paint);
+    canvas.drawLine(tip2, tip2 - inward + cross, paint);
   }
 
   void _drawPlanogramBadges(Canvas canvas, Fixture fixture) {
@@ -419,7 +417,7 @@ class BuilderCanvasPainter extends CustomPainter {
 
   void _paintBadge(Canvas canvas, Rect rect, String? planogramId, String? title) {
     final isAssigned = planogramId != null;
-    final bgColor = isAssigned ? const Color(0xFFBF5534) : Colors.grey.shade400;
+    final bgColor = isAssigned ? AppTheme.accent : Colors.grey.shade400;
     canvas.drawRRect(
       RRect.fromRectAndRadius(rect, const Radius.circular(3)),
       Paint()..color = bgColor,

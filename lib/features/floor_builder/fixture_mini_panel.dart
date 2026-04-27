@@ -4,6 +4,7 @@ import '../../core/database/app_database.dart';
 import '../../core/models/fixture.dart';
 import '../../core/router/app_router.dart';
 import '../../core/theme/app_theme.dart';
+import 'planogram_slot_count.dart';
 
 class FixtureMiniPanel extends StatelessWidget {
   const FixtureMiniPanel({
@@ -19,7 +20,7 @@ class FixtureMiniPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final slotCount = _countSlots(planogram?.slotsJson);
+    final slotCount = countPlanogramSlots(planogram?.slotsJson);
 
     return Container(
       decoration: const BoxDecoration(
@@ -98,10 +99,5 @@ class FixtureMiniPanel extends StatelessWidget {
       AppRoutes.planogramDetail,
       pathParameters: {'planogramId': planogramId},
     );
-  }
-
-  int _countSlots(String? slotsJson) {
-    if (slotsJson == null || slotsJson == '[]') return 0;
-    return '['.allMatches(slotsJson).length - 1;
   }
 }

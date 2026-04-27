@@ -203,51 +203,39 @@ class FloorBuilderNotifier extends _$FloorBuilderNotifier {
     state = state.copyWith(selectedFixtureId: id);
   }
 
+  /// Clamps width/depth honoring per-type maxima (partitions max 1.0 ft depth).
+  Fixture _resizedFixture(Fixture f, double? widthFt, double? depthFt) {
+    final maxDepth = f.fixtureType == 'partition' ? 1.0 : double.infinity;
+    return f.copyWith(
+      widthFt: (widthFt ?? f.widthFt).clamp(0.5, double.infinity),
+      depthFt: (depthFt ?? f.depthFt).clamp(0.5, maxDepth),
+    );
+  }
+
   void resizeFixtureLocal(String id, double? widthFt, double? depthFt) {
-    final fixtures = state.fixtures.map((f) {
-      if (f.id != id) return f;
-      return f.copyWith(
-        widthFt: (widthFt ?? f.widthFt).clamp(0.5, double.infinity),
-        depthFt: (depthFt ?? f.depthFt).clamp(0.5,
-            f.fixtureType == 'partition' ? 1.0 : double.infinity),
-      );
-    }).toList();
+    final fixtures = state.fixtures
+        .map((f) => f.id == id ? _resizedFixture(f, widthFt, depthFt) : f)
+        .toList();
     state = state.copyWith(fixtures: fixtures);
   }
 
-  Future<void> resizeFixture(String id, double? widthFt, double? depthFt) async {
-    final fixture = state.fixtures.firstWhere((f) => f.id == id);
-    final updated = fixture.copyWith(
-      widthFt: (widthFt ?? fixture.widthFt).clamp(0.5, double.infinity),
-      depthFt: (depthFt ?? fixture.depthFt).clamp(0.5,
-          fixture.fixtureType == 'partition' ? 1.0 : double.infinity),
-      updatedAt: DateTime.now(),
-    );
-    await _updateFixture(id, (_) => updated);
-  }
+  Future<void> resizeFixture(String id, double? widthFt, double? depthFt) =>
+      _updateFixture(id, (f) => _resizedFixture(f, widthFt, depthFt));
 
-  Future<void> assignPlanogram(String fixtureId, String? planogramId) async {
-    await _updateFixture(fixtureId, (f) => f.copyWith(
-      planogramId: planogramId,
-      updatedAt: DateTime.now(),
-    ));
-  }
+  Future<void> assignPlanogram(String fixtureId, String? planogramId) =>
+      _updateFixture(fixtureId, (f) => f.copyWith(planogramId: planogramId));
 
-  Future<void> assignPlanogramBack(String fixtureId, String? planogramId) async {
-    await _updateFixture(fixtureId, (f) => f.copyWith(
-      planogramIdBack: planogramId,
-      updatedAt: DateTime.now(),
-    ));
-  }
+  Future<void> assignPlanogramBack(String fixtureId, String? planogramId) =>
+      _updateFixture(fixtureId, (f) => f.copyWith(planogramIdBack: planogramId));
 
-  Future<void> toggleWallAdjacent(String fixtureId) async {
-    final fixture = state.fixtures.firstWhere((f) => f.id == fixtureId);
-    final newValue = !fixture.wallAdjacent;
-    await _updateFixture(fixtureId, (f) => f.copyWith(
-      wallAdjacent: newValue,
-      planogramIdBack: newValue ? null : f.planogramIdBack,
-      updatedAt: DateTime.now(),
-    ));
+  Future<void> toggleWallAdjacent(String fixtureId) {
+    return _updateFixture(fixtureId, (f) {
+      final newValue = !f.wallAdjacent;
+      return f.copyWith(
+        wallAdjacent: newValue,
+        planogramIdBack: newValue ? null : f.planogramIdBack,
+      );
+    });
   }
 
   void toggleSnap() {

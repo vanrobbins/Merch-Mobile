@@ -249,13 +249,15 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
     _primaryPointer = null;
 
     if (_resizingFixtureId != null) {
+      final id = _resizingFixtureId!;
       final fixture = ref
           .read(floorBuilderNotifierProvider)
           .fixtures
-          .firstWhereOrNull((f) => f.id == _resizingFixtureId!);
+          .firstWhereOrNull((f) => f.id == id);
       if (fixture != null) {
-        ref.read(floorBuilderNotifierProvider.notifier).resizeFixture(
-              _resizingFixtureId!, fixture.widthFt, fixture.depthFt);
+        ref
+            .read(floorBuilderNotifierProvider.notifier)
+            .resizeFixture(id, fixture.widthFt, fixture.depthFt);
       }
       setState(() {
         _resizingFixtureId = null;
@@ -438,13 +440,7 @@ class _WallPlacementSheet extends StatefulWidget {
 
 class _WallPlacementSheetState extends State<_WallPlacementSheet> {
   ZoneEdge? _selectedEdge;
-  late TextEditingController _lengthCtrl;
-
-  @override
-  void initState() {
-    super.initState();
-    _lengthCtrl = TextEditingController();
-  }
+  final _lengthCtrl = TextEditingController();
 
   @override
   void dispose() {
