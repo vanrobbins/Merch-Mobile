@@ -6,6 +6,8 @@ class StoresTable extends Table {
   TextColumn get inviteCode => text().unique()();
   IntColumn get createdAt => integer()();
   TextColumn get ownerUid => text()();
+  RealColumn get widthFt => real().nullable()();
+  RealColumn get depthFt => real().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};

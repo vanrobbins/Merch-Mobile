@@ -7,7 +7,7 @@ part 'fixture.g.dart';
 class Fixture with _$Fixture {
   const factory Fixture({
     required String id,
-    required String zoneId,
+    String? zoneId,
     required String fixtureType,
     @Default(0.0) double posX,
     @Default(0.0) double posY,
@@ -15,6 +15,9 @@ class Fixture with _$Fixture {
     @Default(4.0) double widthFt,
     @Default(2.0) double depthFt,
     @Default('') String label,
+    String? planogramId,
+    String? planogramIdBack,
+    @Default(false) bool wallAdjacent,
     required DateTime updatedAt,
   }) = _Fixture;
 

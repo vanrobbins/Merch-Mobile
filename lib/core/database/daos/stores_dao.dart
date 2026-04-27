@@ -10,6 +10,10 @@ class StoresDao extends DatabaseAccessor<AppDatabase> with _$StoresDaoMixin {
 
   Stream<List<StoresTableData>> watchAll() => select(storesTable).watch();
 
+  Stream<StoresTableData?> watchById(String id) =>
+      (select(storesTable)..where((t) => t.id.equals(id)))
+          .watchSingleOrNull();
+
   Future<StoresTableData?> findById(String id) =>
       (select(storesTable)..where((t) => t.id.equals(id))).getSingleOrNull();
 
@@ -18,6 +22,14 @@ class StoresDao extends DatabaseAccessor<AppDatabase> with _$StoresDaoMixin {
 
   Future<void> upsert(StoresTableCompanion row) =>
       into(storesTable).insertOnConflictUpdate(row);
+
+  Future<void> updateDimensions(String id, double widthFt, double depthFt) =>
+      (update(storesTable)..where((t) => t.id.equals(id))).write(
+        StoresTableCompanion(
+          widthFt: Value(widthFt),
+          depthFt: Value(depthFt),
+        ),
+      );
 
   Future<void> deleteById(String id) =>
       (delete(storesTable)..where((t) => t.id.equals(id))).go();

@@ -60,6 +60,9 @@ Fixture _rowToFixture(FixturesTableData r) => Fixture(
       widthFt: r.widthFt,
       depthFt: r.depthFt,
       label: r.label,
+      planogramId: r.planogramId,
+      planogramIdBack: r.planogramIdBack,
+      wallAdjacent: r.wallAdjacent,
       updatedAt: r.updatedAt,
     );
 
@@ -73,6 +76,9 @@ FixturesTableCompanion _fixtureToCompanion(Fixture f) => FixturesTableCompanion(
       widthFt: Value(f.widthFt),
       depthFt: Value(f.depthFt),
       label: Value(f.label),
+      planogramId: Value(f.planogramId),
+      planogramIdBack: Value(f.planogramIdBack),
+      wallAdjacent: Value(f.wallAdjacent),
       updatedAt: Value(f.updatedAt),
     );
 
@@ -106,7 +112,7 @@ class FloorBuilderNotifier extends _$FloorBuilderNotifier {
     final storeId = ref.read(activeStoreIdProvider).value ?? '';
     final fixture = Fixture(
       id: uuid.v4(),
-      zoneId: _zoneId!,
+      zoneId: _zoneId,
       fixtureType: type,
       posX: normalizedPos.dx,
       posY: normalizedPos.dy,
@@ -166,7 +172,7 @@ class FloorBuilderNotifier extends _$FloorBuilderNotifier {
     final storeId = ref.read(activeStoreIdProvider).value ?? '';
     final fixture = Fixture(
       id: uuid.v4(),
-      zoneId: _zoneId!,
+      zoneId: _zoneId,
       fixtureType: 'wall',
       posX: centerFt.dx - lengthFt / 2,
       posY: centerFt.dy - depthFt / 2,

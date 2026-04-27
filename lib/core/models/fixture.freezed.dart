@@ -21,7 +21,7 @@ Fixture _$FixtureFromJson(Map<String, dynamic> json) {
 /// @nodoc
 mixin _$Fixture {
   String get id => throw _privateConstructorUsedError;
-  String get zoneId => throw _privateConstructorUsedError;
+  String? get zoneId => throw _privateConstructorUsedError;
   String get fixtureType => throw _privateConstructorUsedError;
   double get posX => throw _privateConstructorUsedError;
   double get posY => throw _privateConstructorUsedError;
@@ -29,6 +29,9 @@ mixin _$Fixture {
   double get widthFt => throw _privateConstructorUsedError;
   double get depthFt => throw _privateConstructorUsedError;
   String get label => throw _privateConstructorUsedError;
+  String? get planogramId => throw _privateConstructorUsedError;
+  String? get planogramIdBack => throw _privateConstructorUsedError;
+  bool get wallAdjacent => throw _privateConstructorUsedError;
   DateTime get updatedAt => throw _privateConstructorUsedError;
 
   /// Serializes this Fixture to a JSON map.
@@ -47,7 +50,7 @@ abstract class $FixtureCopyWith<$Res> {
   @useResult
   $Res call(
       {String id,
-      String zoneId,
+      String? zoneId,
       String fixtureType,
       double posX,
       double posY,
@@ -55,6 +58,9 @@ abstract class $FixtureCopyWith<$Res> {
       double widthFt,
       double depthFt,
       String label,
+      String? planogramId,
+      String? planogramIdBack,
+      bool wallAdjacent,
       DateTime updatedAt});
 }
 
@@ -74,7 +80,7 @@ class _$FixtureCopyWithImpl<$Res, $Val extends Fixture>
   @override
   $Res call({
     Object? id = null,
-    Object? zoneId = null,
+    Object? zoneId = freezed,
     Object? fixtureType = null,
     Object? posX = null,
     Object? posY = null,
@@ -82,6 +88,9 @@ class _$FixtureCopyWithImpl<$Res, $Val extends Fixture>
     Object? widthFt = null,
     Object? depthFt = null,
     Object? label = null,
+    Object? planogramId = freezed,
+    Object? planogramIdBack = freezed,
+    Object? wallAdjacent = null,
     Object? updatedAt = null,
   }) {
     return _then(_value.copyWith(
@@ -89,10 +98,10 @@ class _$FixtureCopyWithImpl<$Res, $Val extends Fixture>
           ? _value.id
           : id // ignore: cast_nullable_to_non_nullable
               as String,
-      zoneId: null == zoneId
+      zoneId: freezed == zoneId
           ? _value.zoneId
           : zoneId // ignore: cast_nullable_to_non_nullable
-              as String,
+              as String?,
       fixtureType: null == fixtureType
           ? _value.fixtureType
           : fixtureType // ignore: cast_nullable_to_non_nullable
@@ -121,6 +130,18 @@ class _$FixtureCopyWithImpl<$Res, $Val extends Fixture>
           ? _value.label
           : label // ignore: cast_nullable_to_non_nullable
               as String,
+      planogramId: freezed == planogramId
+          ? _value.planogramId
+          : planogramId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      planogramIdBack: freezed == planogramIdBack
+          ? _value.planogramIdBack
+          : planogramIdBack // ignore: cast_nullable_to_non_nullable
+              as String?,
+      wallAdjacent: null == wallAdjacent
+          ? _value.wallAdjacent
+          : wallAdjacent // ignore: cast_nullable_to_non_nullable
+              as bool,
       updatedAt: null == updatedAt
           ? _value.updatedAt
           : updatedAt // ignore: cast_nullable_to_non_nullable
@@ -138,7 +159,7 @@ abstract class _$$FixtureImplCopyWith<$Res> implements $FixtureCopyWith<$Res> {
   @useResult
   $Res call(
       {String id,
-      String zoneId,
+      String? zoneId,
       String fixtureType,
       double posX,
       double posY,
@@ -146,6 +167,9 @@ abstract class _$$FixtureImplCopyWith<$Res> implements $FixtureCopyWith<$Res> {
       double widthFt,
       double depthFt,
       String label,
+      String? planogramId,
+      String? planogramIdBack,
+      bool wallAdjacent,
       DateTime updatedAt});
 }
 
@@ -163,7 +187,7 @@ class __$$FixtureImplCopyWithImpl<$Res>
   @override
   $Res call({
     Object? id = null,
-    Object? zoneId = null,
+    Object? zoneId = freezed,
     Object? fixtureType = null,
     Object? posX = null,
     Object? posY = null,
@@ -171,6 +195,9 @@ class __$$FixtureImplCopyWithImpl<$Res>
     Object? widthFt = null,
     Object? depthFt = null,
     Object? label = null,
+    Object? planogramId = freezed,
+    Object? planogramIdBack = freezed,
+    Object? wallAdjacent = null,
     Object? updatedAt = null,
   }) {
     return _then(_$FixtureImpl(
@@ -178,10 +205,10 @@ class __$$FixtureImplCopyWithImpl<$Res>
           ? _value.id
           : id // ignore: cast_nullable_to_non_nullable
               as String,
-      zoneId: null == zoneId
+      zoneId: freezed == zoneId
           ? _value.zoneId
           : zoneId // ignore: cast_nullable_to_non_nullable
-              as String,
+              as String?,
       fixtureType: null == fixtureType
           ? _value.fixtureType
           : fixtureType // ignore: cast_nullable_to_non_nullable
@@ -210,6 +237,18 @@ class __$$FixtureImplCopyWithImpl<$Res>
           ? _value.label
           : label // ignore: cast_nullable_to_non_nullable
               as String,
+      planogramId: freezed == planogramId
+          ? _value.planogramId
+          : planogramId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      planogramIdBack: freezed == planogramIdBack
+          ? _value.planogramIdBack
+          : planogramIdBack // ignore: cast_nullable_to_non_nullable
+              as String?,
+      wallAdjacent: null == wallAdjacent
+          ? _value.wallAdjacent
+          : wallAdjacent // ignore: cast_nullable_to_non_nullable
+              as bool,
       updatedAt: null == updatedAt
           ? _value.updatedAt
           : updatedAt // ignore: cast_nullable_to_non_nullable
@@ -223,7 +262,7 @@ class __$$FixtureImplCopyWithImpl<$Res>
 class _$FixtureImpl implements _Fixture {
   const _$FixtureImpl(
       {required this.id,
-      required this.zoneId,
+      this.zoneId,
       required this.fixtureType,
       this.posX = 0.0,
       this.posY = 0.0,
@@ -231,6 +270,9 @@ class _$FixtureImpl implements _Fixture {
       this.widthFt = 4.0,
       this.depthFt = 2.0,
       this.label = '',
+      this.planogramId,
+      this.planogramIdBack,
+      this.wallAdjacent = false,
       required this.updatedAt});
 
   factory _$FixtureImpl.fromJson(Map<String, dynamic> json) =>
@@ -239,7 +281,7 @@ class _$FixtureImpl implements _Fixture {
   @override
   final String id;
   @override
-  final String zoneId;
+  final String? zoneId;
   @override
   final String fixtureType;
   @override
@@ -261,11 +303,18 @@ class _$FixtureImpl implements _Fixture {
   @JsonKey()
   final String label;
   @override
+  final String? planogramId;
+  @override
+  final String? planogramIdBack;
+  @override
+  @JsonKey()
+  final bool wallAdjacent;
+  @override
   final DateTime updatedAt;
 
   @override
   String toString() {
-    return 'Fixture(id: $id, zoneId: $zoneId, fixtureType: $fixtureType, posX: $posX, posY: $posY, rotation: $rotation, widthFt: $widthFt, depthFt: $depthFt, label: $label, updatedAt: $updatedAt)';
+    return 'Fixture(id: $id, zoneId: $zoneId, fixtureType: $fixtureType, posX: $posX, posY: $posY, rotation: $rotation, widthFt: $widthFt, depthFt: $depthFt, label: $label, planogramId: $planogramId, planogramIdBack: $planogramIdBack, wallAdjacent: $wallAdjacent, updatedAt: $updatedAt)';
   }
 
   @override
@@ -284,14 +333,33 @@ class _$FixtureImpl implements _Fixture {
             (identical(other.widthFt, widthFt) || other.widthFt == widthFt) &&
             (identical(other.depthFt, depthFt) || other.depthFt == depthFt) &&
             (identical(other.label, label) || other.label == label) &&
+            (identical(other.planogramId, planogramId) ||
+                other.planogramId == planogramId) &&
+            (identical(other.planogramIdBack, planogramIdBack) ||
+                other.planogramIdBack == planogramIdBack) &&
+            (identical(other.wallAdjacent, wallAdjacent) ||
+                other.wallAdjacent == wallAdjacent) &&
             (identical(other.updatedAt, updatedAt) ||
                 other.updatedAt == updatedAt));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(runtimeType, id, zoneId, fixtureType, posX,
-      posY, rotation, widthFt, depthFt, label, updatedAt);
+  int get hashCode => Object.hash(
+      runtimeType,
+      id,
+      zoneId,
+      fixtureType,
+      posX,
+      posY,
+      rotation,
+      widthFt,
+      depthFt,
+      label,
+      planogramId,
+      planogramIdBack,
+      wallAdjacent,
+      updatedAt);
 
   /// Create a copy of Fixture
   /// with the given fields replaced by the non-null parameter values.
@@ -312,7 +380,7 @@ class _$FixtureImpl implements _Fixture {
 abstract class _Fixture implements Fixture {
   const factory _Fixture(
       {required final String id,
-      required final String zoneId,
+      final String? zoneId,
       required final String fixtureType,
       final double posX,
       final double posY,
@@ -320,6 +388,9 @@ abstract class _Fixture implements Fixture {
       final double widthFt,
       final double depthFt,
       final String label,
+      final String? planogramId,
+      final String? planogramIdBack,
+      final bool wallAdjacent,
       required final DateTime updatedAt}) = _$FixtureImpl;
 
   factory _Fixture.fromJson(Map<String, dynamic> json) = _$FixtureImpl.fromJson;
@@ -327,7 +398,7 @@ abstract class _Fixture implements Fixture {
   @override
   String get id;
   @override
-  String get zoneId;
+  String? get zoneId;
   @override
   String get fixtureType;
   @override
@@ -342,6 +413,12 @@ abstract class _Fixture implements Fixture {
   double get depthFt;
   @override
   String get label;
+  @override
+  String? get planogramId;
+  @override
+  String? get planogramIdBack;
+  @override
+  bool get wallAdjacent;
   @override
   DateTime get updatedAt;
 

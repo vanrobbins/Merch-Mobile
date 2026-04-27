@@ -157,7 +157,7 @@ class _ZoneByIdProviderElement
 }
 
 String _$floorBuilderNotifierHash() =>
-    r'fab5c89e433010d5df39bd98a4d79ef3fa3f119e';
+    r'48fd5bf2697bb42a1189acd7d8e285aa922110a1';
 
 /// See also [FloorBuilderNotifier].
 @ProviderFor(FloorBuilderNotifier)

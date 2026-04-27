@@ -17,7 +17,7 @@ void main() {
   }) =>
       FixturesTableCompanion.insert(
         id: id,
-        zoneId: zoneId,
+        zoneId: Value(zoneId),
         fixtureType: fixtureType,
         updatedAt: DateTime(2025),
         storeId: Value(storeId),
@@ -69,7 +69,7 @@ void main() {
           .upsert(fixture('f1', fixtureType: 'rack'));
       await db.fixturesDao.upsert(FixturesTableCompanion.insert(
         id: 'f1',
-        zoneId: 'z1',
+        zoneId: const Value('z1'),
         fixtureType: 'wall',
         updatedAt: DateTime(2025),
         storeId: const Value('store_a'),
