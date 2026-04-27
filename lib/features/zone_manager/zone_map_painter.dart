@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import '../../core/database/app_database.dart';
@@ -10,6 +11,7 @@ class ZoneMapPainter extends CustomPainter {
     this.selectedZoneId,
     this.widthFt,
     this.depthFt,
+    this.activeVertexIdx,
   });
 
   final List<ZonesTableData> zones;
@@ -17,6 +19,7 @@ class ZoneMapPainter extends CustomPainter {
   final String? selectedZoneId;
   final double? widthFt;
   final double? depthFt;
+  final int? activeVertexIdx;
 
   final Map<String, Path> _zonePaths = {};
 
@@ -165,6 +168,27 @@ class ZoneMapPainter extends CustomPainter {
   }
 
   void _drawVertexHandles(Canvas canvas, Size size, ZonesTableData zone) {
+    final points = _getPoints(zone, size);
+
+    // Draw edge length labels when a vertex is actively dragged.
+    if (activeVertexIdx != null && _hasStoreDims) {
+      final normPts = ZoneShape.decode(zone.shapePoints);
+      final n = normPts.length;
+      for (var i = 0; i < n; i++) {
+        // Only draw edges that involve the active vertex.
+        final next = (i + 1) % n;
+        if (i != activeVertexIdx && next != activeVertexIdx) continue;
+
+        final dxFt = (normPts[next].dx - normPts[i].dx) * widthFt!;
+        final dyFt = (normPts[next].dy - normPts[i].dy) * depthFt!;
+        final lengthFt = sqrt(dxFt * dxFt + dyFt * dyFt);
+        final label = '${lengthFt.toStringAsFixed(1)} ft';
+
+        final mid = (points[i] + points[next]) / 2;
+        _drawEdgeLabel(canvas, label, mid);
+      }
+    }
+
     final fillPaint = Paint()
       ..color = const Color(0xFFBF5534)
       ..style = PaintingStyle.fill;
@@ -173,10 +197,44 @@ class ZoneMapPainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2.0;
 
-    for (final p in _getPoints(zone, size)) {
+    for (final p in points) {
       canvas.drawCircle(p, 8.0, fillPaint);
       canvas.drawCircle(p, 8.0, strokePaint);
     }
+  }
+
+  void _drawEdgeLabel(Canvas canvas, String text, Offset center) {
+    final tp = TextPainter(
+      text: TextSpan(
+        text: text,
+        style: const TextStyle(
+          color: Color(0xFF1A1917),
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+      textDirection: ui.TextDirection.ltr,
+    )..layout();
+
+    const hPad = 6.0;
+    const vPad = 3.0;
+    final bgRect = RRect.fromRectAndRadius(
+      Rect.fromCenter(
+        center: center,
+        width: tp.width + hPad * 2,
+        height: tp.height + vPad * 2,
+      ),
+      const Radius.circular(4),
+    );
+    canvas.drawRRect(bgRect, Paint()..color = const Color(0xFFF2EFE8));
+    canvas.drawRRect(
+      bgRect,
+      Paint()
+        ..color = const Color(0xFFBF5534)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.0,
+    );
+    tp.paint(canvas, center - Offset(tp.width / 2, tp.height / 2));
   }
 
   List<Offset> _getPoints(ZonesTableData zone, Size size) {
@@ -235,5 +293,6 @@ class ZoneMapPainter extends CustomPainter {
       old.zones != zones ||
       old.selectedZoneId != selectedZoneId ||
       old.widthFt != widthFt ||
-      old.depthFt != depthFt;
+      old.depthFt != depthFt ||
+      old.activeVertexIdx != activeVertexIdx;
 }

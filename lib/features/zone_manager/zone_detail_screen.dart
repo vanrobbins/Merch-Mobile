@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -56,7 +57,35 @@ class _ZoneDetailScreenState extends ConsumerState<ZoneDetailScreen> {
     });
   }
 
+  bool _hasFitView = false;
+
   Offset _toCanvas(Offset screen) => (screen - _viewOffset) / _viewScale;
+
+  void _fitFixtures(List<dynamic> fixtures) {
+    if (_canvasSize == Size.zero || fixtures.isEmpty) return;
+    double minX = double.infinity, maxX = double.negativeInfinity;
+    double minY = double.infinity, maxY = double.negativeInfinity;
+    for (final f in fixtures) {
+      final l = f.posX * _pixelsPerFt;
+      final t = f.posY * _pixelsPerFt;
+      final r = (f.posX + f.widthFt) * _pixelsPerFt;
+      final b = (f.posY + f.depthFt) * _pixelsPerFt;
+      minX = min(minX, l); maxX = max(maxX, r);
+      minY = min(minY, t); maxY = max(maxY, b);
+    }
+    const pad = 60.0;
+    minX -= pad; maxX += pad; minY -= pad; maxY += pad;
+    final contentW = maxX - minX;
+    final contentH = maxY - minY;
+    if (contentW <= 0 || contentH <= 0) return;
+    final scale = min(_canvasSize.width / contentW, _canvasSize.height / contentH).clamp(0.2, 6.0);
+    final cx = (minX + maxX) / 2;
+    final cy = (minY + maxY) / 2;
+    setState(() {
+      _viewScale = scale;
+      _viewOffset = Offset(_canvasSize.width / 2 - cx * scale, _canvasSize.height / 2 - cy * scale);
+    });
+  }
 
   void _resetPinch() {
     _pinchScaleStart = null;
@@ -236,6 +265,10 @@ class _ZoneDetailScreenState extends ConsumerState<ZoneDetailScreen> {
                   builder: (context, constraints) {
                     _canvasSize = constraints.biggest;
                     _pixelsPerFt = constraints.maxWidth / 20;
+                    if (!_hasFitView && builderState.fixtures.isNotEmpty && _canvasSize != Size.zero) {
+                      _hasFitView = true;
+                      WidgetsBinding.instance.addPostFrameCallback((_) { if (mounted) _fitFixtures(builderState.fixtures); });
+                    }
                     _painter = BuilderCanvasPainter(
                       fixtures: builderState.fixtures,
                       selectedFixtureId: selectedId,

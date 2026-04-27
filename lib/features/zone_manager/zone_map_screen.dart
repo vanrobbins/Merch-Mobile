@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -131,7 +132,33 @@ class _ZoneCanvasState extends ConsumerState<_ZoneCanvas> {
   Offset? _panStartScreen;
   Offset? _panStartOffset;
 
+  bool _hasFitView = false;
+
   ZoneMapNotifier get _notifier => ref.read(zoneMapNotifierProvider.notifier);
+
+  void _fitZones(List<ZonesTableData> zones) {
+    if (_canvasSize == Size.zero || zones.isEmpty) return;
+    double minX = double.infinity, maxX = double.negativeInfinity;
+    double minY = double.infinity, maxY = double.negativeInfinity;
+    for (final zone in zones) {
+      for (final pt in ZoneShape.decode(zone.shapePoints)) {
+        minX = min(minX, pt.dx); maxX = max(maxX, pt.dx);
+        minY = min(minY, pt.dy); maxY = max(maxY, pt.dy);
+      }
+    }
+    if (minX >= maxX || minY >= maxY) return;
+    const pad = 0.08;
+    minX -= pad; maxX += pad; minY -= pad; maxY += pad;
+    final contentW = (maxX - minX) * _canvasSize.width;
+    final contentH = (maxY - minY) * _canvasSize.height;
+    final scale = min(_canvasSize.width / contentW, _canvasSize.height / contentH).clamp(0.2, 6.0);
+    final cx = (minX + maxX) / 2 * _canvasSize.width;
+    final cy = (minY + maxY) / 2 * _canvasSize.height;
+    setState(() {
+      _viewScale = scale;
+      _viewOffset = Offset(_canvasSize.width / 2 - cx * scale, _canvasSize.height / 2 - cy * scale);
+    });
+  }
 
   Offset _toCanvas(Offset screen) => (screen - _viewOffset) / _viewScale;
 
@@ -332,12 +359,17 @@ class _ZoneCanvasState extends ConsumerState<_ZoneCanvas> {
     return LayoutBuilder(
       builder: (context, constraints) {
         _canvasSize = constraints.biggest;
+        if (!_hasFitView && state.zones.isNotEmpty && _canvasSize != Size.zero) {
+          _hasFitView = true;
+          WidgetsBinding.instance.addPostFrameCallback((_) { if (mounted) _fitZones(state.zones); });
+        }
         _painter = ZoneMapPainter(
           zones: state.zones,
           canvasSize: _canvasSize,
           selectedZoneId: state.selectedZoneId,
           widthFt: state.storeData?.widthFt,
           depthFt: state.storeData?.depthFt,
+          activeVertexIdx: _dragVertexIdx,
         );
         return ClipRect(
           child: Listener(
