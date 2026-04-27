@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -7,6 +8,7 @@ import '../../core/providers/store_provider.dart';
 import '../../core/router/app_router.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/design_tokens.dart';
+import '../store/store_switcher_sheet.dart';
 import '../zone_manager/store_entrance.dart';
 import '../zone_manager/zone_map_provider.dart';
 import 'dashboard_provider.dart';
@@ -24,8 +26,42 @@ class DashboardScreen extends ConsumerWidget {
     final membership = ref.watch(currentMembershipProvider).value;
     final role = membership?.role ?? 'staff';
 
+    final activeStore = ref.watch(activeStoreProvider).value;
+
     return Scaffold(
-      appBar: AppBar(title: const Text('DASHBOARD')),
+      appBar: AppBar(
+        title: GestureDetector(
+          onTap: () => StoreSwitcherSheet.show(context),
+          behavior: HitTestBehavior.opaque,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Flexible(
+                child: Text(
+                  activeStore?.name.toUpperCase() ?? 'MERCH MOBILE',
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: DesignTokens.typeMd,
+                    fontWeight: DesignTokens.weightBold,
+                    letterSpacing: DesignTokens.letterSpacingAppBar,
+                  ),
+                ),
+              ),
+              const Icon(Icons.keyboard_arrow_down, size: 18),
+            ],
+          ),
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            tooltip: 'Log out',
+            onPressed: () async {
+              await ref.read(activeStoreIdProvider.notifier).clearStore();
+              await FirebaseAuth.instance.signOut();
+            },
+          ),
+        ],
+      ),
       body: statsAsync.when(
         data: (stats) => ListView(
           padding: const EdgeInsets.all(DesignTokens.spaceMd),
@@ -36,10 +72,9 @@ class DashboardScreen extends ConsumerWidget {
               margin: const EdgeInsets.only(bottom: DesignTokens.spaceMd),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  // ignore: deprecated_member_use
                   colors: [
                     AppTheme.primary,
-                    AppTheme.primary.withOpacity(0.85)
+                    AppTheme.primary.withValues(alpha: 0.85),
                   ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
