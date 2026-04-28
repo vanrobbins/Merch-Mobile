@@ -6,14 +6,13 @@ part of 'store_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$activeStoreHash() => r'8347bc22a0b7600fd2995372fd6c33a59554f134';
+String _$activeStoreHash() => r'd3e90b133496e431fcd1e7a0c97a4bae00e96c0c';
 
 /// The full Store record for the active store ID.
 ///
 /// Copied from [activeStore].
 @ProviderFor(activeStore)
-final activeStoreProvider =
-    AutoDisposeStreamProvider<StoresTableData?>.internal(
+final activeStoreProvider = AutoDisposeStreamProvider<Store?>.internal(
   activeStore,
   name: r'activeStoreProvider',
   debugGetCreateSourceHash:
@@ -24,15 +23,15 @@ final activeStoreProvider =
 
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
-typedef ActiveStoreRef = AutoDisposeStreamProviderRef<StoresTableData?>;
-String _$currentMembershipHash() => r'454229b3af2697c074ed4b60d094917a5934c495';
+typedef ActiveStoreRef = AutoDisposeStreamProviderRef<Store?>;
+String _$currentMembershipHash() => r'e06b07a67a365fe650bb891610ea9faf0e24758a';
 
-/// The current user's membership in the active store.
+/// The current user's active membership in the active store.
 ///
 /// Copied from [currentMembership].
 @ProviderFor(currentMembership)
 final currentMembershipProvider =
-    AutoDisposeStreamProvider<StoreMembershipsTableData?>.internal(
+    AutoDisposeStreamProvider<StoreMembership?>.internal(
   currentMembership,
   name: r'currentMembershipProvider',
   debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
@@ -44,16 +43,14 @@ final currentMembershipProvider =
 
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
-typedef CurrentMembershipRef
-    = AutoDisposeStreamProviderRef<StoreMembershipsTableData?>;
-String _$myStoresHash() => r'20a12ecf815ddef6ae98c531021153a5e3834d03';
+typedef CurrentMembershipRef = AutoDisposeStreamProviderRef<StoreMembership?>;
+String _$myStoresHash() => r'f21c6339f1eb2da3571dd731b348bd53ce90a00e';
 
-/// All stores the current user has an active membership in.
+/// All stores where the current user has an active membership.
 ///
 /// Copied from [myStores].
 @ProviderFor(myStores)
-final myStoresProvider =
-    AutoDisposeStreamProvider<List<StoresTableData>>.internal(
+final myStoresProvider = AutoDisposeStreamProvider<List<Store>>.internal(
   myStores,
   name: r'myStoresProvider',
   debugGetCreateSourceHash:
@@ -64,12 +61,10 @@ final myStoresProvider =
 
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
-typedef MyStoresRef = AutoDisposeStreamProviderRef<List<StoresTableData>>;
+typedef MyStoresRef = AutoDisposeStreamProviderRef<List<Store>>;
 String _$activeStoreIdHash() => r'1a7a9213c0ff78f46285b297137054be785071b9';
 
-/// The currently selected store ID. Persisted across launches.
-///
-/// Copied from [ActiveStoreId].
+/// See also [ActiveStoreId].
 @ProviderFor(ActiveStoreId)
 final activeStoreIdProvider =
     AsyncNotifierProvider<ActiveStoreId, String?>.internal(
