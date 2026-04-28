@@ -192,18 +192,44 @@ class _ZonePropertiesPanelState extends ConsumerState<ZonePropertiesPanel> {
           // Shape controls — coordinator/manager only
           RoleGuard(
             allowedRoles: const ['coordinator', 'manager'],
-            child: Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () {
-                      final notifier = ref.read(zoneMapNotifierProvider.notifier);
-                      final zoneId = widget.zone.id;
-                      Navigator.pop(context);
-                      ZoneShapePicker.show(context, notifier, zoneId);
-                    },
-                    child: const Text('REPLACE SHAPE'),
-                  ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () {
+                          final notifier = ref.read(zoneMapNotifierProvider.notifier);
+                          final zoneId = widget.zone.id;
+                          Navigator.pop(context);
+                          ZoneShapePicker.show(context, notifier, zoneId);
+                        },
+                        child: const Text('REPLACE SHAPE'),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: DesignTokens.spaceXs),
+                Row(
+                  children: [
+                    const Icon(Icons.lock_outline,
+                        size: DesignTokens.iconSm, color: AppTheme.textSecondary),
+                    const SizedBox(width: DesignTokens.spaceXs),
+                    const Expanded(
+                      child: Text(
+                        'Lock position & size',
+                        style: TextStyle(fontSize: DesignTokens.typeSm),
+                      ),
+                    ),
+                    Switch(
+                      value: liveZone.positionLocked,
+                      onChanged: (v) =>
+                          notifier.updateZoneLocked(widget.zone.id, locked: v),
+                      activeThumbColor: AppTheme.accent,
+                      activeTrackColor: AppTheme.accent.withValues(alpha: 0.4),
+                    ),
+                  ],
                 ),
               ],
             ),

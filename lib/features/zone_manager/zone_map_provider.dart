@@ -138,6 +138,14 @@ class ZoneMapNotifier extends _$ZoneMapNotifier {
     return _patchZone(id, (c) => c.copyWith(zoneType: Value(type)));
   }
 
+  Future<void> updateZoneLocked(String id, {required bool locked}) {
+    state = state.copyWith(zones: [
+      for (final z in state.zones)
+        if (z.id == id) z.copyWith(positionLocked: locked) else z,
+    ]);
+    return _patchZone(id, (c) => c.copyWith(positionLocked: Value(locked)));
+  }
+
   Future<void> updateZoneShape(String id, List<Offset> points) =>
       _patchZone(id, (c) => c.copyWith(shapePoints: Value(ZoneShape.encode(points))));
 

@@ -71,6 +71,16 @@ class $ZonesTableTable extends ZonesTable
   late final GeneratedColumn<String> shapePoints = GeneratedColumn<String>(
       'shape_points', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _positionLockedMeta =
+      const VerificationMeta('positionLocked');
+  @override
+  late final GeneratedColumn<bool> positionLocked = GeneratedColumn<bool>(
+      'position_locked', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("position_locked" IN (0, 1))'),
+      defaultValue: const Constant(false));
   static const VerificationMeta _updatedAtMeta =
       const VerificationMeta('updatedAt');
   @override
@@ -89,6 +99,7 @@ class $ZonesTableTable extends ZonesTable
         width,
         height,
         shapePoints,
+        positionLocked,
         updatedAt
       ];
   @override
@@ -154,6 +165,12 @@ class $ZonesTableTable extends ZonesTable
           shapePoints.isAcceptableOrUnknown(
               data['shape_points']!, _shapePointsMeta));
     }
+    if (data.containsKey('position_locked')) {
+      context.handle(
+          _positionLockedMeta,
+          positionLocked.isAcceptableOrUnknown(
+              data['position_locked']!, _positionLockedMeta));
+    }
     if (data.containsKey('updated_at')) {
       context.handle(_updatedAtMeta,
           updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta));
@@ -189,6 +206,8 @@ class $ZonesTableTable extends ZonesTable
           .read(DriftSqlType.double, data['${effectivePrefix}height'])!,
       shapePoints: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}shape_points']),
+      positionLocked: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}position_locked'])!,
       updatedAt: attachedDatabase.typeMapping
           .read(DriftSqlType.dateTime, data['${effectivePrefix}updated_at'])!,
     );
@@ -211,6 +230,7 @@ class ZonesTableData extends DataClass implements Insertable<ZonesTableData> {
   final double width;
   final double height;
   final String? shapePoints;
+  final bool positionLocked;
   final DateTime updatedAt;
   const ZonesTableData(
       {required this.id,
@@ -223,6 +243,7 @@ class ZonesTableData extends DataClass implements Insertable<ZonesTableData> {
       required this.width,
       required this.height,
       this.shapePoints,
+      required this.positionLocked,
       required this.updatedAt});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -239,6 +260,7 @@ class ZonesTableData extends DataClass implements Insertable<ZonesTableData> {
     if (!nullToAbsent || shapePoints != null) {
       map['shape_points'] = Variable<String>(shapePoints);
     }
+    map['position_locked'] = Variable<bool>(positionLocked);
     map['updated_at'] = Variable<DateTime>(updatedAt);
     return map;
   }
@@ -257,6 +279,7 @@ class ZonesTableData extends DataClass implements Insertable<ZonesTableData> {
       shapePoints: shapePoints == null && nullToAbsent
           ? const Value.absent()
           : Value(shapePoints),
+      positionLocked: Value(positionLocked),
       updatedAt: Value(updatedAt),
     );
   }
@@ -275,6 +298,7 @@ class ZonesTableData extends DataClass implements Insertable<ZonesTableData> {
       width: serializer.fromJson<double>(json['width']),
       height: serializer.fromJson<double>(json['height']),
       shapePoints: serializer.fromJson<String?>(json['shapePoints']),
+      positionLocked: serializer.fromJson<bool>(json['positionLocked']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
     );
   }
@@ -292,6 +316,7 @@ class ZonesTableData extends DataClass implements Insertable<ZonesTableData> {
       'width': serializer.toJson<double>(width),
       'height': serializer.toJson<double>(height),
       'shapePoints': serializer.toJson<String?>(shapePoints),
+      'positionLocked': serializer.toJson<bool>(positionLocked),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
     };
   }
@@ -307,6 +332,7 @@ class ZonesTableData extends DataClass implements Insertable<ZonesTableData> {
           double? width,
           double? height,
           Value<String?> shapePoints = const Value.absent(),
+          bool? positionLocked,
           DateTime? updatedAt}) =>
       ZonesTableData(
         id: id ?? this.id,
@@ -319,6 +345,7 @@ class ZonesTableData extends DataClass implements Insertable<ZonesTableData> {
         width: width ?? this.width,
         height: height ?? this.height,
         shapePoints: shapePoints.present ? shapePoints.value : this.shapePoints,
+        positionLocked: positionLocked ?? this.positionLocked,
         updatedAt: updatedAt ?? this.updatedAt,
       );
   ZonesTableData copyWithCompanion(ZonesTableCompanion data) {
@@ -335,6 +362,9 @@ class ZonesTableData extends DataClass implements Insertable<ZonesTableData> {
       height: data.height.present ? data.height.value : this.height,
       shapePoints:
           data.shapePoints.present ? data.shapePoints.value : this.shapePoints,
+      positionLocked: data.positionLocked.present
+          ? data.positionLocked.value
+          : this.positionLocked,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
     );
   }
@@ -352,6 +382,7 @@ class ZonesTableData extends DataClass implements Insertable<ZonesTableData> {
           ..write('width: $width, ')
           ..write('height: $height, ')
           ..write('shapePoints: $shapePoints, ')
+          ..write('positionLocked: $positionLocked, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
         .toString();
@@ -359,7 +390,7 @@ class ZonesTableData extends DataClass implements Insertable<ZonesTableData> {
 
   @override
   int get hashCode => Object.hash(id, name, colorValue, zoneType, storeId, posX,
-      posY, width, height, shapePoints, updatedAt);
+      posY, width, height, shapePoints, positionLocked, updatedAt);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -374,6 +405,7 @@ class ZonesTableData extends DataClass implements Insertable<ZonesTableData> {
           other.width == this.width &&
           other.height == this.height &&
           other.shapePoints == this.shapePoints &&
+          other.positionLocked == this.positionLocked &&
           other.updatedAt == this.updatedAt);
 }
 
@@ -388,6 +420,7 @@ class ZonesTableCompanion extends UpdateCompanion<ZonesTableData> {
   final Value<double> width;
   final Value<double> height;
   final Value<String?> shapePoints;
+  final Value<bool> positionLocked;
   final Value<DateTime> updatedAt;
   final Value<int> rowid;
   const ZonesTableCompanion({
@@ -401,6 +434,7 @@ class ZonesTableCompanion extends UpdateCompanion<ZonesTableData> {
     this.width = const Value.absent(),
     this.height = const Value.absent(),
     this.shapePoints = const Value.absent(),
+    this.positionLocked = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -415,6 +449,7 @@ class ZonesTableCompanion extends UpdateCompanion<ZonesTableData> {
     this.width = const Value.absent(),
     this.height = const Value.absent(),
     this.shapePoints = const Value.absent(),
+    this.positionLocked = const Value.absent(),
     required DateTime updatedAt,
     this.rowid = const Value.absent(),
   })  : id = Value(id),
@@ -434,6 +469,7 @@ class ZonesTableCompanion extends UpdateCompanion<ZonesTableData> {
     Expression<double>? width,
     Expression<double>? height,
     Expression<String>? shapePoints,
+    Expression<bool>? positionLocked,
     Expression<DateTime>? updatedAt,
     Expression<int>? rowid,
   }) {
@@ -448,6 +484,7 @@ class ZonesTableCompanion extends UpdateCompanion<ZonesTableData> {
       if (width != null) 'width': width,
       if (height != null) 'height': height,
       if (shapePoints != null) 'shape_points': shapePoints,
+      if (positionLocked != null) 'position_locked': positionLocked,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (rowid != null) 'rowid': rowid,
     });
@@ -464,6 +501,7 @@ class ZonesTableCompanion extends UpdateCompanion<ZonesTableData> {
       Value<double>? width,
       Value<double>? height,
       Value<String?>? shapePoints,
+      Value<bool>? positionLocked,
       Value<DateTime>? updatedAt,
       Value<int>? rowid}) {
     return ZonesTableCompanion(
@@ -477,6 +515,7 @@ class ZonesTableCompanion extends UpdateCompanion<ZonesTableData> {
       width: width ?? this.width,
       height: height ?? this.height,
       shapePoints: shapePoints ?? this.shapePoints,
+      positionLocked: positionLocked ?? this.positionLocked,
       updatedAt: updatedAt ?? this.updatedAt,
       rowid: rowid ?? this.rowid,
     );
@@ -515,6 +554,9 @@ class ZonesTableCompanion extends UpdateCompanion<ZonesTableData> {
     if (shapePoints.present) {
       map['shape_points'] = Variable<String>(shapePoints.value);
     }
+    if (positionLocked.present) {
+      map['position_locked'] = Variable<bool>(positionLocked.value);
+    }
     if (updatedAt.present) {
       map['updated_at'] = Variable<DateTime>(updatedAt.value);
     }
@@ -537,6 +579,7 @@ class ZonesTableCompanion extends UpdateCompanion<ZonesTableData> {
           ..write('width: $width, ')
           ..write('height: $height, ')
           ..write('shapePoints: $shapePoints, ')
+          ..write('positionLocked: $positionLocked, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -4776,6 +4819,7 @@ typedef $$ZonesTableTableCreateCompanionBuilder = ZonesTableCompanion Function({
   Value<double> width,
   Value<double> height,
   Value<String?> shapePoints,
+  Value<bool> positionLocked,
   required DateTime updatedAt,
   Value<int> rowid,
 });
@@ -4790,6 +4834,7 @@ typedef $$ZonesTableTableUpdateCompanionBuilder = ZonesTableCompanion Function({
   Value<double> width,
   Value<double> height,
   Value<String?> shapePoints,
+  Value<bool> positionLocked,
   Value<DateTime> updatedAt,
   Value<int> rowid,
 });
@@ -4832,6 +4877,10 @@ class $$ZonesTableTableFilterComposer
 
   ColumnFilters<String> get shapePoints => $composableBuilder(
       column: $table.shapePoints, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get positionLocked => $composableBuilder(
+      column: $table.positionLocked,
+      builder: (column) => ColumnFilters(column));
 
   ColumnFilters<DateTime> get updatedAt => $composableBuilder(
       column: $table.updatedAt, builder: (column) => ColumnFilters(column));
@@ -4876,6 +4925,10 @@ class $$ZonesTableTableOrderingComposer
   ColumnOrderings<String> get shapePoints => $composableBuilder(
       column: $table.shapePoints, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<bool> get positionLocked => $composableBuilder(
+      column: $table.positionLocked,
+      builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
       column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
 }
@@ -4919,6 +4972,9 @@ class $$ZonesTableTableAnnotationComposer
   GeneratedColumn<String> get shapePoints => $composableBuilder(
       column: $table.shapePoints, builder: (column) => column);
 
+  GeneratedColumn<bool> get positionLocked => $composableBuilder(
+      column: $table.positionLocked, builder: (column) => column);
+
   GeneratedColumn<DateTime> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => column);
 }
@@ -4959,6 +5015,7 @@ class $$ZonesTableTableTableManager extends RootTableManager<
             Value<double> width = const Value.absent(),
             Value<double> height = const Value.absent(),
             Value<String?> shapePoints = const Value.absent(),
+            Value<bool> positionLocked = const Value.absent(),
             Value<DateTime> updatedAt = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
@@ -4973,6 +5030,7 @@ class $$ZonesTableTableTableManager extends RootTableManager<
             width: width,
             height: height,
             shapePoints: shapePoints,
+            positionLocked: positionLocked,
             updatedAt: updatedAt,
             rowid: rowid,
           ),
@@ -4987,6 +5045,7 @@ class $$ZonesTableTableTableManager extends RootTableManager<
             Value<double> width = const Value.absent(),
             Value<double> height = const Value.absent(),
             Value<String?> shapePoints = const Value.absent(),
+            Value<bool> positionLocked = const Value.absent(),
             required DateTime updatedAt,
             Value<int> rowid = const Value.absent(),
           }) =>
@@ -5001,6 +5060,7 @@ class $$ZonesTableTableTableManager extends RootTableManager<
             width: width,
             height: height,
             shapePoints: shapePoints,
+            positionLocked: positionLocked,
             updatedAt: updatedAt,
             rowid: rowid,
           ),

@@ -4,8 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/database/app_database.dart';
+import '../../core/router/app_router.dart';
 import '../../core/widgets/role_guard.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/theme/design_tokens.dart';
 import 'zone_map_painter.dart';
 import 'zone_map_provider.dart';
 import 'zone_properties_panel.dart';
@@ -58,21 +60,35 @@ class _ZoneMapScreenState extends ConsumerState<ZoneMapScreen> {
   }
 
   void _onZoneTap(String zoneId) {
-    final notifier = ref.read(zoneMapNotifierProvider.notifier);
-    final selectedId = ref.read(zoneMapNotifierProvider).selectedZoneId;
-    if (selectedId == zoneId) {
-      final zone = ref.read(zoneMapNotifierProvider).zones
-          .firstWhereOrNull((z) => z.id == zoneId);
-      if (zone == null) return;
-      showModalBottomSheet<void>(
-        context: context,
-        isScrollControlled: true,
-        backgroundColor: Colors.transparent,
-        builder: (_) => ZonePropertiesPanel(zone: zone),
-      );
-    } else {
-      notifier.selectZone(zoneId);
-    }
+    ref.read(zoneMapNotifierProvider.notifier).selectZone(zoneId);
+    final zone = ref.read(zoneMapNotifierProvider).zones
+        .firstWhereOrNull((z) => z.id == zoneId);
+    if (zone == null) return;
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _ZoneActionsSheet(
+        zone: zone,
+        onEdit: () {
+          Navigator.pop(context);
+          showModalBottomSheet<void>(
+            context: context,
+            isScrollControlled: true,
+            backgroundColor: Colors.transparent,
+            builder: (_) => ZonePropertiesPanel(zone: zone),
+          );
+        },
+        onOpen: zone.zoneType == 'display'
+            ? () {
+                Navigator.pop(context);
+                context.goNamed(
+                  AppRoutes.zoneDetail,
+                  pathParameters: {'zoneId': zone.id},
+                );
+              }
+            : null,
+      ),
+    );
   }
 
   @override
@@ -798,7 +814,7 @@ class _ZoneCanvasState extends ConsumerState<_ZoneCanvas> {
 
     if (state.selectedZoneId != null) {
       final zone = state.zones.firstWhereOrNull((z) => z.id == state.selectedZoneId);
-      if (zone != null) {
+      if (zone != null && !zone.positionLocked) {
         final idx = _hitVertex(zone, canvas);
         if (idx >= 0) {
           _primaryPointer = event.pointer;
@@ -817,11 +833,13 @@ class _ZoneCanvasState extends ConsumerState<_ZoneCanvas> {
     if (hitId != null) {
       _primaryPointer = event.pointer;
       final zone = state.zones.firstWhere((z) => z.id == hitId);
-      setState(() {
-        _moveZoneId = hitId;
-        _moveStartCanvas = canvas;
-        _moveStartPoints = ZoneShape.decode(zone.shapePoints);
-      });
+      if (!zone.positionLocked) {
+        setState(() {
+          _moveZoneId = hitId;
+          _moveStartCanvas = canvas;
+          _moveStartPoints = ZoneShape.decode(zone.shapePoints);
+        });
+      }
       return;
     }
 
@@ -972,6 +990,101 @@ class _ZoneCanvasState extends ConsumerState<_ZoneCanvas> {
           ),
         );
       },
+    );
+  }
+}
+
+class _ZoneActionsSheet extends StatelessWidget {
+  const _ZoneActionsSheet({
+    required this.zone,
+    required this.onEdit,
+    this.onOpen,
+  });
+  final ZonesTableData zone;
+  final VoidCallback onEdit;
+  final VoidCallback? onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(DesignTokens.radiusLg)),
+      ),
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).padding.bottom + DesignTokens.spaceMd,
+        left: DesignTokens.spaceMd,
+        right: DesignTokens.spaceMd,
+        top: DesignTokens.spaceSm,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: DesignTokens.spaceSm),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(AppTheme.borderRadius),
+              ),
+            ),
+          ),
+          Text(
+            zone.name.toUpperCase(),
+            style: const TextStyle(
+              fontSize: DesignTokens.typeLg,
+              fontWeight: DesignTokens.weightBold,
+              letterSpacing: DesignTokens.letterSpacingEyebrow,
+            ),
+          ),
+          Text(
+            zone.zoneType.replaceAll('_', ' ').toUpperCase(),
+            style: const TextStyle(
+              fontSize: DesignTokens.typeXs,
+              color: AppTheme.textSecondary,
+              fontWeight: DesignTokens.weightBold,
+              letterSpacing: DesignTokens.letterSpacingEyebrow,
+            ),
+          ),
+          const SizedBox(height: DesignTokens.spaceMd),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: onEdit,
+                  icon: const Icon(Icons.edit_outlined, size: 18),
+                  label: const Text('EDIT ZONE'),
+                  style: OutlinedButton.styleFrom(
+                    shape: const RoundedRectangleBorder(
+                      borderRadius: BorderRadius.all(Radius.circular(AppTheme.borderRadius)),
+                    ),
+                  ),
+                ),
+              ),
+              if (onOpen != null) ...[
+                const SizedBox(width: DesignTokens.spaceSm),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: onOpen,
+                    icon: const Icon(Icons.open_in_new, size: 18),
+                    label: const Text('OPEN ZONE'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.accent,
+                      foregroundColor: Colors.white,
+                      shape: const RoundedRectangleBorder(
+                        borderRadius: BorderRadius.all(Radius.circular(AppTheme.borderRadius)),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ],
+      ),
     );
   }
 }

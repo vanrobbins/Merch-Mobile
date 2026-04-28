@@ -342,10 +342,37 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
     return Offset(pixelOffset.dx / _pixelsPerFt, pixelOffset.dy / _pixelsPerFt);
   }
 
-  void _fitFixtures(List<dynamic> fixtures) {
-    if (_canvasSize == Size.zero || fixtures.isEmpty) return;
+  // Replicates _drawZoneBackground's coordinate math to get the zone's canvas-space bounds.
+  Rect? _computeZoneBoundsOnCanvas(List<Offset> zonePts) {
+    if (zonePts.length < 3 || _canvasSize == Size.zero) return null;
+    final minX = zonePts.map((p) => p.dx).reduce(min);
+    final maxX = zonePts.map((p) => p.dx).reduce(max);
+    final minY = zonePts.map((p) => p.dy).reduce(min);
+    final maxY = zonePts.map((p) => p.dy).reduce(max);
+    final rangeX = (maxX - minX).clamp(0.01, 1.0);
+    final rangeY = (maxY - minY).clamp(0.01, 1.0);
+    const padding = 40.0;
+    final usableW = _canvasSize.width - padding * 2;
+    final usableH = _canvasSize.height - padding * 2;
+    final scale = (usableW / rangeX).clamp(0.0, usableH / rangeY);
+    final scaledW = rangeX * scale;
+    final scaledH = rangeY * scale;
+    final offsetX = padding + (usableW - scaledW) / 2;
+    final offsetY = padding + (usableH - scaledH) / 2;
+    return Rect.fromLTWH(offsetX, offsetY, scaledW, scaledH);
+  }
+
+  void _fitFixtures(List<dynamic> fixtures, {List<Offset>? zonePts}) {
+    if (_canvasSize == Size.zero) return;
     double minX = double.infinity, maxX = double.negativeInfinity;
     double minY = double.infinity, maxY = double.negativeInfinity;
+
+    final zoneBounds = zonePts != null ? _computeZoneBoundsOnCanvas(zonePts) : null;
+    if (zoneBounds != null) {
+      minX = min(minX, zoneBounds.left);   maxX = max(maxX, zoneBounds.right);
+      minY = min(minY, zoneBounds.top);    maxY = max(maxY, zoneBounds.bottom);
+    }
+
     for (final f in fixtures) {
       final l = f.posX * _pixelsPerFt;
       final t = f.posY * _pixelsPerFt;
@@ -354,6 +381,8 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
       minX = min(minX, l); maxX = max(maxX, r);
       minY = min(minY, t); maxY = max(maxY, b);
     }
+
+    if (minX == double.infinity) return;
     const pad = 60.0;
     minX -= pad; maxX += pad; minY -= pad; maxY += pad;
     final contentW = maxX - minX;
@@ -472,9 +501,13 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
                   builder: (context, constraints) {
                     _canvasSize = constraints.biggest;
                     _pixelsPerFt = constraints.maxWidth / 20;
-                    if (!_hasFitView && state.fixtures.isNotEmpty && _canvasSize != Size.zero) {
+                    final hasZonePts = zonePts != null && zonePts.length >= 3;
+                    if (!_hasFitView && _canvasSize != Size.zero &&
+                        (state.fixtures.isNotEmpty || hasZonePts)) {
                       _hasFitView = true;
-                      WidgetsBinding.instance.addPostFrameCallback((_) { if (mounted) _fitFixtures(state.fixtures); });
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        if (mounted) _fitFixtures(state.fixtures, zonePts: hasZonePts ? zonePts : null);
+                      });
                     }
                     _painter = BuilderCanvasPainter(
                       fixtures: state.fixtures,
@@ -840,6 +873,22 @@ class _FixtureActionsSheetState extends State<_FixtureActionsSheet> {
                     ),
                   ),
                   child: const Text('RENAME'),
+                ),
+              ),
+              const SizedBox(width: DesignTokens.spaceSm),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    widget.notifier.rotateFixture(widget.fixtureId);
+                  },
+                  icon: const Icon(Icons.rotate_right, size: 16),
+                  label: const Text('ROTATE'),
+                  style: OutlinedButton.styleFrom(
+                    shape: const RoundedRectangleBorder(
+                      borderRadius: BorderRadius.all(
+                          Radius.circular(AppTheme.borderRadius)),
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(width: DesignTokens.spaceSm),
