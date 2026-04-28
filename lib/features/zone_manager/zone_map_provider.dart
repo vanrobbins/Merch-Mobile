@@ -1,12 +1,13 @@
 import 'dart:async';
 import 'dart:ui';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:collection/collection.dart';
-import 'package:drift/drift.dart' show Value;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:uuid/uuid.dart';
-import '../../core/database/app_database.dart';
-import '../../core/providers/database_provider.dart';
+import '../../core/models/store.dart';
+import '../../core/models/store_zone.dart';
 import '../../core/providers/store_provider.dart';
+import '../../core/services/firestore_refs.dart';
 import 'zone_shape.dart';
 
 part 'zone_map_provider.g.dart';
@@ -14,10 +15,10 @@ part 'zone_map_provider.g.dart';
 const _sentinel = Object();
 
 class ZoneMapState {
-  final List<ZonesTableData> zones;
+  final List<StoreZone> zones;
   final String? selectedZoneId;
   final bool isLoading;
-  final StoresTableData? storeData;
+  final Store? storeData;
 
   const ZoneMapState({
     required this.zones,
@@ -27,7 +28,7 @@ class ZoneMapState {
   });
 
   ZoneMapState copyWith({
-    List<ZonesTableData>? zones,
+    List<StoreZone>? zones,
     Object? selectedZoneId = _sentinel,
     bool? isLoading,
     Object? storeData = _sentinel,
@@ -40,31 +41,37 @@ class ZoneMapState {
       isLoading: isLoading ?? this.isLoading,
       storeData: storeData == _sentinel
           ? this.storeData
-          : storeData as StoresTableData?,
+          : storeData as Store?,
     );
   }
 }
 
 @riverpod
 class ZoneMapNotifier extends _$ZoneMapNotifier {
-  StreamSubscription<List<ZonesTableData>>? _zoneSub;
-  StreamSubscription<StoresTableData?>? _storeSub;
+  StreamSubscription<List<StoreZone>>? _zoneSub;
+  StreamSubscription<Store?>? _storeSub;
 
   @override
   ZoneMapState build() {
-    final db = ref.watch(appDatabaseProvider);
     final storeId = ref.watch(activeStoreIdProvider).value;
 
     _zoneSub?.cancel();
     _storeSub?.cancel();
+
     if (storeId != null && storeId.isNotEmpty) {
-      _zoneSub = db.zonesDao.watchByStore(storeId).listen((rows) {
+      _zoneSub = FirestoreRefs.zones(storeId)
+          .snapshots()
+          .map((s) => s.docs.map(StoreZoneFirestore.fromDoc).toList())
+          .listen((rows) {
         state = state.copyWith(zones: rows, isLoading: false);
       });
-      _storeSub = db.storesDao.watchById(storeId).listen((store) {
+      _storeSub = FirestoreRefs.store(storeId).snapshots().map(
+        (s) => s.exists ? StoreFirestore.fromDoc(s) : null,
+      ).listen((store) {
         state = state.copyWith(storeData: store);
       });
     }
+
     ref.onDispose(() {
       _zoneSub?.cancel();
       _storeSub?.cancel();
@@ -73,11 +80,26 @@ class ZoneMapNotifier extends _$ZoneMapNotifier {
     return const ZoneMapState(zones: [], isLoading: true);
   }
 
+  String get _storeId => ref.read(activeStoreIdProvider).value ?? '';
+
   void selectZone(String? id) => state = state.copyWith(selectedZoneId: id);
 
+  Future<void> addZone() async {
+    const center = Offset(0.5, 0.5);
+    final zone = StoreZone(
+      id: const Uuid().v4(),
+      name: 'Zone ${state.zones.length + 1}',
+      colorValue: 0xFF3B6BC2,
+      zoneType: 'display',
+      shapePoints: ZoneShape.encode(ZoneShape.defaultRect(center)),
+      updatedAt: DateTime.now(),
+    );
+    await FirestoreRefs.zones(_storeId)
+        .doc(zone.id)
+        .set(zone.toFirestore());
+  }
+
   Future<void> addZoneOfType(String zoneType) async {
-    final db = ref.read(appDatabaseProvider);
-    final storeId = ref.read(activeStoreIdProvider).value ?? '';
     const center = Offset(0.5, 0.5);
     final name = zoneType == 'entrance'
         ? 'Entrance'
@@ -85,49 +107,28 @@ class ZoneMapNotifier extends _$ZoneMapNotifier {
             ? 'Cash Wrap'
             : 'Zone ${state.zones.length + 1}';
     final color = zoneType == 'entrance' ? 0xFF1A1917 : 0xFF3B6BC2;
-    await db.zonesDao.upsert(ZonesTableCompanion.insert(
+    final zone = StoreZone(
       id: const Uuid().v4(),
       name: name,
       colorValue: color,
       zoneType: zoneType,
-      storeId: storeId,
-      posX: const Value(0.4),
-      posY: const Value(0.4),
-      width: const Value(0.2),
-      height: const Value(0.15),
-      shapePoints: Value(ZoneShape.encode(ZoneShape.defaultRect(center))),
+      shapePoints: ZoneShape.encode(ZoneShape.defaultRect(center)),
       updatedAt: DateTime.now(),
-    ));
-  }
-
-  Future<void> addZone() async {
-    final db = ref.read(appDatabaseProvider);
-    final storeId = ref.read(activeStoreIdProvider).value ?? '';
-    const center = Offset(0.5, 0.5);
-    await db.zonesDao.upsert(ZonesTableCompanion.insert(
-      id: const Uuid().v4(),
-      name: 'Zone ${state.zones.length + 1}',
-      colorValue: 0xFF3B6BC2,
-      zoneType: 'display',
-      storeId: storeId,
-      posX: const Value(0.4),
-      posY: const Value(0.4),
-      width: const Value(0.2),
-      height: const Value(0.15),
-      shapePoints: Value(ZoneShape.encode(ZoneShape.defaultRect(center))),
-      updatedAt: DateTime.now(),
-    ));
+    );
+    await FirestoreRefs.zones(_storeId)
+        .doc(zone.id)
+        .set(zone.toFirestore());
   }
 
   Future<void> updateZoneName(String id, String name) =>
-      _patchZone(id, (c) => c.copyWith(name: Value(name)));
+      _patch(id, {'name': name});
 
   Future<void> updateZoneColor(String id, int colorValue) {
     state = state.copyWith(zones: [
       for (final z in state.zones)
         if (z.id == id) z.copyWith(colorValue: colorValue) else z,
     ]);
-    return _patchZone(id, (c) => c.copyWith(colorValue: Value(colorValue)));
+    return _patch(id, {'colorValue': colorValue});
   }
 
   Future<void> updateZoneType(String id, String type) {
@@ -135,7 +136,7 @@ class ZoneMapNotifier extends _$ZoneMapNotifier {
       for (final z in state.zones)
         if (z.id == id) z.copyWith(zoneType: type) else z,
     ]);
-    return _patchZone(id, (c) => c.copyWith(zoneType: Value(type)));
+    return _patch(id, {'zoneType': type});
   }
 
   Future<void> updateZoneLocked(String id, {required bool locked}) {
@@ -143,27 +144,25 @@ class ZoneMapNotifier extends _$ZoneMapNotifier {
       for (final z in state.zones)
         if (z.id == id) z.copyWith(positionLocked: locked) else z,
     ]);
-    return _patchZone(id, (c) => c.copyWith(positionLocked: Value(locked)));
+    return _patch(id, {'positionLocked': locked});
   }
 
   Future<void> updateZoneShape(String id, List<Offset> points) =>
-      _patchZone(id, (c) => c.copyWith(shapePoints: Value(ZoneShape.encode(points))));
+      _patch(id, {'shapePoints': ZoneShape.encode(points)});
 
-  /// Updates zone shape in local state only — used for smooth vertex drag.
   void updateZoneShapeLocal(String id, List<Offset> points) {
-    final encoded = ZoneShape.encode(points);
-    final updated = [
+    state = state.copyWith(zones: [
       for (final z in state.zones)
-        if (z.id == id) z.copyWith(shapePoints: Value(encoded)) else z,
-    ];
-    state = state.copyWith(zones: updated);
+        if (z.id == id)
+          z.copyWith(shapePoints: ZoneShape.encode(points))
+        else
+          z,
+    ]);
   }
 
-  /// Translates all vertices of a zone by the given normalized delta, persists to DB.
   Future<void> moveZone(String id, Offset normDelta) =>
       updateZoneShape(id, _translatedPoints(id, normDelta));
 
-  /// Translates all vertices in local state only — used for smooth drag preview.
   void moveZoneLocal(String id, Offset normDelta) =>
       updateZoneShapeLocal(id, _translatedPoints(id, normDelta));
 
@@ -179,14 +178,13 @@ class ZoneMapNotifier extends _$ZoneMapNotifier {
     final zone = state.zones.firstWhereOrNull((z) => z.id == id);
     if (zone == null) return Future.value();
     final pts = List.of(ZoneShape.decode(zone.shapePoints));
-    if (pts.length <= 3) return Future.value(); // minimum triangle
+    if (pts.length <= 3) return Future.value();
     pts.removeAt(idx);
     return updateZoneShape(id, pts);
   }
 
   Future<void> deleteZone(String id) async {
-    final db = ref.read(appDatabaseProvider);
-    await db.zonesDao.deleteById(id);
+    await FirestoreRefs.zones(_storeId).doc(id).delete();
     if (state.selectedZoneId == id) {
       state = state.copyWith(selectedZoneId: null);
     }
@@ -199,39 +197,30 @@ class ZoneMapNotifier extends _$ZoneMapNotifier {
   }
 
   Future<void> updateStoreDimensions(double widthFt, double depthFt) async {
-    final db = ref.read(appDatabaseProvider);
-    final storeId = ref.read(activeStoreIdProvider).value ?? '';
-    await db.storesDao.updateDimensions(storeId, widthFt, depthFt);
+    await FirestoreRefs.store(_storeId).update({
+      'widthFt': widthFt,
+      'depthFt': depthFt,
+    });
   }
 
   Future<void> setEntrance(String entranceJson) async {
-    final db = ref.read(appDatabaseProvider);
-    final storeId = ref.read(activeStoreIdProvider).value ?? '';
-    // Remove legacy entrance-type zones
     for (final z in state.zones.where((z) => z.zoneType == 'entrance')) {
-      await db.zonesDao.deleteById(z.id);
+      await FirestoreRefs.zones(_storeId).doc(z.id).delete();
     }
-    await db.storesDao.updateEntrance(storeId, entranceJson);
+    await FirestoreRefs.store(_storeId)
+        .update({'entranceJson': entranceJson});
   }
 
   Future<void> removeEntrance() async {
-    final db = ref.read(appDatabaseProvider);
-    final storeId = ref.read(activeStoreIdProvider).value ?? '';
-    await db.storesDao.updateEntrance(storeId, null);
+    await FirestoreRefs.store(_storeId)
+        .update({'entranceJson': FieldValue.delete()});
   }
 
-  // -- helpers --
-
-  Future<void> _patchZone(
-    String id,
-    ZonesTableCompanion Function(ZonesTableCompanion) patch,
-  ) async {
-    final db = ref.read(appDatabaseProvider);
-    final zone = state.zones.firstWhereOrNull((z) => z.id == id);
-    if (zone == null) return;
-    final companion = patch(zone.toCompanion(true))
-        .copyWith(updatedAt: Value(DateTime.now()));
-    await db.zonesDao.upsert(companion);
+  Future<void> _patch(String id, Map<String, dynamic> fields) async {
+    await FirestoreRefs.zones(_storeId).doc(id).update({
+      ...fields,
+      'updatedAt': Timestamp.now(),
+    });
   }
 
   List<Offset> _translatedPoints(String id, Offset normDelta) {

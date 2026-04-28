@@ -3,7 +3,8 @@ import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../core/database/app_database.dart';
+import '../../core/models/store.dart';
+import '../../core/models/store_zone.dart';
 import '../../core/router/app_router.dart';
 import '../../core/widgets/role_guard.dart';
 import '../../core/theme/app_theme.dart';
@@ -38,7 +39,7 @@ class _ZoneMapScreenState extends ConsumerState<ZoneMapScreen> {
 
   void _exitEntranceEditMode() => setState(() => _entranceEditMode = false);
 
-  bool _needsDimensions(StoresTableData? store) =>
+  bool _needsDimensions(Store? store) =>
       store != null && (store.widthFt == null || store.depthFt == null);
 
   void _checkStoreDimensions() {
@@ -284,7 +285,7 @@ class _ZoneCanvasState extends ConsumerState<_ZoneCanvas> {
   Offset _normalizeDelta(Offset canvasDelta) =>
       Offset(canvasDelta.dx / _canvasSize.width, canvasDelta.dy / _canvasSize.height);
 
-  int _hitVertex(ZonesTableData zone, Offset canvas) {
+  int _hitVertex(StoreZone zone, Offset canvas) {
     final pts = ZoneShape.decode(zone.shapePoints);
     final radius = _vertexHitScreenPx / _viewScale;
     for (var i = 0; i < pts.length; i++) {
@@ -296,7 +297,7 @@ class _ZoneCanvasState extends ConsumerState<_ZoneCanvas> {
 
   /// Returns the edge index (i → i+1) closest to [canvas] within threshold,
   /// or -1 if no edge is close enough.
-  int _hitEdge(ZonesTableData zone, Offset canvas) {
+  int _hitEdge(StoreZone zone, Offset canvas) {
     final normPts = ZoneShape.decode(zone.shapePoints);
     final n = normPts.length;
     final threshold = _vertexHitScreenPx / _viewScale;
@@ -1000,7 +1001,7 @@ class _ZoneActionsSheet extends StatelessWidget {
     required this.onEdit,
     this.onOpen,
   });
-  final ZonesTableData zone;
+  final StoreZone zone;
   final VoidCallback onEdit;
   final VoidCallback? onOpen;
 

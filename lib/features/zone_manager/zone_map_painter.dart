@@ -1,7 +1,7 @@
 import 'dart:math';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
-import '../../core/database/app_database.dart';
+import '../../core/models/store_zone.dart';
 import 'store_entrance.dart';
 import 'zone_shape.dart';
 
@@ -19,7 +19,7 @@ class ZoneMapPainter extends CustomPainter {
     this.liveEntrance,
   });
 
-  final List<ZonesTableData> zones;
+  final List<StoreZone> zones;
   final Size canvasSize;
   final String? selectedZoneId;
   final double? widthFt;
@@ -113,7 +113,7 @@ class ZoneMapPainter extends CustomPainter {
     );
   }
 
-  void _drawZone(Canvas canvas, Size size, ZonesTableData zone) {
+  void _drawZone(Canvas canvas, Size size, StoreZone zone) {
     final points = _getPoints(zone, size);
     if (points.length < 3) return;
 
@@ -183,7 +183,7 @@ class ZoneMapPainter extends CustomPainter {
     tp.paint(canvas, centroid - Offset(tp.width / 2, tp.height / 2));
   }
 
-  void _drawVertexHandles(Canvas canvas, Size size, ZonesTableData zone) {
+  void _drawVertexHandles(Canvas canvas, Size size, StoreZone zone) {
     final points = _getPoints(zone, size);
 
     // Draw edge length labels when a vertex is actively dragged.
@@ -272,7 +272,7 @@ class ZoneMapPainter extends CustomPainter {
     tp.paint(canvas, center - Offset(tp.width / 2, tp.height / 2));
   }
 
-  List<Offset> _getPoints(ZonesTableData zone, Size size) {
+  List<Offset> _getPoints(StoreZone zone, Size size) {
     final decoded = ZoneShape.decode(zone.shapePoints);
     if (decoded.isNotEmpty) {
       return [
