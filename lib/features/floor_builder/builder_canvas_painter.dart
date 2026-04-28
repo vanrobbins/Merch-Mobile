@@ -1,7 +1,7 @@
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
-import '../../core/database/app_database.dart';
 import '../../core/models/fixture.dart';
+import '../../core/models/planogram.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/design_tokens.dart';
 import 'zone_edge_helper.dart';
@@ -29,7 +29,7 @@ class BuilderCanvasPainter extends CustomPainter {
   final Color? zoneColor;
   final String? zoneName;
   final List<ZoneEdge>? wallEdges;
-  final Map<String, PlanogramsTableData> planograms;
+  final Map<String, Planogram> planograms;
 
   Map<String, Rect> fixtureRects = {};
   Map<String, Map<String, Rect>> resizeHandleRects = {};

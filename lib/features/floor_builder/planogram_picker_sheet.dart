@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../core/database/app_database.dart';
+import '../../core/models/planogram.dart';
 import '../../core/theme/app_theme.dart';
 import 'planogram_slot_count.dart';
 
@@ -12,7 +12,7 @@ class PlanogramPickerSheet extends StatefulWidget {
     required this.onSelect,
   });
 
-  final List<PlanogramsTableData> planograms;
+  final List<Planogram> planograms;
   final String? currentPlanogramId;
   final String fixtureLabel;
   final void Function(String? planogramId) onSelect;
@@ -31,7 +31,7 @@ class _PlanogramPickerSheetState extends State<PlanogramPickerSheet> {
     super.dispose();
   }
 
-  List<PlanogramsTableData> get _filtered {
+  List<Planogram> get _filtered {
     if (_query.isEmpty) return widget.planograms;
     final q = _query.toLowerCase();
     return widget.planograms.where((p) => p.title.toLowerCase().contains(q)).toList();

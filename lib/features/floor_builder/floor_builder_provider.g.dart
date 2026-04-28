@@ -6,7 +6,7 @@ part of 'floor_builder_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$zoneByIdHash() => r'1120c625654f9a40fc40a34a2a62e214e2fa9ab0';
+String _$zoneByIdHash() => r'fb164a331ae69b85666fb3b84f74474a50dea1a2';
 
 /// Copied from Dart SDK
 class _SystemHash {
@@ -34,7 +34,7 @@ class _SystemHash {
 const zoneByIdProvider = ZoneByIdFamily();
 
 /// See also [zoneById].
-class ZoneByIdFamily extends Family<AsyncValue<ZonesTableData?>> {
+class ZoneByIdFamily extends Family<AsyncValue<StoreZone?>> {
   /// See also [zoneById].
   const ZoneByIdFamily();
 
@@ -72,7 +72,7 @@ class ZoneByIdFamily extends Family<AsyncValue<ZonesTableData?>> {
 }
 
 /// See also [zoneById].
-class ZoneByIdProvider extends AutoDisposeFutureProvider<ZonesTableData?> {
+class ZoneByIdProvider extends AutoDisposeStreamProvider<StoreZone?> {
   /// See also [zoneById].
   ZoneByIdProvider(
     String zoneId,
@@ -106,7 +106,7 @@ class ZoneByIdProvider extends AutoDisposeFutureProvider<ZonesTableData?> {
 
   @override
   Override overrideWith(
-    FutureOr<ZonesTableData?> Function(ZoneByIdRef provider) create,
+    Stream<StoreZone?> Function(ZoneByIdRef provider) create,
   ) {
     return ProviderOverride(
       origin: this,
@@ -123,7 +123,7 @@ class ZoneByIdProvider extends AutoDisposeFutureProvider<ZonesTableData?> {
   }
 
   @override
-  AutoDisposeFutureProviderElement<ZonesTableData?> createElement() {
+  AutoDisposeStreamProviderElement<StoreZone?> createElement() {
     return _ZoneByIdProviderElement(this);
   }
 
@@ -143,13 +143,13 @@ class ZoneByIdProvider extends AutoDisposeFutureProvider<ZonesTableData?> {
 
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
-mixin ZoneByIdRef on AutoDisposeFutureProviderRef<ZonesTableData?> {
+mixin ZoneByIdRef on AutoDisposeStreamProviderRef<StoreZone?> {
   /// The parameter `zoneId` of this provider.
   String get zoneId;
 }
 
 class _ZoneByIdProviderElement
-    extends AutoDisposeFutureProviderElement<ZonesTableData?> with ZoneByIdRef {
+    extends AutoDisposeStreamProviderElement<StoreZone?> with ZoneByIdRef {
   _ZoneByIdProviderElement(super.provider);
 
   @override
@@ -157,7 +157,7 @@ class _ZoneByIdProviderElement
 }
 
 String _$floorBuilderNotifierHash() =>
-    r'ff21f4d27c656a39cb41c62418bb9a23a95b1f18';
+    r'6d89ac3bf637d37db6784bf514b7f4e30954d38a';
 
 /// See also [FloorBuilderNotifier].
 @ProviderFor(FloorBuilderNotifier)

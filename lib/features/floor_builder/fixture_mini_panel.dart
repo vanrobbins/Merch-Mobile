@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../../core/database/app_database.dart';
 import '../../core/models/fixture.dart';
+import '../../core/models/planogram.dart';
 import '../../core/router/app_router.dart';
 import '../../core/theme/app_theme.dart';
 import 'planogram_slot_count.dart';
@@ -16,7 +16,7 @@ class FixtureMiniPanel extends StatelessWidget {
   });
 
   final Fixture fixture;
-  final PlanogramsTableData? planogram;
+  final Planogram? planogram;
   final VoidCallback onDismiss;
   final VoidCallback? onEdit;
 

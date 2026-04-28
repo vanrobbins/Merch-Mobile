@@ -1,15 +1,15 @@
 import 'dart:async';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:collection/collection.dart';
-import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:riverpod/riverpod.dart' show Ref;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:uuid/uuid.dart';
-import '../../core/database/app_database.dart';
-import '../../core/database/daos/fixtures_dao.dart';
 import '../../core/models/fixture.dart';
-import '../../core/providers/database_provider.dart';
+import '../../core/models/planogram.dart';
+import '../../core/models/store_zone.dart';
 import '../../core/providers/store_provider.dart';
+import '../../core/services/firestore_refs.dart';
 
 part 'floor_builder_provider.g.dart';
 
@@ -23,7 +23,7 @@ class FloorBuilderState {
   final double gridSizeFt;
   final bool isDragging;
   final bool isLoading;
-  final Map<String, PlanogramsTableData> planograms;
+  final Map<String, Planogram> planograms;
 
   const FloorBuilderState({
     this.fixtures = const [],
@@ -42,7 +42,7 @@ class FloorBuilderState {
     double? gridSizeFt,
     bool? isDragging,
     bool? isLoading,
-    Map<String, PlanogramsTableData>? planograms,
+    Map<String, Planogram>? planograms,
   }) {
     return FloorBuilderState(
       fixtures: fixtures ?? this.fixtures,
@@ -58,42 +58,10 @@ class FloorBuilderState {
   }
 }
 
-Fixture _rowToFixture(FixturesTableData r) => Fixture(
-      id: r.id,
-      zoneId: r.zoneId,
-      fixtureType: r.fixtureType,
-      posX: r.posX,
-      posY: r.posY,
-      rotation: r.rotation,
-      widthFt: r.widthFt,
-      depthFt: r.depthFt,
-      label: r.label,
-      planogramId: r.planogramId,
-      planogramIdBack: r.planogramIdBack,
-      wallAdjacent: r.wallAdjacent,
-      updatedAt: r.updatedAt,
-    );
-
-FixturesTableCompanion _fixtureToCompanion(Fixture f) => FixturesTableCompanion(
-      id: Value(f.id),
-      zoneId: Value(f.zoneId),
-      fixtureType: Value(f.fixtureType),
-      posX: Value(f.posX),
-      posY: Value(f.posY),
-      rotation: Value(f.rotation),
-      widthFt: Value(f.widthFt),
-      depthFt: Value(f.depthFt),
-      label: Value(f.label),
-      planogramId: Value(f.planogramId),
-      planogramIdBack: Value(f.planogramIdBack),
-      wallAdjacent: Value(f.wallAdjacent),
-      updatedAt: Value(f.updatedAt),
-    );
-
 @riverpod
 class FloorBuilderNotifier extends _$FloorBuilderNotifier {
-  StreamSubscription<List<FixturesTableData>>? _sub;
-  StreamSubscription<List<PlanogramsTableData>>? _planogramSub;
+  StreamSubscription<List<Fixture>>? _sub;
+  StreamSubscription<List<Planogram>>? _planogramSub;
   String? _zoneId;
 
   @override
@@ -105,47 +73,33 @@ class FloorBuilderNotifier extends _$FloorBuilderNotifier {
     return const FloorBuilderState(isLoading: true);
   }
 
-  FixturesDao get _dao => ref.read(appDatabaseProvider).fixturesDao;
-
   String get _storeId => ref.read(activeStoreIdProvider).value ?? '';
-
-  /// Persists [fixture] for the active store.
-  Future<void> _saveNew(Fixture fixture) {
-    final companion = _fixtureToCompanion(fixture).copyWith(
-      storeId: Value(_storeId),
-    );
-    return _dao.upsert(companion);
-  }
-
-  /// Looks up the fixture by [id], applies [mutate], and persists the result.
-  Future<void> _updateFixture(String id, Fixture Function(Fixture) mutate) async {
-    final fixture = state.fixtures.firstWhereOrNull((f) => f.id == id);
-    if (fixture == null) return;
-    final updated = mutate(fixture).copyWith(updatedAt: DateTime.now());
-    await _dao.upsert(_fixtureToCompanion(updated));
-  }
 
   void loadFixtures(String zoneId) {
     _zoneId = zoneId;
     final storeId = _storeId;
+
     _sub?.cancel();
-    _sub = _dao.watchByZone(storeId, zoneId).listen((rows) {
-      state = state.copyWith(
-        fixtures: rows.map(_rowToFixture).toList(),
-        isLoading: false,
-      );
+    _sub = FirestoreRefs.fixtures(storeId)
+        .where('zoneId', isEqualTo: zoneId)
+        .snapshots()
+        .map((s) => s.docs.map(FixtureFirestore.fromDoc).toList())
+        .listen((rows) {
+      state = state.copyWith(fixtures: rows, isLoading: false);
     });
+
     _planogramSub?.cancel();
-    _planogramSub = ref.read(appDatabaseProvider).planogramsDao.watchByStore(storeId).listen((rows) {
-      state = state.copyWith(
-        planograms: {for (final p in rows) p.id: p},
-      );
+    _planogramSub = FirestoreRefs.planograms(storeId)
+        .snapshots()
+        .map((s) => s.docs.map(PlanogramFirestore.fromDoc).toList())
+        .listen((rows) {
+      state = state.copyWith(planograms: {for (final p in rows) p.id: p});
     });
   }
 
   Future<void> addFixture(String type, Offset normalizedPos) async {
     if (_zoneId == null) return;
-    await _saveNew(Fixture(
+    final fixture = Fixture(
       id: _uuid.v4(),
       zoneId: _zoneId,
       fixtureType: type,
@@ -153,7 +107,10 @@ class FloorBuilderNotifier extends _$FloorBuilderNotifier {
       posY: normalizedPos.dy,
       label: type.toUpperCase(),
       updatedAt: DateTime.now(),
-    ));
+    );
+    await FirestoreRefs.fixtures(_storeId)
+        .doc(fixture.id)
+        .set(fixture.toFirestore());
   }
 
   Future<void> addWallFixture({
@@ -163,7 +120,7 @@ class FloorBuilderNotifier extends _$FloorBuilderNotifier {
   }) async {
     if (_zoneId == null) return;
     const depthFt = 0.5;
-    await _saveNew(Fixture(
+    final fixture = Fixture(
       id: _uuid.v4(),
       zoneId: _zoneId,
       fixtureType: 'wall',
@@ -174,7 +131,10 @@ class FloorBuilderNotifier extends _$FloorBuilderNotifier {
       depthFt: depthFt,
       label: 'WALL',
       updatedAt: DateTime.now(),
-    ));
+    );
+    await FirestoreRefs.fixtures(_storeId)
+        .doc(fixture.id)
+        .set(fixture.toFirestore());
   }
 
   Future<void> moveFixture(String id, Offset pos) {
@@ -185,27 +145,27 @@ class FloorBuilderNotifier extends _$FloorBuilderNotifier {
       x = (x / gs).round() * gs;
       y = (y / gs).round() * gs;
     }
-    return _updateFixture(id, (f) => f.copyWith(posX: x, posY: y));
+    return _patch(id, {'posX': x, 'posY': y});
   }
 
-  Future<void> rotateFixture(String id) =>
-      _updateFixture(id, (f) => f.copyWith(rotation: (f.rotation + 90) % 360));
+  Future<void> rotateFixture(String id) {
+    final fixture = state.fixtures.firstWhereOrNull((f) => f.id == id);
+    if (fixture == null) return Future.value();
+    return _patch(id, {'rotation': (fixture.rotation + 90) % 360});
+  }
 
   Future<void> renameFixture(String id, String label) =>
-      _updateFixture(id, (f) => f.copyWith(label: label));
+      _patch(id, {'label': label});
 
   Future<void> deleteFixture(String id) async {
-    await _dao.deleteById(id);
+    await FirestoreRefs.fixtures(_storeId).doc(id).delete();
     if (state.selectedFixtureId == id) {
       state = state.copyWith(selectedFixtureId: null);
     }
   }
 
-  void selectFixture(String? id) {
-    state = state.copyWith(selectedFixtureId: id);
-  }
+  void selectFixture(String? id) => state = state.copyWith(selectedFixtureId: id);
 
-  /// Clamps width/depth honoring per-type maxima (partitions max 1.0 ft depth).
   Fixture _resizedFixture(Fixture f, double? widthFt, double? depthFt) {
     final maxDepth = f.fixtureType == 'partition' ? 1.0 : double.infinity;
     return f.copyWith(
@@ -215,40 +175,57 @@ class FloorBuilderNotifier extends _$FloorBuilderNotifier {
   }
 
   void resizeFixtureLocal(String id, double? widthFt, double? depthFt) {
-    final fixtures = state.fixtures
-        .map((f) => f.id == id ? _resizedFixture(f, widthFt, depthFt) : f)
-        .toList();
-    state = state.copyWith(fixtures: fixtures);
+    state = state.copyWith(
+      fixtures: state.fixtures
+          .map((f) => f.id == id ? _resizedFixture(f, widthFt, depthFt) : f)
+          .toList(),
+    );
   }
 
-  Future<void> resizeFixture(String id, double? widthFt, double? depthFt) =>
-      _updateFixture(id, (f) => _resizedFixture(f, widthFt, depthFt));
+  Future<void> resizeFixture(String id, double? widthFt, double? depthFt) {
+    final fixture = state.fixtures.firstWhereOrNull((f) => f.id == id);
+    if (fixture == null) return Future.value();
+    final updated = _resizedFixture(fixture, widthFt, depthFt);
+    return _patch(id, {'widthFt': updated.widthFt, 'depthFt': updated.depthFt});
+  }
 
   Future<void> assignPlanogram(String fixtureId, String? planogramId) =>
-      _updateFixture(fixtureId, (f) => f.copyWith(planogramId: planogramId));
+      _patch(fixtureId, {
+        'planogramId': planogramId ?? FieldValue.delete(),
+      });
 
   Future<void> assignPlanogramBack(String fixtureId, String? planogramId) =>
-      _updateFixture(fixtureId, (f) => f.copyWith(planogramIdBack: planogramId));
+      _patch(fixtureId, {
+        'planogramIdBack': planogramId ?? FieldValue.delete(),
+      });
 
   Future<void> toggleWallAdjacent(String fixtureId) {
-    return _updateFixture(fixtureId, (f) {
-      final newValue = !f.wallAdjacent;
-      return f.copyWith(
-        wallAdjacent: newValue,
-        planogramIdBack: newValue ? null : f.planogramIdBack,
-      );
+    final fixture = state.fixtures.firstWhereOrNull((f) => f.id == fixtureId);
+    if (fixture == null) return Future.value();
+    final newValue = !fixture.wallAdjacent;
+    return _patch(fixtureId, {
+      'wallAdjacent': newValue,
+      if (newValue) 'planogramIdBack': FieldValue.delete(),
     });
   }
 
-  void toggleSnap() {
-    state = state.copyWith(snapGridEnabled: !state.snapGridEnabled);
-  }
+  void toggleSnap() => state = state.copyWith(snapGridEnabled: !state.snapGridEnabled);
 
-  void setDragging(bool v) {
-    state = state.copyWith(isDragging: v);
+  void setDragging(bool v) => state = state.copyWith(isDragging: v);
+
+  Future<void> _patch(String id, Map<String, dynamic> fields) async {
+    await FirestoreRefs.fixtures(_storeId).doc(id).update({
+      ...fields,
+      'updatedAt': Timestamp.now(),
+    });
   }
 }
 
 @riverpod
-Future<ZonesTableData?> zoneById(Ref ref, String zoneId) =>
-    ref.watch(appDatabaseProvider).zonesDao.findById(zoneId);
+Stream<StoreZone?> zoneById(Ref ref, String zoneId) {
+  final storeId = ref.watch(activeStoreIdProvider).value;
+  if (storeId == null) return Stream.value(null);
+  return FirestoreRefs.zones(storeId).doc(zoneId).snapshots().map(
+    (s) => s.exists ? StoreZoneFirestore.fromDoc(s) : null,
+  );
+}
