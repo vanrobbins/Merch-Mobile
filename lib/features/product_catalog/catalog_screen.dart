@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../core/database/app_database.dart';
+import '../../core/models/product.dart';
 import '../../core/providers/connectivity_provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/design_tokens.dart';
@@ -24,7 +24,7 @@ class CatalogScreen extends ConsumerWidget {
 
     return Scaffold(
       body: productsAsync.when(
-        data: (List<ProductsTableData> allProducts) {
+        data: (List<Product> allProducts) {
           // Apply local search filter
           final filtered = query.isEmpty
               ? allProducts
@@ -75,8 +75,8 @@ class _CatalogBody extends ConsumerStatefulWidget {
     required this.query,
   });
 
-  final List<ProductsTableData> allProducts;
-  final List<ProductsTableData> filtered;
+  final List<Product> allProducts;
+  final List<Product> filtered;
   final List<String> categories;
   final bool isOnline;
   final String query;
@@ -88,7 +88,7 @@ class _CatalogBody extends ConsumerStatefulWidget {
 class _CatalogBodyState extends ConsumerState<_CatalogBody> {
   String? _selectedCategory;
 
-  List<ProductsTableData> get _categoryFiltered {
+  List<Product> get _categoryFiltered {
     if (_selectedCategory == null) return widget.filtered;
     return widget.filtered
         .where((p) => p.category == _selectedCategory)

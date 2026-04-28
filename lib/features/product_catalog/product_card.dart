@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../core/database/app_database.dart';
+import '../../core/models/product.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/design_tokens.dart';
 import '../../core/widgets/mm_card.dart';
@@ -9,7 +9,7 @@ import '../../core/widgets/role_guard.dart';
 class ProductCard extends ConsumerWidget {
   const ProductCard({super.key, required this.product, this.onTap});
 
-  final ProductsTableData product;
+  final Product product;
   final VoidCallback? onTap;
 
   @override
