@@ -4,6 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import '../../core/models/photo_doc.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/design_tokens.dart';
 import '../../core/widgets/mm_empty_state.dart';
@@ -35,9 +36,9 @@ class _PhotoDetailScreenState extends ConsumerState<PhotoDetailScreen> {
         body: Center(child: Text('Error: $err')),
       ),
       data: (state) {
-        final photoOrNull = state.photos
-            .cast<dynamic>()
-            .firstWhere((p) => p.id == widget.photoId, orElse: () => null);
+        final PhotoDoc? photoOrNull = state.photos
+            .cast<PhotoDoc?>()
+            .firstWhere((p) => p?.id == widget.photoId, orElse: () => null);
 
         if (photoOrNull == null) {
           return Scaffold(
@@ -186,18 +187,18 @@ class _PhotoDetailScreenState extends ConsumerState<PhotoDetailScreen> {
     );
   }
 
-  Widget _buildImage(dynamic photo) {
-    if (photo.localPath.isNotEmpty) {
+  Widget _buildImage(PhotoDoc photo) {
+    if (photo.localPath != null && photo.localPath!.isNotEmpty) {
       return Image.file(
-        File(photo.localPath),
+        File(photo.localPath!),
         fit: BoxFit.contain,
         errorBuilder: (context, error, stackTrace) =>
             const _ErrorImage(),
       );
     }
-    if (photo.remoteUrl.isNotEmpty) {
+    if (photo.remoteUrl != null && photo.remoteUrl!.isNotEmpty) {
       return CachedNetworkImage(
-        imageUrl: photo.remoteUrl,
+        imageUrl: photo.remoteUrl!,
         fit: BoxFit.contain,
         placeholder: (context, url) =>
             const Center(child: CircularProgressIndicator()),

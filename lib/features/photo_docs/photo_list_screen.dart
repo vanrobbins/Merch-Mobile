@@ -148,13 +148,13 @@ class _PhotoGridItem extends StatelessWidget {
   final PhotoDoc photo;
 
   Widget _buildImage() {
-    if (photo.localPath.isNotEmpty) {
-      final file = File(photo.localPath);
+    if (photo.localPath != null && photo.localPath!.isNotEmpty) {
+      final file = File(photo.localPath!);
       return Image.file(file, fit: BoxFit.cover);
     }
-    if (photo.remoteUrl.isNotEmpty) {
+    if (photo.remoteUrl != null && photo.remoteUrl!.isNotEmpty) {
       return CachedNetworkImage(
-        imageUrl: photo.remoteUrl,
+        imageUrl: photo.remoteUrl!,
         fit: BoxFit.cover,
         placeholder: (context, url) => Container(color: Colors.grey.shade200),
         errorWidget: (context, url, error) =>

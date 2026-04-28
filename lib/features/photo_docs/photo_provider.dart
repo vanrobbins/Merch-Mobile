@@ -1,22 +1,20 @@
 import 'dart:io';
-
-import 'package:drift/drift.dart' show Value;
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:uuid/uuid.dart';
-
-import '../../core/database/app_database.dart';
 import '../../core/models/photo_doc.dart';
-import '../../core/providers/database_provider.dart';
+import '../../core/providers/store_provider.dart';
+import '../../core/services/firestore_refs.dart';
 
 part 'photo_provider.g.dart';
 
 class PhotoState {
   final List<PhotoDoc> photos;
   final bool isLoading;
-  final Map<String, double> uploadProgress; // photoId -> 0.0-1.0
+  final Map<String, double> uploadProgress;
 
   const PhotoState({
     required this.photos,
@@ -28,68 +26,46 @@ class PhotoState {
     List<PhotoDoc>? photos,
     bool? isLoading,
     Map<String, double>? uploadProgress,
-  }) =>
-      PhotoState(
-        photos: photos ?? this.photos,
-        isLoading: isLoading ?? this.isLoading,
-        uploadProgress: uploadProgress ?? this.uploadProgress,
-      );
+  }) => PhotoState(
+    photos: photos ?? this.photos,
+    isLoading: isLoading ?? this.isLoading,
+    uploadProgress: uploadProgress ?? this.uploadProgress,
+  );
 }
-
-PhotoDoc _rowToPhoto(PhotoDocsTableData r) => PhotoDoc(
-      id: r.id,
-      fixtureId: r.fixtureId,
-      phase: r.phase,
-      localPath: r.localPath,
-      remoteUrl: r.remoteUrl,
-      uploadStatus: r.uploadStatus,
-      approvalStatus: r.approvalStatus,
-      planogramId: r.planogramId,
-      capturedAt: r.capturedAt,
-      updatedAt: r.updatedAt,
-    );
-
-PhotoDocsTableCompanion _photoToCompanion(PhotoDoc p) => PhotoDocsTableCompanion(
-      id: Value(p.id),
-      fixtureId: Value(p.fixtureId),
-      phase: Value(p.phase),
-      localPath: Value(p.localPath),
-      remoteUrl: Value(p.remoteUrl),
-      uploadStatus: Value(p.uploadStatus),
-      approvalStatus: Value(p.approvalStatus),
-      planogramId: Value(p.planogramId),
-      capturedAt: Value(p.capturedAt),
-      updatedAt: Value(p.updatedAt),
-    );
 
 @riverpod
 class PhotoNotifier extends _$PhotoNotifier {
   @override
   Future<PhotoState> build() async {
-    final db = ref.watch(appDatabaseProvider);
-    final rows = await db.photoDocsDao.watchAll().first;
-    final photos = rows.map(_rowToPhoto).toList();
+    final storeId = ref.watch(activeStoreIdProvider).value;
+    if (storeId == null) return const PhotoState(photos: []);
 
-    // Keep the state updated as the stream emits new values
-    db.photoDocsDao.watchAll().listen((rows) {
+    FirestoreRefs.photos(storeId).snapshots().listen((snap) {
+      final photos = snap.docs
+          .map((d) => PhotoDocFirestore.fromDoc(d, storeId))
+          .toList();
       if (state case AsyncData(:final value)) {
-        state = AsyncData(value.copyWith(photos: rows.map(_rowToPhoto).toList()));
+        state = AsyncData(value.copyWith(photos: photos));
       }
     });
 
+    final snap = await FirestoreRefs.photos(storeId).get();
+    final photos = snap.docs
+        .map((d) => PhotoDocFirestore.fromDoc(d, storeId))
+        .toList();
     return PhotoState(photos: photos);
   }
 
+  String get _storeId => ref.read(activeStoreIdProvider).value ?? '';
+
   Future<void> capturePhoto(String fixtureId, String phase) async {
-    final picker = ImagePicker();
-    final picked = await picker.pickImage(source: ImageSource.camera);
+    final picked = await ImagePicker().pickImage(source: ImageSource.camera);
     if (picked == null) return;
     await _savePhoto(fixtureId, phase, picked.path);
   }
 
   Future<void> pickFromGallery(String fixtureId, String phase) async {
-    final picker = ImagePicker();
-    final picked = await picker.pickImage(source: ImageSource.gallery);
+    final picked = await ImagePicker().pickImage(source: ImageSource.gallery);
     if (picked == null) return;
     await _savePhoto(fixtureId, phase, picked.path);
   }
@@ -102,125 +78,82 @@ class PhotoNotifier extends _$PhotoNotifier {
       phase: phase,
       localPath: localPath,
       uploadStatus: 'pending',
+      storeId: _storeId,
       capturedAt: now,
       updatedAt: now,
     );
-    final db = ref.read(appDatabaseProvider);
-    await db.photoDocsDao.upsert(_photoToCompanion(doc));
+    await FirestoreRefs.photos(_storeId)
+        .doc(doc.id)
+        .set(doc.toFirestore());
   }
 
   Future<void> uploadPhoto(String id) async {
     final current = state.valueOrNull;
     if (current == null) return;
-
-    final photo = current.photos.firstWhere(
-      (p) => p.id == id,
-      orElse: () => throw StateError('Photo $id not found'),
-    );
-
+    final photo = current.photos.firstWhere((p) => p.id == id,
+        orElse: () => throw StateError('Photo $id not found'));
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
 
     final storageRef = FirebaseStorage.instance.ref('photos/$uid/$id.jpg');
-    final file = File(photo.localPath);
+    final uploadTask = storageRef.putFile(File(photo.localPath!));
 
-    // Track upload progress
-    final uploadTask = storageRef.putFile(file);
-    uploadTask.snapshotEvents.listen((snapshot) {
+    uploadTask.snapshotEvents.listen((snap) {
       if (state case AsyncData(:final value)) {
-        final progress = snapshot.bytesTransferred / snapshot.totalBytes;
-        final updatedProgress = Map<String, double>.from(value.uploadProgress)
-          ..[id] = progress;
-        state = AsyncData(value.copyWith(uploadProgress: updatedProgress));
+        final progress = snap.bytesTransferred / snap.totalBytes;
+        state = AsyncData(value.copyWith(uploadProgress: {
+          ...value.uploadProgress,
+          id: progress,
+        }));
       }
     });
 
     try {
       await uploadTask;
       final remoteUrl = await storageRef.getDownloadURL();
-      final updated = photo.copyWith(
-        remoteUrl: remoteUrl,
-        uploadStatus: 'uploaded',
-        updatedAt: DateTime.now(),
-      );
-      final db = ref.read(appDatabaseProvider);
-      await db.photoDocsDao.upsert(_photoToCompanion(updated));
-
-      // Clear progress entry
-      if (state case AsyncData(:final value)) {
-        final updatedProgress = Map<String, double>.from(value.uploadProgress)
-          ..remove(id);
-        state = AsyncData(value.copyWith(uploadProgress: updatedProgress));
-      }
+      await FirestoreRefs.photos(_storeId).doc(id).update({
+        'remoteUrl': remoteUrl,
+        'uploadStatus': 'uploaded',
+        'updatedAt': Timestamp.now(),
+      });
     } catch (_) {
-      final failed = photo.copyWith(
-        uploadStatus: 'failed',
-        updatedAt: DateTime.now(),
-      );
-      final db = ref.read(appDatabaseProvider);
-      await db.photoDocsDao.upsert(_photoToCompanion(failed));
-
-      // Clear progress entry on failure too
+      await FirestoreRefs.photos(_storeId).doc(id).update({
+        'uploadStatus': 'failed',
+        'updatedAt': Timestamp.now(),
+      });
+    } finally {
       if (state case AsyncData(:final value)) {
-        final updatedProgress = Map<String, double>.from(value.uploadProgress)
-          ..remove(id);
-        state = AsyncData(value.copyWith(uploadProgress: updatedProgress));
+        final p = Map<String, double>.from(value.uploadProgress)..remove(id);
+        state = AsyncData(value.copyWith(uploadProgress: p));
       }
     }
   }
 
-  Future<void> requestApproval(String id) async {
-    await _updateApprovalStatus(id, 'pending');
-  }
+  Future<void> requestApproval(String id) =>
+      _updateApprovalStatus(id, 'pending');
+  Future<void> approvePhoto(String id) =>
+      _updateApprovalStatus(id, 'approved');
+  Future<void> rejectPhoto(String id) =>
+      _updateApprovalStatus(id, 'rejected');
 
-  Future<void> approvePhoto(String id) async {
-    await _updateApprovalStatus(id, 'approved');
-  }
-
-  Future<void> rejectPhoto(String id) async {
-    await _updateApprovalStatus(id, 'rejected');
-  }
-
-  Future<void> _updateApprovalStatus(String id, String approvalStatus) async {
-    final current = state.valueOrNull;
-    if (current == null) return;
-
-    final photo = current.photos.firstWhere(
-      (p) => p.id == id,
-      orElse: () => throw StateError('Photo $id not found'),
-    );
-
-    final updated = photo.copyWith(
-      approvalStatus: approvalStatus,
-      updatedAt: DateTime.now(),
-    );
-    final db = ref.read(appDatabaseProvider);
-    await db.photoDocsDao.upsert(_photoToCompanion(updated));
+  Future<void> _updateApprovalStatus(String id, String status) async {
+    await FirestoreRefs.photos(_storeId).doc(id).update({
+      'approvalStatus': status,
+      'updatedAt': Timestamp.now(),
+    });
   }
 
   Future<void> linkToPlanogram(String photoId, String planogramId) async {
-    final current = state.valueOrNull;
-    if (current == null) return;
-
-    final photo = current.photos.firstWhere(
-      (p) => p.id == photoId,
-      orElse: () => throw StateError('Photo $photoId not found'),
-    );
-
-    final updated = photo.copyWith(
-      planogramId: planogramId,
-      updatedAt: DateTime.now(),
-    );
-    final db = ref.read(appDatabaseProvider);
-    await db.photoDocsDao.upsert(_photoToCompanion(updated));
+    await FirestoreRefs.photos(_storeId).doc(photoId).update({
+      'planogramId': planogramId,
+      'updatedAt': Timestamp.now(),
+    });
   }
 
   Future<void> retryFailedUploads() async {
     final current = state.valueOrNull;
     if (current == null) return;
-
-    final failed = current.photos.where((p) => p.uploadStatus == 'failed').toList();
-    for (final photo in failed) {
+    for (final photo in current.photos.where((p) => p.uploadStatus == 'failed')) {
       await uploadPhoto(photo.id);
     }
   }
