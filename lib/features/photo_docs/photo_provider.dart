@@ -40,14 +40,18 @@ class PhotoNotifier extends _$PhotoNotifier {
     final storeId = ref.watch(activeStoreIdProvider).value;
     if (storeId == null) return const PhotoState(photos: []);
 
-    FirestoreRefs.photos(storeId).snapshots().listen((snap) {
-      final photos = snap.docs
-          .map((d) => PhotoDocFirestore.fromDoc(d, storeId))
-          .toList();
-      if (state case AsyncData(:final value)) {
-        state = AsyncData(value.copyWith(photos: photos));
-      }
-    });
+    final sub = FirestoreRefs.photos(storeId).snapshots().listen(
+      (snap) {
+        final photos = snap.docs
+            .map((d) => PhotoDocFirestore.fromDoc(d, storeId))
+            .toList();
+        if (state case AsyncData(:final value)) {
+          state = AsyncData(value.copyWith(photos: photos));
+        }
+      },
+      onError: (_, __) {},
+    );
+    ref.onDispose(sub.cancel);
 
     final snap = await FirestoreRefs.photos(storeId).get();
     final photos = snap.docs

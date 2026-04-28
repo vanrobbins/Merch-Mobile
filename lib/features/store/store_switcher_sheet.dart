@@ -21,7 +21,7 @@ class StoreSwitcherSheet extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final stores = ref.watch(myStoresProvider).value ?? [];
+    final stores = ref.watch(myStoresProvider).valueOrNull ?? [];
     final activeId = ref.watch(activeStoreIdProvider).value;
 
     return Container(

@@ -62,14 +62,22 @@ class ZoneMapNotifier extends _$ZoneMapNotifier {
       _zoneSub = FirestoreRefs.zones(storeId)
           .snapshots()
           .map((s) => s.docs.map(StoreZoneFirestore.fromDoc).toList())
-          .listen((rows) {
-        state = state.copyWith(zones: rows, isLoading: false);
-      });
+          .listen(
+        (rows) {
+          state = state.copyWith(zones: rows, isLoading: false);
+        },
+        onError: (_, __) {
+          state = state.copyWith(isLoading: false);
+        },
+      );
       _storeSub = FirestoreRefs.store(storeId).snapshots().map(
         (s) => s.exists ? StoreFirestore.fromDoc(s) : null,
-      ).listen((store) {
-        state = state.copyWith(storeData: store);
-      });
+      ).listen(
+        (store) {
+          state = state.copyWith(storeData: store);
+        },
+        onError: (_, __) {},
+      );
     }
 
     ref.onDispose(() {

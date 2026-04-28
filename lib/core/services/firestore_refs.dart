@@ -40,4 +40,7 @@ class FirestoreRefs {
 
   static CollectionReference<Map<String, dynamic>> productTemplates(String storeId) =>
       store(storeId).collection('productTemplates');
+
+  static DocumentReference<Map<String, dynamic>> userStores(String userId) =>
+      _db.collection('userStores').doc(userId);
 }

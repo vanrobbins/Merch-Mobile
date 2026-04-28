@@ -60,6 +60,10 @@ Stream<StoreMembership?> currentMembership(CurrentMembershipRef ref) {
   return FirestoreRefs.memberships(storeId).doc(user.uid).snapshots().map(
     (snap) {
       if (!snap.exists) return null;
+      // Migrate existing docs that pre-date the uid field (needed for collection group query).
+      if (snap.data()?['uid'] == null) {
+        Future.microtask(() => snap.reference.update({'uid': snap.id}));
+      }
       final m = StoreMembershipFirestore.fromDoc(snap, storeId);
       return m.status == 'active' ? m : null;
     },
@@ -67,23 +71,53 @@ Stream<StoreMembership?> currentMembership(CurrentMembershipRef ref) {
 }
 
 /// All stores where the current user has an active membership.
+/// Primary source: /userStores/{uid} document (fast, no index needed).
+/// Migration path: if that document is empty, falls back to a collection group
+/// query and bootstraps the document so future loads skip it.
 @riverpod
 Stream<List<Store>> myStores(MyStoresRef ref) {
   final user = ref.watch(authStateProvider).value;
   if (user == null) return Stream.value([]);
-  return FirebaseFirestore.instance
-      .collectionGroup('memberships')
-      .where(FieldPath.documentId, isEqualTo: user.uid)
-      .where('status', isEqualTo: 'active')
-      .snapshots()
-      .asyncMap((snap) async {
-    final stores = <Store>[];
-    for (final memberDoc in snap.docs) {
-      final storeRef = memberDoc.reference.parent.parent!;
-      final storeSnap = await storeRef.get();
-      if (storeSnap.exists) {
-        stores.add(StoreFirestore.fromDoc(storeSnap));
+
+  return FirestoreRefs.userStores(user.uid).snapshots().asyncMap((snap) async {
+    var storeIds = List<String>.from(
+        snap.data()?['activeStoreIds'] as List? ?? []);
+
+    if (storeIds.isEmpty) {
+      // One-time migration: scan all stores and check membership by document ID.
+      // This is reliable regardless of whether the uid field exists in old docs.
+      try {
+        final allStores = await FirestoreRefs.stores().limit(100).get();
+        final checks = allStores.docs.map((storeDoc) async {
+          try {
+            final memberDoc = await FirestoreRefs.memberships(storeDoc.id)
+                .doc(user.uid)
+                .get();
+            if (memberDoc.exists && memberDoc.data()?['status'] == 'active') {
+              return storeDoc.id;
+            }
+          } catch (_) {}
+          return null;
+        });
+        final found = await Future.wait(checks);
+        storeIds = found.whereType<String>().toList();
+      } catch (_) {}
+
+      if (storeIds.isNotEmpty) {
+        // Populate userStores so future loads skip this scan.
+        Future.microtask(() => FirestoreRefs.userStores(user.uid).set(
+              {'activeStoreIds': storeIds},
+              SetOptions(merge: true),
+            ));
       }
+    }
+
+    final stores = <Store>[];
+    for (final storeId in storeIds) {
+      try {
+        final storeSnap = await FirestoreRefs.store(storeId).get();
+        if (storeSnap.exists) stores.add(StoreFirestore.fromDoc(storeSnap));
+      } catch (_) {}
     }
     return stores;
   });

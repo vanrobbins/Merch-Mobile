@@ -38,6 +38,7 @@ extension StoreMembershipFirestore on StoreMembership {
   }
 
   Map<String, dynamic> toFirestore() => {
+    'uid': uid,
     'role': role,
     'status': status,
     'displayName': displayName,

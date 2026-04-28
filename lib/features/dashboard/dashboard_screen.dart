@@ -133,9 +133,7 @@ class DashboardScreen extends ConsumerWidget {
                   'Join Requests',
                   stats.pendingJoinRequests,
                   Icons.person_add_outlined,
-                  stats.pendingJoinRequests > 0
-                      ? () => context.goNamed(AppRoutes.members)
-                      : null,
+                  () => context.goNamed(AppRoutes.members),
                   badge: stats.pendingJoinRequests > 0,
                 ),
                 _StatItem(
@@ -160,9 +158,7 @@ class DashboardScreen extends ConsumerWidget {
                   'Join Requests',
                   stats.pendingJoinRequests,
                   Icons.person_add_outlined,
-                  stats.pendingJoinRequests > 0
-                      ? () => context.goNamed(AppRoutes.members)
-                      : null,
+                  () => context.goNamed(AppRoutes.members),
                   badge: stats.pendingJoinRequests > 0,
                 ),
                 _StatItem(

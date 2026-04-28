@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -61,6 +62,10 @@ class _CreateStoreScreenState extends ConsumerState<CreateStoreScreen> {
         joinedAt: now,
       );
       await FirestoreRefs.memberships(storeId).doc(user.uid).set(membership.toFirestore());
+      await FirestoreRefs.userStores(user.uid).set(
+        {'activeStoreIds': FieldValue.arrayUnion([storeId])},
+        SetOptions(merge: true),
+      );
 
       await ref.read(activeStoreIdProvider.notifier).setStore(storeId);
       setState(() => _generatedCode = code);

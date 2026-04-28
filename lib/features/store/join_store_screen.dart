@@ -1,20 +1,22 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../core/providers/store_provider.dart';
 import '../../core/router/app_router.dart';
 import '../../core/services/firestore_refs.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/design_tokens.dart';
 
-class JoinStoreScreen extends StatefulWidget {
+class JoinStoreScreen extends ConsumerStatefulWidget {
   const JoinStoreScreen({super.key});
 
   @override
-  State<JoinStoreScreen> createState() => _JoinStoreScreenState();
+  ConsumerState<JoinStoreScreen> createState() => _JoinStoreScreenState();
 }
 
-class _JoinStoreScreenState extends State<JoinStoreScreen> {
+class _JoinStoreScreenState extends ConsumerState<JoinStoreScreen> {
   final _codeCtrl = TextEditingController();
   bool _loading = false;
   String? _error;
@@ -52,22 +54,37 @@ class _JoinStoreScreenState extends State<JoinStoreScreen> {
       if (existingSnap.exists) {
         final status = existingSnap.data()?['status'] as String?;
         if (status == 'active') {
-          // Already a member — just navigate
+          // Already a member — ensure userStores is populated then navigate in
+          await FirestoreRefs.userStores(user.uid).set(
+            {'activeStoreIds': FieldValue.arrayUnion([storeId])},
+            SetOptions(merge: true),
+          );
+          await ref.read(activeStoreIdProvider.notifier).setStore(storeId);
           if (mounted) context.goNamed(AppRoutes.zoneMap);
+          return;
+        }
+        if (status == 'pending') {
+          await ref.read(activeStoreIdProvider.notifier).setStore(storeId);
+          if (mounted) context.goNamed(AppRoutes.pendingApproval);
           return;
         }
       }
 
       await FirestoreRefs.memberships(storeId).doc(user.uid).set({
+        'uid': user.uid,
         'role': 'staff',
         'status': 'pending',
         'displayName': user.displayName ?? user.email ?? 'Staff',
         'joinedAt': Timestamp.now(),
       });
 
+      // Set the storeId so currentMembershipProvider watches the right store
+      // on the pending approval screen.
+      await ref.read(activeStoreIdProvider.notifier).setStore(storeId);
+
       if (mounted) context.goNamed(AppRoutes.pendingApproval);
     } finally {
-      setState(() => _loading = false);
+      if (mounted) setState(() => _loading = false);
     }
   }
 

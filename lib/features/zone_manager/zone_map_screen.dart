@@ -950,6 +950,15 @@ class _ZoneCanvasState extends ConsumerState<_ZoneCanvas> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(zoneMapNotifierProvider);
+    // Re-fit when store dimensions are first set (e.g. after the setup dialog on a new store).
+    ref.listen<ZoneMapState>(zoneMapNotifierProvider, (prev, next) {
+      final hadDims = prev?.storeData?.widthFt != null;
+      final hasDims = next.storeData?.widthFt != null;
+      if (!hadDims && hasDims) {
+        _hasFitView = false;
+        WidgetsBinding.instance.addPostFrameCallback((_) { if (mounted) _fitView(); });
+      }
+    });
     return LayoutBuilder(
       builder: (context, constraints) {
         _canvasSize = constraints.biggest;

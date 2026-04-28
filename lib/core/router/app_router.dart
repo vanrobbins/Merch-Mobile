@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import '../models/store_membership.dart';
 import '../providers/store_provider.dart';
 import '../widgets/app_scaffold.dart';
 import '../../features/auth/splash_screen.dart';
@@ -103,6 +104,10 @@ GoRouter appRouter(AppRouterRef ref) {
     activeStoreIdProvider,
     (_, __) => notifier.notifyStoreChanged(),
   );
+  ref.listen<AsyncValue<StoreMembership?>>(
+    currentMembershipProvider,
+    (_, __) => notifier.notifyStoreChanged(),
+  );
 
   return GoRouter(
     initialLocation: AppPaths.splash,
@@ -122,6 +127,15 @@ GoRouter appRouter(AppRouterRef ref) {
       if (isLoggedIn && !isPublic && !isStoreGate) {
         final storeId = ref.read(activeStoreIdProvider).value;
         if (storeId == null || storeId.isEmpty) return AppPaths.storeGate;
+
+        // If membership is known and not active, hold on pending screen.
+        final membershipAsync = ref.read(currentMembershipProvider);
+        if (membershipAsync is AsyncData<StoreMembership?>) {
+          final membership = membershipAsync.value;
+          if (membership != null && membership.status != 'active') {
+            return loc == AppPaths.pendingApproval ? null : AppPaths.pendingApproval;
+          }
+        }
       }
       return null;
     },

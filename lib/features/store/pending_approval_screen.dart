@@ -16,11 +16,10 @@ class PendingApprovalScreen extends ConsumerWidget {
 
     if (user != null) {
       ref.listen(
-        // Watch all user memberships for any that become active
         currentMembershipProvider,
         (_, next) {
-          if (next.value != null && next.value!.status == 'active') {
-            ref.read(activeStoreIdProvider.notifier).setStore(next.value!.storeId);
+          final membership = next.valueOrNull;
+          if (membership != null && membership.status == 'active') {
             context.goNamed(AppRoutes.zoneMap);
           }
         },

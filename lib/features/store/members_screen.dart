@@ -1,4 +1,6 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/models/store_membership.dart';
 import '../../core/providers/store_provider.dart';
@@ -7,35 +9,50 @@ import '../../core/theme/app_theme.dart';
 import '../../core/theme/design_tokens.dart';
 import '../../core/widgets/mm_empty_state.dart';
 
+final _pendingMembersProvider =
+    StreamProvider.autoDispose<List<StoreMembership>>((ref) {
+  final storeId = ref.watch(activeStoreIdProvider).value;
+  if (storeId == null) return Stream.value([]);
+  return FirestoreRefs.memberships(storeId)
+      .where('status', isEqualTo: 'pending')
+      .snapshots()
+      .map((s) => s.docs
+          .map((d) => StoreMembershipFirestore.fromDoc(d, storeId))
+          .toList());
+});
+
+final _activeMembersProvider =
+    StreamProvider.autoDispose<List<StoreMembership>>((ref) {
+  final storeId = ref.watch(activeStoreIdProvider).value;
+  if (storeId == null) return Stream.value([]);
+  return FirestoreRefs.memberships(storeId)
+      .where('status', isEqualTo: 'active')
+      .snapshots()
+      .map((s) => s.docs
+          .map((d) => StoreMembershipFirestore.fromDoc(d, storeId))
+          .toList());
+});
+
 class MembersScreen extends ConsumerWidget {
   const MembersScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final storeId = ref.watch(activeStoreIdProvider).value;
-    if (storeId == null) return const SizedBox();
-    final pending = ref.watch(
-      StreamProvider((ref) => FirestoreRefs.memberships(storeId)
-          .where('status', isEqualTo: 'pending')
-          .snapshots()
-          .map((s) => s.docs
-              .map((d) => StoreMembershipFirestore.fromDoc(d, storeId))
-              .toList())),
-    );
-    final members = ref.watch(
-      StreamProvider((ref) => FirestoreRefs.memberships(storeId)
-          .where('status', isEqualTo: 'active')
-          .snapshots()
-          .map((s) => s.docs
-              .map((d) => StoreMembershipFirestore.fromDoc(d, storeId))
-              .toList())),
-    );
+    final pending = ref.watch(_pendingMembersProvider);
+    final members = ref.watch(_activeMembersProvider);
     final myRole = ref.watch(currentMembershipProvider).value?.role ?? 'staff';
+    final store = ref.watch(activeStoreProvider).value;
 
     return Scaffold(
       appBar: AppBar(title: const Text('MEMBERS')),
       body: ListView(
         children: [
+          // Invite code card — visible to coordinator and manager
+          if ((myRole == 'coordinator' || myRole == 'manager') &&
+              store != null) ...[
+            _InviteCodeCard(inviteCode: store.inviteCode),
+          ],
+
           // Pending requests — visible to coordinator and manager
           if (myRole == 'coordinator' || myRole == 'manager') ...[
             pending.when(
@@ -173,6 +190,80 @@ class MembersScreen extends ConsumerWidget {
   }
 }
 
+class _InviteCodeCard extends StatelessWidget {
+  const _InviteCodeCard({required this.inviteCode});
+  final String inviteCode;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(
+        DesignTokens.spaceMd,
+        DesignTokens.spaceMd,
+        DesignTokens.spaceMd,
+        0,
+      ),
+      padding: const EdgeInsets.symmetric(
+        horizontal: DesignTokens.spaceMd,
+        vertical: DesignTokens.spaceMd,
+      ),
+      decoration: BoxDecoration(
+        color: AppTheme.primary,
+        borderRadius: BorderRadius.circular(AppTheme.borderRadius),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'INVITE CODE',
+            style: TextStyle(
+              color: Colors.white70,
+              fontSize: DesignTokens.typeXs,
+              fontWeight: DesignTokens.weightBold,
+              letterSpacing: DesignTokens.letterSpacingEyebrow,
+            ),
+          ),
+          const SizedBox(height: DesignTokens.spaceXs),
+          Row(
+            children: [
+              Text(
+                inviteCode,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 28,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 8,
+                ),
+              ),
+              const Spacer(),
+              IconButton(
+                icon: const Icon(Icons.copy, color: Colors.white70),
+                tooltip: 'Copy code',
+                onPressed: () {
+                  Clipboard.setData(ClipboardData(text: inviteCode));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Invite code copied'),
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
+          const Text(
+            'Share this code with staff who want to join.',
+            style: TextStyle(
+              color: Colors.white60,
+              fontSize: DesignTokens.typeSm,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _PendingMemberTile extends ConsumerWidget {
   const _PendingMemberTile({required this.membership, required this.myRole});
   final StoreMembership membership;
@@ -264,6 +355,11 @@ class _PendingMemberTile extends ConsumerWidget {
     FirestoreRefs.memberships(membership.storeId)
         .doc(membership.uid)
         .update({'status': 'active', 'role': role});
+    // Add store to the approved user's userStores so myStores picks it up.
+    FirestoreRefs.userStores(membership.uid).set(
+      {'activeStoreIds': FieldValue.arrayUnion([membership.storeId])},
+      SetOptions(merge: true),
+    );
   }
 
   String _timeAgo(DateTime dt) {

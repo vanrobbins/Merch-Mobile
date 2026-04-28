@@ -17,6 +17,11 @@ service cloud.firestore {
       return role(storeId) == 'coordinator' || role(storeId) == 'manager';
     }
 
+    match /userStores/{userId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow write: if request.auth != null;
+    }
+
     match /stores/{storeId} {
       allow read: if request.auth != null;
       allow create: if request.auth != null
@@ -24,13 +29,18 @@ service cloud.firestore {
       allow update: if request.auth != null && isCoordinator(storeId);
       allow delete: if false;
 
-      match /memberships/{uid} {
+      match /memberships/{memberId} {
         allow read:   if request.auth != null
-            && (request.auth.uid == uid || isMember(storeId));
-        allow create: if request.auth != null && request.auth.uid == uid;
-        allow update: if request.auth != null && isCoordinator(storeId);
+            && (request.auth.uid == memberId
+                || resource.data.get('uid', null) == request.auth.uid
+                || isMember(storeId));
+        allow create: if request.auth != null && request.auth.uid == memberId;
+        allow update: if request.auth != null
+            && (isCoordinator(storeId)
+                || (request.auth.uid == memberId
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['uid'])));
         allow delete: if request.auth != null
-            && (request.auth.uid == uid || isCoordinator(storeId));
+            && (request.auth.uid == memberId || isCoordinator(storeId));
       }
 
       match /zones/{zoneId} {
