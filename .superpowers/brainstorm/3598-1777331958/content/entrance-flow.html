@@ -1,0 +1,105 @@
+<h2>Entrance Edit — Confirmed Flow</h2>
+<p class="subtitle">Two entry points, one canvas interaction. Does this match what you had in mind?</p>
+
+<style>
+.flow { display:flex; gap:12px; align-items:flex-start; flex-wrap:wrap; }
+.arrow { font-size:22px; color:#BF5534; align-self:center; flex-shrink:0; }
+.screen-frame { border:1.5px solid #ccc; border-radius:6px; overflow:hidden; width:160px; flex-shrink:0; }
+.appbar { background:#1A1917; color:white; font-size:9px; font-weight:700; letter-spacing:1px; padding:6px 8px; display:flex; align-items:center; justify-content:space-between; }
+.screen-body { background:#F2EFE8; padding:6px; min-height:130px; position:relative; }
+.card-section { background:white; border-radius:3px; padding:6px; margin-bottom:6px; font-size:9px; }
+.label { font-size:7px; font-weight:700; letter-spacing:0.8px; color:#888; margin-bottom:3px; }
+.row { display:flex; align-items:center; justify-content:space-between; gap:4px; }
+.btn { padding:3px 7px; font-size:8px; font-weight:700; letter-spacing:0.5px; border-radius:2px; }
+.btn-ghost { border:1px solid #1A1917; color:#1A1917; }
+.btn-accent { background:#BF5534; color:white; }
+.btn-red { border:1px solid #e53935; color:#e53935; }
+.mini-store { background:#F2EFE8; border-radius:2px; height:50px; position:relative; margin-bottom:6px; }
+.store-box { position:absolute; top:6px; left:8px; right:8px; bottom:6px; border:2px solid #1A1917; }
+.gap-line { position:absolute; bottom:-3px; left:30%; width:25%; height:6px; background:#F2EFE8; z-index:2; }
+.gap-accent { position:absolute; bottom:-1px; left:29%; width:27%; height:2.5px; background:#BF5534; border-radius:1px; z-index:3; }
+.zone-r { position:absolute; border:1px solid rgba(26,25,23,0.2); background:rgba(191,85,52,0.1); }
+.mode-banner { background:rgba(191,85,52,0.12); border-bottom:1px solid rgba(191,85,52,0.25); font-size:8px; font-weight:700; letter-spacing:0.6px; color:#BF5534; padding:3px 8px; text-align:center; }
+.handle-dot { position:absolute; width:9px; height:9px; background:#BF5534; border-radius:50%; border:1.5px solid white; box-shadow:0 1px 3px rgba(0,0,0,0.3); z-index:4; }
+.overflow-menu { position:absolute; right:4px; top:28px; background:white; border-radius:3px; box-shadow:0 2px 8px rgba(0,0,0,0.2); padding:4px 0; font-size:9px; z-index:10; width:100px; }
+.overflow-item { padding:4px 10px; color:#1A1917; font-weight:600; }
+.overflow-item.accent { color:#BF5534; }
+.note { font-size:10px; color:#555; background:#fff; border-radius:4px; padding:8px 10px; border-left:3px solid #BF5534; margin-top:8px; }
+</style>
+
+<div class="flow">
+
+  <!-- Entry 1: Dashboard -->
+  <div>
+    <div style="font-size:10px;font-weight:700;color:#888;letter-spacing:0.8px;margin-bottom:6px;text-align:center;">ENTRY 1 — DASHBOARD</div>
+    <div class="screen-frame">
+      <div class="appbar">STORE NAME ▾ <span style="font-size:14px;">⏻</span></div>
+      <div class="screen-body">
+        <div class="card-section">
+          <div class="label">STORE SETUP</div>
+          <div class="row" style="margin-bottom:4px;">
+            <span>40 ft × 30 ft</span>
+            <span class="btn btn-ghost">EDIT</span>
+          </div>
+          <div class="row">
+            <span style="font-size:8px;">🚪 EDIT ENTRANCE (BOTTOM)</span>
+            <span class="btn btn-red" style="font-size:7px;padding:2px 5px;">REMOVE</span>
+          </div>
+          <div style="font-size:7px;color:#BF5534;margin-top:3px;font-weight:600;">↗ Opens Zone Map in edit mode</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="arrow">→</div>
+
+  <!-- Entry 2: Zone Map overflow -->
+  <div>
+    <div style="font-size:10px;font-weight:700;color:#888;letter-spacing:0.8px;margin-bottom:6px;text-align:center;">ENTRY 2 — ZONE MAP ⋮</div>
+    <div class="screen-frame">
+      <div class="appbar">ZONE MAP <span style="font-size:13px;letter-spacing:2px;">⋮</span></div>
+      <div class="screen-body" style="position:relative;">
+        <div class="overflow-menu">
+          <div class="overflow-item accent">✦ Edit Entrance</div>
+          <div class="overflow-item" style="color:#888;font-size:8px;border-top:1px solid #eee;padding-top:4px;">Floor Builder →</div>
+        </div>
+        <div style="opacity:0.35;margin-top:8px;">
+          <div class="zone-r" style="top:20%;left:8%;width:38%;height:35%;"></div>
+          <div class="zone-r" style="top:20%;left:54%;width:38%;height:35%;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="arrow">→</div>
+
+  <!-- Edit mode on canvas -->
+  <div>
+    <div style="font-size:10px;font-weight:700;color:#888;letter-spacing:0.8px;margin-bottom:6px;text-align:center;">ENTRANCE EDIT MODE</div>
+    <div class="screen-frame">
+      <div class="appbar">ZONE MAP <span class="btn btn-accent" style="font-size:7px;padding:2px 6px;border-radius:2px;">DONE</span></div>
+      <div class="mode-banner">DRAG GAP · DRAG ENDS TO RESIZE · TAP WALL TO MOVE</div>
+      <div class="screen-body" style="padding:6px;">
+        <div style="position:relative;height:115px;background:#F2EFE8;border-radius:2px;">
+          <div class="store-box">
+            <div class="zone-r" style="top:12%;left:8%;width:36%;height:38%;"></div>
+            <div class="zone-r" style="top:12%;left:55%;width:36%;height:38%;"></div>
+            <!-- entrance gap -->
+            <div class="gap-line"></div>
+            <div class="gap-accent"></div>
+            <!-- endpoint handles -->
+            <div class="handle-dot" style="bottom:-5px;left:29%;"></div>
+            <div class="handle-dot" style="bottom:-5px;left:54%;"></div>
+            <!-- center move indicator -->
+            <div style="position:absolute;bottom:5px;left:38%;font-size:11px;color:#BF5534;z-index:5;">⟷</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="note">
+  <strong>Dashboard behaviour:</strong> ADD ENTRANCE and EDIT ENTRANCE buttons on the coordinator dashboard navigate to Zone Map and auto-enter entrance-edit mode. REMOVE stays on dashboard (no canvas needed). The abstract slider sheet is removed entirely.
+</div>

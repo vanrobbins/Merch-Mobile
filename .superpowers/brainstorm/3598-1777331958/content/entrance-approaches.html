@@ -1,0 +1,240 @@
+<h2>Entrance Placement — 3 Approaches</h2>
+<p class="subtitle">How should coordinators place and adjust the store entrance?</p>
+
+<style>
+.mini-canvas {
+  background: #F2EFE8;
+  border-radius: 4px;
+  position: relative;
+  width: 100%;
+  height: 160px;
+  overflow: hidden;
+}
+.store-boundary {
+  position: absolute;
+  top: 20px; left: 20px; right: 20px; bottom: 20px;
+  border: 2.5px solid #1A1917;
+  border-radius: 1px;
+}
+.entrance-gap {
+  position: absolute;
+  background: #F2EFE8;
+  z-index: 2;
+}
+.entrance-gap.bottom {
+  bottom: -2px; left: 50%; transform: translateX(-30%);
+  width: 28%; height: 6px;
+}
+.entrance-handle {
+  position: absolute;
+  background: #BF5534;
+  border-radius: 50%;
+  width: 12px; height: 12px;
+  z-index: 3;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+.entrance-gap-line {
+  position: absolute;
+  z-index: 3;
+}
+.zone-rect {
+  position: absolute;
+  border: 1.5px solid rgba(26,25,23,0.25);
+  background: rgba(191,85,52,0.12);
+  border-radius: 1px;
+}
+.toolbar-btn {
+  display: inline-block;
+  padding: 4px 10px;
+  background: #1A1917;
+  color: white;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  border-radius: 2px;
+  margin: 2px;
+}
+.toolbar-btn.accent { background: #BF5534; }
+.toolbar-btn.ghost { background: transparent; border: 1.5px solid #1A1917; color: #1A1917; }
+.fab {
+  position: absolute;
+  bottom: 10px; right: 10px;
+  background: #BF5534;
+  color: white;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  padding: 5px 9px;
+  border-radius: 16px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+}
+.appbar {
+  background: #1A1917;
+  color: white;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  padding: 6px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-radius: 4px 4px 0 0;
+}
+.screen-frame {
+  border: 1.5px solid #ccc;
+  border-radius: 4px;
+  overflow: hidden;
+  background: #F2EFE8;
+}
+.screen-body { padding: 6px; position: relative; min-height: 150px; }
+.sheet {
+  background: white;
+  border-radius: 6px 6px 0 0;
+  padding: 8px 10px;
+  border-top: 1px solid #eee;
+  font-size: 10px;
+  color: #1A1917;
+}
+.sheet-label { font-size: 8px; font-weight: 700; letter-spacing: 0.8px; color: #888; margin-bottom: 3px; }
+.slider-bar { height: 3px; background: #eee; border-radius: 2px; margin: 2px 0 6px; position: relative; }
+.slider-bar::after { content:''; position:absolute; left:0; top:0; height:3px; width:45%; background:#BF5534; border-radius:2px; }
+.slider-dot { position:absolute; width:8px;height:8px;background:#BF5534;border-radius:50%;top:-3px;left:43%; }
+.chip-row { display:flex; gap:3px; flex-wrap:wrap; margin-bottom:6px; }
+.chip { padding:2px 6px; border-radius:10px; font-size:8px; font-weight:700; background:#eee; color:#555; }
+.chip.active { background:#1A1917; color:white; }
+.drag-arrow {
+  position: absolute;
+  font-size: 18px;
+  color: #BF5534;
+  z-index: 5;
+  font-weight: bold;
+}
+.entrance-dot {
+  position: absolute;
+  width: 10px; height: 10px;
+  background: #BF5534;
+  border-radius: 50%;
+  border: 2px solid white;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+  z-index: 4;
+}
+.mode-banner {
+  background: rgba(191,85,52,0.12);
+  border-bottom: 1px solid rgba(191,85,52,0.3);
+  font-size: 9px; font-weight:700; letter-spacing:0.8px;
+  color: #BF5534;
+  padding: 3px 8px;
+  text-align: center;
+}
+</style>
+
+<div class="cards" style="grid-template-columns: repeat(3,1fr);">
+
+  <!-- Option A -->
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="screen-frame">
+        <div class="appbar">ZONE MAP <span style="font-size:8px;opacity:0.7">ENTRANCE EDIT MODE</span></div>
+        <div class="mode-banner">✦ DRAG ENTRANCE TO REPOSITION · DRAG ENDS TO RESIZE</div>
+        <div class="screen-body">
+          <!-- Store boundary with draggable entrance -->
+          <div class="mini-canvas" style="height:130px">
+            <div class="store-boundary">
+              <!-- zones for context -->
+              <div class="zone-rect" style="top:15%;left:10%;width:35%;height:40%"></div>
+              <div class="zone-rect" style="top:15%;left:55%;width:35%;height:40%"></div>
+              <!-- entrance gap on bottom wall -->
+              <div style="position:absolute;bottom:-3px;left:30%;width:28%;height:6px;background:#F2EFE8;z-index:2;border-top:2.5px dashed #BF5534;"></div>
+              <!-- handle dots at each end of gap -->
+              <div class="entrance-dot" style="bottom:-5px;left:29%"></div>
+              <div class="entrance-dot" style="bottom:-5px;left:57%"></div>
+              <!-- center drag handle -->
+              <div style="position:absolute;bottom:4px;left:39%;font-size:13px;color:#BF5534;z-index:5;">⇔</div>
+            </div>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 2px 0;">
+            <div style="font-size:8px;color:#888;">Drag gap · Drag ends to resize · Tap wall to move</div>
+            <div class="toolbar-btn accent" style="font-size:8px;">DONE</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A — Canvas drag</h3>
+      <p>Entrance lives on the Zone Map canvas. Dedicated edit mode: drag the gap to slide along the wall, drag endpoints to resize. Tap a different wall to move it. Most consistent with zone/fixture interaction.</p>
+      <div class="pros-cons" style="font-size:11px;">
+        <div class="pros"><h4>Pros</h4><ul><li>Same feel as zone drag</li><li>Visual, spatial, no sliders</li><li>Removes dashboard clutter</li></ul></div>
+        <div class="cons"><h4>Cons</h4><ul><li>More implementation work</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Option B -->
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="screen-frame">
+        <div class="appbar">DASHBOARD</div>
+        <div class="screen-body" style="padding:6px;">
+          <!-- live preview mini-canvas inside sheet -->
+          <div class="sheet">
+            <div class="sheet-label">ENTRANCE</div>
+            <!-- live mini store preview -->
+            <div style="background:#F2EFE8;border-radius:3px;height:55px;position:relative;margin-bottom:6px;">
+              <div style="position:absolute;top:8px;left:10px;right:10px;bottom:8px;border:2px solid #1A1917;border-radius:1px;">
+                <!-- gap on bottom wall -->
+                <div style="position:absolute;bottom:-3px;left:35%;width:22%;height:6px;background:#F2EFE8;z-index:2;"></div>
+                <div style="position:absolute;bottom:-2px;left:33%;width:26%;height:3px;background:#BF5534;border-radius:1px;z-index:3;"></div>
+              </div>
+            </div>
+            <div class="sheet-label">WALL</div>
+            <div class="chip-row">
+              <div class="chip active">BOTTOM</div><div class="chip">RIGHT</div><div class="chip">TOP</div><div class="chip">LEFT</div>
+            </div>
+            <div class="sheet-label">POSITION — 45%</div>
+            <div class="slider-bar"><div class="slider-dot"></div></div>
+            <div class="sheet-label">WIDTH — 20%</div>
+            <div class="slider-bar" style="margin-bottom:0"><div class="slider-dot" style="left:18%"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B — Live preview in sheet</h3>
+      <p>Keep the existing Dashboard bottom sheet but add a live mini store-boundary preview at the top. Sliders and chips remain — the preview just updates in real-time to show where the entrance lands.</p>
+      <div class="pros-cons" style="font-size:11px;">
+        <div class="pros"><h4>Pros</h4><ul><li>Minimal code change</li><li>Visual feedback added</li></ul></div>
+        <div class="cons"><h4>Cons</h4><ul><li>Still abstract sliders</li><li>Still lives on dashboard</li><li>Not consistent with canvas</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Option C -->
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="screen-frame">
+        <div class="appbar">ZONE MAP</div>
+        <div class="screen-body">
+          <div class="mini-canvas" style="height:130px">
+            <div class="store-boundary">
+              <div class="zone-rect" style="top:15%;left:10%;width:35%;height:40%"></div>
+              <div class="zone-rect" style="top:15%;left:55%;width:35%;height:40%"></div>
+              <!-- tap target indicators on walls -->
+              <div style="position:absolute;bottom:2px;left:50%;transform:translateX(-50%);font-size:9px;color:#BF5534;font-weight:700;letter-spacing:0.5px;">TAP WALL TO PLACE</div>
+              <div style="position:absolute;top:2px;left:50%;transform:translateX(-50%);font-size:9px;color:rgba(191,85,52,0.4);font-weight:700;letter-spacing:0.5px;">TAP WALL TO PLACE</div>
+            </div>
+          </div>
+          <div style="padding:3px 2px 0;font-size:8px;color:#888;">No entrance set — tap any wall on the canvas to place</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C — Tap-to-place on canvas</h3>
+      <p>Tap any point on the store wall to place the entrance there instantly, at a default width. Once placed, tap to select and get a small popover with width +/− and remove controls. No sliders at all.</p>
+      <div class="pros-cons" style="font-size:11px;">
+        <div class="pros"><h4>Pros</h4><ul><li>Simplest interaction</li><li>No modal/sheet needed</li></ul></div>
+        <div class="cons"><h4>Cons</h4><ul><li>Width control is awkward</li><li>Hard to hit exact position</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+</div>
