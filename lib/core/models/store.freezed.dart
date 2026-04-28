@@ -23,8 +23,11 @@ mixin _$Store {
   String get id => throw _privateConstructorUsedError;
   String get name => throw _privateConstructorUsedError;
   String get inviteCode => throw _privateConstructorUsedError;
-  int get createdAt => throw _privateConstructorUsedError;
   String get ownerUid => throw _privateConstructorUsedError;
+  double? get widthFt => throw _privateConstructorUsedError;
+  double? get depthFt => throw _privateConstructorUsedError;
+  String? get entranceJson => throw _privateConstructorUsedError;
+  DateTime get createdAt => throw _privateConstructorUsedError;
 
   /// Serializes this Store to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -44,8 +47,11 @@ abstract class $StoreCopyWith<$Res> {
       {String id,
       String name,
       String inviteCode,
-      int createdAt,
-      String ownerUid});
+      String ownerUid,
+      double? widthFt,
+      double? depthFt,
+      String? entranceJson,
+      DateTime createdAt});
 }
 
 /// @nodoc
@@ -66,8 +72,11 @@ class _$StoreCopyWithImpl<$Res, $Val extends Store>
     Object? id = null,
     Object? name = null,
     Object? inviteCode = null,
-    Object? createdAt = null,
     Object? ownerUid = null,
+    Object? widthFt = freezed,
+    Object? depthFt = freezed,
+    Object? entranceJson = freezed,
+    Object? createdAt = null,
   }) {
     return _then(_value.copyWith(
       id: null == id
@@ -82,14 +91,26 @@ class _$StoreCopyWithImpl<$Res, $Val extends Store>
           ? _value.inviteCode
           : inviteCode // ignore: cast_nullable_to_non_nullable
               as String,
-      createdAt: null == createdAt
-          ? _value.createdAt
-          : createdAt // ignore: cast_nullable_to_non_nullable
-              as int,
       ownerUid: null == ownerUid
           ? _value.ownerUid
           : ownerUid // ignore: cast_nullable_to_non_nullable
               as String,
+      widthFt: freezed == widthFt
+          ? _value.widthFt
+          : widthFt // ignore: cast_nullable_to_non_nullable
+              as double?,
+      depthFt: freezed == depthFt
+          ? _value.depthFt
+          : depthFt // ignore: cast_nullable_to_non_nullable
+              as double?,
+      entranceJson: freezed == entranceJson
+          ? _value.entranceJson
+          : entranceJson // ignore: cast_nullable_to_non_nullable
+              as String?,
+      createdAt: null == createdAt
+          ? _value.createdAt
+          : createdAt // ignore: cast_nullable_to_non_nullable
+              as DateTime,
     ) as $Val);
   }
 }
@@ -105,8 +126,11 @@ abstract class _$$StoreImplCopyWith<$Res> implements $StoreCopyWith<$Res> {
       {String id,
       String name,
       String inviteCode,
-      int createdAt,
-      String ownerUid});
+      String ownerUid,
+      double? widthFt,
+      double? depthFt,
+      String? entranceJson,
+      DateTime createdAt});
 }
 
 /// @nodoc
@@ -125,8 +149,11 @@ class __$$StoreImplCopyWithImpl<$Res>
     Object? id = null,
     Object? name = null,
     Object? inviteCode = null,
-    Object? createdAt = null,
     Object? ownerUid = null,
+    Object? widthFt = freezed,
+    Object? depthFt = freezed,
+    Object? entranceJson = freezed,
+    Object? createdAt = null,
   }) {
     return _then(_$StoreImpl(
       id: null == id
@@ -141,14 +168,26 @@ class __$$StoreImplCopyWithImpl<$Res>
           ? _value.inviteCode
           : inviteCode // ignore: cast_nullable_to_non_nullable
               as String,
-      createdAt: null == createdAt
-          ? _value.createdAt
-          : createdAt // ignore: cast_nullable_to_non_nullable
-              as int,
       ownerUid: null == ownerUid
           ? _value.ownerUid
           : ownerUid // ignore: cast_nullable_to_non_nullable
               as String,
+      widthFt: freezed == widthFt
+          ? _value.widthFt
+          : widthFt // ignore: cast_nullable_to_non_nullable
+              as double?,
+      depthFt: freezed == depthFt
+          ? _value.depthFt
+          : depthFt // ignore: cast_nullable_to_non_nullable
+              as double?,
+      entranceJson: freezed == entranceJson
+          ? _value.entranceJson
+          : entranceJson // ignore: cast_nullable_to_non_nullable
+              as String?,
+      createdAt: null == createdAt
+          ? _value.createdAt
+          : createdAt // ignore: cast_nullable_to_non_nullable
+              as DateTime,
     ));
   }
 }
@@ -160,8 +199,11 @@ class _$StoreImpl implements _Store {
       {required this.id,
       required this.name,
       required this.inviteCode,
-      required this.createdAt,
-      required this.ownerUid});
+      required this.ownerUid,
+      this.widthFt,
+      this.depthFt,
+      this.entranceJson,
+      required this.createdAt});
 
   factory _$StoreImpl.fromJson(Map<String, dynamic> json) =>
       _$$StoreImplFromJson(json);
@@ -173,13 +215,19 @@ class _$StoreImpl implements _Store {
   @override
   final String inviteCode;
   @override
-  final int createdAt;
-  @override
   final String ownerUid;
+  @override
+  final double? widthFt;
+  @override
+  final double? depthFt;
+  @override
+  final String? entranceJson;
+  @override
+  final DateTime createdAt;
 
   @override
   String toString() {
-    return 'Store(id: $id, name: $name, inviteCode: $inviteCode, createdAt: $createdAt, ownerUid: $ownerUid)';
+    return 'Store(id: $id, name: $name, inviteCode: $inviteCode, ownerUid: $ownerUid, widthFt: $widthFt, depthFt: $depthFt, entranceJson: $entranceJson, createdAt: $createdAt)';
   }
 
   @override
@@ -191,16 +239,20 @@ class _$StoreImpl implements _Store {
             (identical(other.name, name) || other.name == name) &&
             (identical(other.inviteCode, inviteCode) ||
                 other.inviteCode == inviteCode) &&
-            (identical(other.createdAt, createdAt) ||
-                other.createdAt == createdAt) &&
             (identical(other.ownerUid, ownerUid) ||
-                other.ownerUid == ownerUid));
+                other.ownerUid == ownerUid) &&
+            (identical(other.widthFt, widthFt) || other.widthFt == widthFt) &&
+            (identical(other.depthFt, depthFt) || other.depthFt == depthFt) &&
+            (identical(other.entranceJson, entranceJson) ||
+                other.entranceJson == entranceJson) &&
+            (identical(other.createdAt, createdAt) ||
+                other.createdAt == createdAt));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode =>
-      Object.hash(runtimeType, id, name, inviteCode, createdAt, ownerUid);
+  int get hashCode => Object.hash(runtimeType, id, name, inviteCode, ownerUid,
+      widthFt, depthFt, entranceJson, createdAt);
 
   /// Create a copy of Store
   /// with the given fields replaced by the non-null parameter values.
@@ -223,8 +275,11 @@ abstract class _Store implements Store {
       {required final String id,
       required final String name,
       required final String inviteCode,
-      required final int createdAt,
-      required final String ownerUid}) = _$StoreImpl;
+      required final String ownerUid,
+      final double? widthFt,
+      final double? depthFt,
+      final String? entranceJson,
+      required final DateTime createdAt}) = _$StoreImpl;
 
   factory _Store.fromJson(Map<String, dynamic> json) = _$StoreImpl.fromJson;
 
@@ -235,9 +290,15 @@ abstract class _Store implements Store {
   @override
   String get inviteCode;
   @override
-  int get createdAt;
-  @override
   String get ownerUid;
+  @override
+  double? get widthFt;
+  @override
+  double? get depthFt;
+  @override
+  String? get entranceJson;
+  @override
+  DateTime get createdAt;
 
   /// Create a copy of Store
   /// with the given fields replaced by the non-null parameter values.

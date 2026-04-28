@@ -24,11 +24,12 @@ mixin _$StoreZone {
   String get name => throw _privateConstructorUsedError;
   int get colorValue => throw _privateConstructorUsedError;
   String get zoneType => throw _privateConstructorUsedError;
-  String get storeId => throw _privateConstructorUsedError;
   double get posX => throw _privateConstructorUsedError;
   double get posY => throw _privateConstructorUsedError;
   double get width => throw _privateConstructorUsedError;
   double get height => throw _privateConstructorUsedError;
+  String? get shapePoints => throw _privateConstructorUsedError;
+  bool get positionLocked => throw _privateConstructorUsedError;
   DateTime get updatedAt => throw _privateConstructorUsedError;
 
   /// Serializes this StoreZone to a JSON map.
@@ -51,11 +52,12 @@ abstract class $StoreZoneCopyWith<$Res> {
       String name,
       int colorValue,
       String zoneType,
-      String storeId,
       double posX,
       double posY,
       double width,
       double height,
+      String? shapePoints,
+      bool positionLocked,
       DateTime updatedAt});
 }
 
@@ -78,11 +80,12 @@ class _$StoreZoneCopyWithImpl<$Res, $Val extends StoreZone>
     Object? name = null,
     Object? colorValue = null,
     Object? zoneType = null,
-    Object? storeId = null,
     Object? posX = null,
     Object? posY = null,
     Object? width = null,
     Object? height = null,
+    Object? shapePoints = freezed,
+    Object? positionLocked = null,
     Object? updatedAt = null,
   }) {
     return _then(_value.copyWith(
@@ -102,10 +105,6 @@ class _$StoreZoneCopyWithImpl<$Res, $Val extends StoreZone>
           ? _value.zoneType
           : zoneType // ignore: cast_nullable_to_non_nullable
               as String,
-      storeId: null == storeId
-          ? _value.storeId
-          : storeId // ignore: cast_nullable_to_non_nullable
-              as String,
       posX: null == posX
           ? _value.posX
           : posX // ignore: cast_nullable_to_non_nullable
@@ -122,6 +121,14 @@ class _$StoreZoneCopyWithImpl<$Res, $Val extends StoreZone>
           ? _value.height
           : height // ignore: cast_nullable_to_non_nullable
               as double,
+      shapePoints: freezed == shapePoints
+          ? _value.shapePoints
+          : shapePoints // ignore: cast_nullable_to_non_nullable
+              as String?,
+      positionLocked: null == positionLocked
+          ? _value.positionLocked
+          : positionLocked // ignore: cast_nullable_to_non_nullable
+              as bool,
       updatedAt: null == updatedAt
           ? _value.updatedAt
           : updatedAt // ignore: cast_nullable_to_non_nullable
@@ -143,11 +150,12 @@ abstract class _$$StoreZoneImplCopyWith<$Res>
       String name,
       int colorValue,
       String zoneType,
-      String storeId,
       double posX,
       double posY,
       double width,
       double height,
+      String? shapePoints,
+      bool positionLocked,
       DateTime updatedAt});
 }
 
@@ -168,11 +176,12 @@ class __$$StoreZoneImplCopyWithImpl<$Res>
     Object? name = null,
     Object? colorValue = null,
     Object? zoneType = null,
-    Object? storeId = null,
     Object? posX = null,
     Object? posY = null,
     Object? width = null,
     Object? height = null,
+    Object? shapePoints = freezed,
+    Object? positionLocked = null,
     Object? updatedAt = null,
   }) {
     return _then(_$StoreZoneImpl(
@@ -192,10 +201,6 @@ class __$$StoreZoneImplCopyWithImpl<$Res>
           ? _value.zoneType
           : zoneType // ignore: cast_nullable_to_non_nullable
               as String,
-      storeId: null == storeId
-          ? _value.storeId
-          : storeId // ignore: cast_nullable_to_non_nullable
-              as String,
       posX: null == posX
           ? _value.posX
           : posX // ignore: cast_nullable_to_non_nullable
@@ -212,6 +217,14 @@ class __$$StoreZoneImplCopyWithImpl<$Res>
           ? _value.height
           : height // ignore: cast_nullable_to_non_nullable
               as double,
+      shapePoints: freezed == shapePoints
+          ? _value.shapePoints
+          : shapePoints // ignore: cast_nullable_to_non_nullable
+              as String?,
+      positionLocked: null == positionLocked
+          ? _value.positionLocked
+          : positionLocked // ignore: cast_nullable_to_non_nullable
+              as bool,
       updatedAt: null == updatedAt
           ? _value.updatedAt
           : updatedAt // ignore: cast_nullable_to_non_nullable
@@ -228,11 +241,12 @@ class _$StoreZoneImpl implements _StoreZone {
       required this.name,
       required this.colorValue,
       required this.zoneType,
-      required this.storeId,
       this.posX = 0.0,
       this.posY = 0.0,
       this.width = 0.2,
       this.height = 0.2,
+      this.shapePoints,
+      this.positionLocked = false,
       required this.updatedAt});
 
   factory _$StoreZoneImpl.fromJson(Map<String, dynamic> json) =>
@@ -247,8 +261,6 @@ class _$StoreZoneImpl implements _StoreZone {
   @override
   final String zoneType;
   @override
-  final String storeId;
-  @override
   @JsonKey()
   final double posX;
   @override
@@ -261,11 +273,16 @@ class _$StoreZoneImpl implements _StoreZone {
   @JsonKey()
   final double height;
   @override
+  final String? shapePoints;
+  @override
+  @JsonKey()
+  final bool positionLocked;
+  @override
   final DateTime updatedAt;
 
   @override
   String toString() {
-    return 'StoreZone(id: $id, name: $name, colorValue: $colorValue, zoneType: $zoneType, storeId: $storeId, posX: $posX, posY: $posY, width: $width, height: $height, updatedAt: $updatedAt)';
+    return 'StoreZone(id: $id, name: $name, colorValue: $colorValue, zoneType: $zoneType, posX: $posX, posY: $posY, width: $width, height: $height, shapePoints: $shapePoints, positionLocked: $positionLocked, updatedAt: $updatedAt)';
   }
 
   @override
@@ -279,11 +296,14 @@ class _$StoreZoneImpl implements _StoreZone {
                 other.colorValue == colorValue) &&
             (identical(other.zoneType, zoneType) ||
                 other.zoneType == zoneType) &&
-            (identical(other.storeId, storeId) || other.storeId == storeId) &&
             (identical(other.posX, posX) || other.posX == posX) &&
             (identical(other.posY, posY) || other.posY == posY) &&
             (identical(other.width, width) || other.width == width) &&
             (identical(other.height, height) || other.height == height) &&
+            (identical(other.shapePoints, shapePoints) ||
+                other.shapePoints == shapePoints) &&
+            (identical(other.positionLocked, positionLocked) ||
+                other.positionLocked == positionLocked) &&
             (identical(other.updatedAt, updatedAt) ||
                 other.updatedAt == updatedAt));
   }
@@ -291,7 +311,7 @@ class _$StoreZoneImpl implements _StoreZone {
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   int get hashCode => Object.hash(runtimeType, id, name, colorValue, zoneType,
-      storeId, posX, posY, width, height, updatedAt);
+      posX, posY, width, height, shapePoints, positionLocked, updatedAt);
 
   /// Create a copy of StoreZone
   /// with the given fields replaced by the non-null parameter values.
@@ -315,11 +335,12 @@ abstract class _StoreZone implements StoreZone {
       required final String name,
       required final int colorValue,
       required final String zoneType,
-      required final String storeId,
       final double posX,
       final double posY,
       final double width,
       final double height,
+      final String? shapePoints,
+      final bool positionLocked,
       required final DateTime updatedAt}) = _$StoreZoneImpl;
 
   factory _StoreZone.fromJson(Map<String, dynamic> json) =
@@ -334,8 +355,6 @@ abstract class _StoreZone implements StoreZone {
   @override
   String get zoneType;
   @override
-  String get storeId;
-  @override
   double get posX;
   @override
   double get posY;
@@ -343,6 +362,10 @@ abstract class _StoreZone implements StoreZone {
   double get width;
   @override
   double get height;
+  @override
+  String? get shapePoints;
+  @override
+  bool get positionLocked;
   @override
   DateTime get updatedAt;
 

@@ -12,11 +12,12 @@ _$StoreZoneImpl _$$StoreZoneImplFromJson(Map<String, dynamic> json) =>
       name: json['name'] as String,
       colorValue: (json['colorValue'] as num).toInt(),
       zoneType: json['zoneType'] as String,
-      storeId: json['storeId'] as String,
       posX: (json['posX'] as num?)?.toDouble() ?? 0.0,
       posY: (json['posY'] as num?)?.toDouble() ?? 0.0,
       width: (json['width'] as num?)?.toDouble() ?? 0.2,
       height: (json['height'] as num?)?.toDouble() ?? 0.2,
+      shapePoints: json['shapePoints'] as String?,
+      positionLocked: json['positionLocked'] as bool? ?? false,
       updatedAt: DateTime.parse(json['updatedAt'] as String),
     );
 
@@ -26,10 +27,11 @@ Map<String, dynamic> _$$StoreZoneImplToJson(_$StoreZoneImpl instance) =>
       'name': instance.name,
       'colorValue': instance.colorValue,
       'zoneType': instance.zoneType,
-      'storeId': instance.storeId,
       'posX': instance.posX,
       'posY': instance.posY,
       'width': instance.width,
       'height': instance.height,
+      'shapePoints': instance.shapePoints,
+      'positionLocked': instance.positionLocked,
       'updatedAt': instance.updatedAt.toIso8601String(),
     };

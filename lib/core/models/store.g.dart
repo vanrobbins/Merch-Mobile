@@ -10,8 +10,11 @@ _$StoreImpl _$$StoreImplFromJson(Map<String, dynamic> json) => _$StoreImpl(
       id: json['id'] as String,
       name: json['name'] as String,
       inviteCode: json['inviteCode'] as String,
-      createdAt: (json['createdAt'] as num).toInt(),
       ownerUid: json['ownerUid'] as String,
+      widthFt: (json['widthFt'] as num?)?.toDouble(),
+      depthFt: (json['depthFt'] as num?)?.toDouble(),
+      entranceJson: json['entranceJson'] as String?,
+      createdAt: DateTime.parse(json['createdAt'] as String),
     );
 
 Map<String, dynamic> _$$StoreImplToJson(_$StoreImpl instance) =>
@@ -19,6 +22,9 @@ Map<String, dynamic> _$$StoreImplToJson(_$StoreImpl instance) =>
       'id': instance.id,
       'name': instance.name,
       'inviteCode': instance.inviteCode,
-      'createdAt': instance.createdAt,
       'ownerUid': instance.ownerUid,
+      'widthFt': instance.widthFt,
+      'depthFt': instance.depthFt,
+      'entranceJson': instance.entranceJson,
+      'createdAt': instance.createdAt.toIso8601String(),
     };
