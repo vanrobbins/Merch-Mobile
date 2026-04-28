@@ -1,11 +1,9 @@
-import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:uuid/uuid.dart';
 
-import '../../core/database/app_database.dart';
-import '../../core/providers/database_provider.dart';
+import '../../core/models/planogram.dart';
 import '../../core/providers/store_provider.dart';
 import '../../core/router/app_router.dart';
 import '../../core/theme/app_theme.dart';
@@ -96,19 +94,17 @@ class PlanogramListScreen extends ConsumerWidget {
             onPressed: () async {
               final title = titleCtrl.text.trim();
               if (title.isEmpty) return;
-              final db = ref.read(appDatabaseProvider);
               final storeId =
                   ref.read(activeStoreIdProvider).value ?? '';
-              await db.planogramsDao.upsert(
-                PlanogramsTableCompanion.insert(
-                  id: const Uuid().v4(),
-                  fixtureId: '',
-                  title: title,
-                  season: seasonCtrl.text.trim(),
-                  updatedAt: DateTime.now(),
-                  storeId: Value(storeId),
-                ),
+              final planogram = Planogram(
+                id: const Uuid().v4(),
+                fixtureId: '',
+                title: title,
+                season: seasonCtrl.text.trim(),
+                slotsJson: '',
+                updatedAt: DateTime.now(),
               );
+              await upsertPlanogram(storeId, planogram);
               if (ctx.mounted) Navigator.pop(ctx);
             },
             style: ElevatedButton.styleFrom(
@@ -125,7 +121,7 @@ class PlanogramListScreen extends ConsumerWidget {
 
 class _PlanogramTile extends StatelessWidget {
   const _PlanogramTile({required this.planogram});
-  final PlanogramsTableData planogram;
+  final Planogram planogram;
 
   @override
   Widget build(BuildContext context) {

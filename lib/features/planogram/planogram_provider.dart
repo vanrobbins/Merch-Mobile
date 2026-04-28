@@ -1,73 +1,61 @@
-import 'package:drift/drift.dart' show Value;
+// ignore_for_file: deprecated_member_use_from_same_package
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-
-import '../../core/database/app_database.dart';
-import '../../core/providers/database_provider.dart';
+import '../../core/models/planogram.dart';
+import '../../core/models/planogram_proposal.dart';
 import '../../core/providers/store_provider.dart';
+import '../../core/services/firestore_refs.dart';
 import 'planogram_slot.dart';
 
 part 'planogram_provider.g.dart';
 
-// ---------------------------------------------------------------------------
-// Stream providers
-// ---------------------------------------------------------------------------
-
-/// All planograms for the currently active store.
 @riverpod
-Stream<List<PlanogramsTableData>> planogramList(PlanogramListRef ref) {
-  final db = ref.watch(appDatabaseProvider);
+Stream<List<Planogram>> planogramList(PlanogramListRef ref) {
   final storeId = ref.watch(activeStoreIdProvider).value;
   if (storeId == null || storeId.isEmpty) return Stream.value([]);
-  return db.planogramsDao.watchByStore(storeId);
+  return FirestoreRefs.planograms(storeId)
+      .snapshots()
+      .map((s) => s.docs.map(PlanogramFirestore.fromDoc).toList());
 }
 
-/// A single planogram by id, reactive to DB changes.
 @riverpod
-Stream<PlanogramsTableData?> planogramDetail(
-  PlanogramDetailRef ref,
-  String planogramId,
-) {
-  final db = ref.watch(appDatabaseProvider);
-  return db.planogramsDao
-      .watchAll()
-      .map((list) => list.where((p) => p.id == planogramId).firstOrNull);
+Stream<Planogram?> planogramDetail(PlanogramDetailRef ref, String planogramId) {
+  final storeId = ref.watch(activeStoreIdProvider).value;
+  if (storeId == null) return Stream.value(null);
+  return FirestoreRefs.planograms(storeId).doc(planogramId).snapshots().map(
+    (s) => s.exists ? PlanogramFirestore.fromDoc(s) : null,
+  );
 }
 
-// ---------------------------------------------------------------------------
-// Editor notifier — in-memory slot state bound to a single planogram id.
-// ---------------------------------------------------------------------------
+@riverpod
+Stream<List<PlanogramProposal>> proposalList(ProposalListRef ref) {
+  final storeId = ref.watch(activeStoreIdProvider).value;
+  if (storeId == null) return Stream.value([]);
+  return FirestoreRefs.proposals(storeId)
+      .snapshots()
+      .map((s) => s.docs
+          .map((d) => PlanogramProposalFirestore.fromDoc(d, storeId))
+          .toList());
+}
 
 @riverpod
 class PlanogramEditor extends _$PlanogramEditor {
   @override
   List<PgSlot> build(String planogramId) => const [];
 
-  /// Initialize editor state from the planogram's stored slotsJson.
-  /// Falls back to 6 empty default slots when the stored JSON is empty.
   void loadSlots(String slotsJson) {
     var slots = PgSlot.decodeList(slotsJson);
     if (slots.isEmpty) slots = PgSlot.defaults(6);
     state = slots;
   }
 
-  /// Replace the product on a slot (by slot id).
-  void assignProduct(
-    String slotId,
-    String productId,
-    String name,
-    String sku,
-  ) {
+  void assignProduct(String slotId, String productId, String name, String sku) {
     state = state.map((s) {
       if (s.id != slotId) return s;
-      return s.copyWith(
-        productId: productId,
-        productName: name,
-        productSku: sku,
-      );
+      return s.copyWith(productId: productId, productName: name, productSku: sku);
     }).toList();
   }
 
-  /// Clear the product from a slot, leaving the slot frame in place.
   void clearSlot(String slotId) {
     state = state.map((s) {
       if (s.id != slotId) return s;
@@ -75,16 +63,37 @@ class PlanogramEditor extends _$PlanogramEditor {
     }).toList();
   }
 
-  /// Persist the current editor state back to the planograms row.
   Future<void> save(String planogramId) async {
-    final db = ref.read(appDatabaseProvider);
-    final existing = await db.planogramsDao.findById(planogramId);
-    if (existing == null) return;
-    await db.planogramsDao.upsert(
-      existing.toCompanion(true).copyWith(
-            slotsJson: Value(PgSlot.encodeList(state)),
-            updatedAt: Value(DateTime.now()),
-          ),
-    );
+    final storeId = ref.read(activeStoreIdProvider).value ?? '';
+    await FirestoreRefs.planograms(storeId).doc(planogramId).update({
+      'slotsJson': PgSlot.encodeList(state),
+      'updatedAt': Timestamp.now(),
+    });
   }
+}
+
+// --- Write helpers ---
+
+Future<void> upsertPlanogram(String storeId, Planogram planogram) async {
+  await FirestoreRefs.planograms(storeId)
+      .doc(planogram.id)
+      .set(planogram.toFirestore(), SetOptions(merge: true));
+}
+
+Future<void> approvePlanogram(String storeId, String planogramId) async {
+  await FirestoreRefs.planograms(storeId).doc(planogramId).update({
+    'status': 'published',
+    'publishedAt': Timestamp.now(),
+    'updatedAt': Timestamp.now(),
+  });
+}
+
+Future<void> updateProposalStatus(
+    String storeId, String proposalId, String status, String reviewerUid) async {
+  await FirestoreRefs.proposals(storeId).doc(proposalId).update({
+    'status': status,
+    'reviewedByUid': reviewerUid,
+    'reviewedAt': Timestamp.now(),
+    'updatedAt': Timestamp.now(),
+  });
 }

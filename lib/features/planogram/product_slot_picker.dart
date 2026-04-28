@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/database/app_database.dart';
-import '../../core/providers/database_provider.dart';
-import '../../core/providers/store_provider.dart';
+import '../../core/models/product.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/design_tokens.dart';
+import '../product_catalog/catalog_provider.dart';
 import 'planogram_provider.dart';
 
 /// Modal bottom sheet that lets a coordinator or manager pick a product
@@ -46,14 +45,7 @@ class _ProductSlotPickerState extends ConsumerState<ProductSlotPicker> {
 
   @override
   Widget build(BuildContext context) {
-    final db = ref.watch(appDatabaseProvider);
-    final storeId = ref.watch(activeStoreIdProvider).value ?? '';
-
-    final productsAsync = ref.watch(
-      StreamProvider<List<ProductsTableData>>(
-        (r) => db.productsDao.watchByStore(storeId),
-      ),
-    );
+    final productsAsync = ref.watch(catalogProductsProvider);
 
     return DraggableScrollableSheet(
       initialChildSize: 0.6,
@@ -157,7 +149,7 @@ class _ProductSlotPickerState extends ConsumerState<ProductSlotPicker> {
     );
   }
 
-  Future<void> _assign(ProductsTableData product) async {
+  Future<void> _assign(Product product) async {
     final editor =
         ref.read(planogramEditorProvider(widget.planogramId).notifier);
     editor.assignProduct(

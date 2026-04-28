@@ -1,14 +1,13 @@
-import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/database/app_database.dart';
+import '../../core/models/planogram_proposal.dart';
 import '../../core/providers/auth_provider.dart';
-import '../../core/providers/database_provider.dart';
 import '../../core/providers/store_provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/design_tokens.dart';
 import '../../core/widgets/mm_empty_state.dart';
+import 'planogram_provider.dart';
 import 'planogram_slot.dart';
 
 /// Manager/coordinator-facing queue of pending planogram proposals for a
@@ -21,17 +20,12 @@ class ProposalReviewScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final db = ref.watch(appDatabaseProvider);
-    final storeId = ref.watch(activeStoreIdProvider).value ?? '';
-
-    final proposalsAsync = ref.watch(
-      StreamProvider<List<PlanogramProposalsTableData>>(
-        (r) => db.planogramProposalsDao.watchPendingByStore(storeId),
-      ),
-    );
+    final proposalsAsync = ref.watch(proposalListProvider);
 
     final filtered = proposalsAsync.whenData(
-      (list) => list.where((p) => p.planogramId == planogramId).toList(),
+      (list) => list
+          .where((p) => p.planogramId == planogramId && p.status == 'pending')
+          .toList(),
     );
 
     return Scaffold(
@@ -110,12 +104,12 @@ class _ProposalStatusChip extends StatelessWidget {
 
 class _ProposalCard extends ConsumerWidget {
   const _ProposalCard({required this.proposal});
-  final PlanogramProposalsTableData proposal;
+  final PlanogramProposal proposal;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final slots = proposal.slotChanges != null
-        ? PgSlot.decodeList(proposal.slotChanges!)
+    final slots = proposal.slotChanges.isNotEmpty
+        ? PgSlot.decodeList(proposal.slotChanges)
         : <PgSlot>[];
     final assignedCount = slots.where((s) => s.productId != null).length;
 
@@ -141,11 +135,11 @@ class _ProposalCard extends ConsumerWidget {
                 _ProposalStatusChip(status: proposal.status),
               ],
             ),
-            if (proposal.notes != null)
+            if (proposal.notes.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.only(top: DesignTokens.spaceXs),
                 child: Text(
-                  proposal.notes!,
+                  proposal.notes,
                   style:
                       const TextStyle(color: AppTheme.textSecondary),
                 ),
@@ -199,14 +193,8 @@ class _ProposalCard extends ConsumerWidget {
   }
 
   void _review(WidgetRef ref, String status) {
-    final db = ref.read(appDatabaseProvider);
+    final storeId = ref.read(activeStoreIdProvider).value ?? '';
     final user = ref.read(authStateProvider).value;
-    db.planogramProposalsDao.upsert(
-      proposal.toCompanion(true).copyWith(
-            status: Value(status),
-            reviewedByUid: Value(user?.uid),
-            reviewedAt: Value(DateTime.now().millisecondsSinceEpoch),
-          ),
-    );
+    updateProposalStatus(storeId, proposal.id, status, user?.uid ?? '');
   }
 }

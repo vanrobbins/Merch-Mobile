@@ -6,14 +6,12 @@ part of 'planogram_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$planogramListHash() => r'32cf1b1acaef7d297415740e0c847ac51a8c0099';
+String _$planogramListHash() => r'3a019033ec82e87c2ef0c95c6115e1f9d9661e4f';
 
-/// All planograms for the currently active store.
-///
-/// Copied from [planogramList].
+/// See also [planogramList].
 @ProviderFor(planogramList)
 final planogramListProvider =
-    AutoDisposeStreamProvider<List<PlanogramsTableData>>.internal(
+    AutoDisposeStreamProvider<List<Planogram>>.internal(
   planogramList,
   name: r'planogramListProvider',
   debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
@@ -25,9 +23,8 @@ final planogramListProvider =
 
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
-typedef PlanogramListRef
-    = AutoDisposeStreamProviderRef<List<PlanogramsTableData>>;
-String _$planogramDetailHash() => r'2220c92744b49b9153c005fe2d36929083a83baa';
+typedef PlanogramListRef = AutoDisposeStreamProviderRef<List<Planogram>>;
+String _$planogramDetailHash() => r'19406ff419881ce037bf20462c76e0171ad73dc5';
 
 /// Copied from Dart SDK
 class _SystemHash {
@@ -50,24 +47,16 @@ class _SystemHash {
   }
 }
 
-/// A single planogram by id, reactive to DB changes.
-///
-/// Copied from [planogramDetail].
+/// See also [planogramDetail].
 @ProviderFor(planogramDetail)
 const planogramDetailProvider = PlanogramDetailFamily();
 
-/// A single planogram by id, reactive to DB changes.
-///
-/// Copied from [planogramDetail].
-class PlanogramDetailFamily extends Family<AsyncValue<PlanogramsTableData?>> {
-  /// A single planogram by id, reactive to DB changes.
-  ///
-  /// Copied from [planogramDetail].
+/// See also [planogramDetail].
+class PlanogramDetailFamily extends Family<AsyncValue<Planogram?>> {
+  /// See also [planogramDetail].
   const PlanogramDetailFamily();
 
-  /// A single planogram by id, reactive to DB changes.
-  ///
-  /// Copied from [planogramDetail].
+  /// See also [planogramDetail].
   PlanogramDetailProvider call(
     String planogramId,
   ) {
@@ -100,14 +89,9 @@ class PlanogramDetailFamily extends Family<AsyncValue<PlanogramsTableData?>> {
   String? get name => r'planogramDetailProvider';
 }
 
-/// A single planogram by id, reactive to DB changes.
-///
-/// Copied from [planogramDetail].
-class PlanogramDetailProvider
-    extends AutoDisposeStreamProvider<PlanogramsTableData?> {
-  /// A single planogram by id, reactive to DB changes.
-  ///
-  /// Copied from [planogramDetail].
+/// See also [planogramDetail].
+class PlanogramDetailProvider extends AutoDisposeStreamProvider<Planogram?> {
+  /// See also [planogramDetail].
   PlanogramDetailProvider(
     String planogramId,
   ) : this._internal(
@@ -141,7 +125,7 @@ class PlanogramDetailProvider
 
   @override
   Override overrideWith(
-    Stream<PlanogramsTableData?> Function(PlanogramDetailRef provider) create,
+    Stream<Planogram?> Function(PlanogramDetailRef provider) create,
   ) {
     return ProviderOverride(
       origin: this,
@@ -158,7 +142,7 @@ class PlanogramDetailProvider
   }
 
   @override
-  AutoDisposeStreamProviderElement<PlanogramsTableData?> createElement() {
+  AutoDisposeStreamProviderElement<Planogram?> createElement() {
     return _PlanogramDetailProviderElement(this);
   }
 
@@ -178,13 +162,13 @@ class PlanogramDetailProvider
 
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
-mixin PlanogramDetailRef on AutoDisposeStreamProviderRef<PlanogramsTableData?> {
+mixin PlanogramDetailRef on AutoDisposeStreamProviderRef<Planogram?> {
   /// The parameter `planogramId` of this provider.
   String get planogramId;
 }
 
 class _PlanogramDetailProviderElement
-    extends AutoDisposeStreamProviderElement<PlanogramsTableData?>
+    extends AutoDisposeStreamProviderElement<Planogram?>
     with PlanogramDetailRef {
   _PlanogramDetailProviderElement(super.provider);
 
@@ -192,7 +176,24 @@ class _PlanogramDetailProviderElement
   String get planogramId => (origin as PlanogramDetailProvider).planogramId;
 }
 
-String _$planogramEditorHash() => r'6aa8526fead7a1f7283dae093c7cd53c38a585f8';
+String _$proposalListHash() => r'd4436a1cd4e6937a653457fcb1d4efcf78af00da';
+
+/// See also [proposalList].
+@ProviderFor(proposalList)
+final proposalListProvider =
+    AutoDisposeStreamProvider<List<PlanogramProposal>>.internal(
+  proposalList,
+  name: r'proposalListProvider',
+  debugGetCreateSourceHash:
+      const bool.fromEnvironment('dart.vm.product') ? null : _$proposalListHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef ProposalListRef = AutoDisposeStreamProviderRef<List<PlanogramProposal>>;
+String _$planogramEditorHash() => r'7837c797e17bbbf1135582c1f6a4acc0d47af055';
 
 abstract class _$PlanogramEditor
     extends BuildlessAutoDisposeNotifier<List<PgSlot>> {

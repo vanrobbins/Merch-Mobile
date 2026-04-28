@@ -1,12 +1,12 @@
-import 'package:drift/drift.dart' show Value;
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 
-import '../../core/database/app_database.dart';
+import '../../core/models/planogram_proposal.dart';
 import '../../core/providers/auth_provider.dart';
-import '../../core/providers/database_provider.dart';
 import '../../core/providers/store_provider.dart';
+import '../../core/services/firestore_refs.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/design_tokens.dart';
 import 'planogram_provider.dart';
@@ -38,25 +38,29 @@ class _PlanogramProposalScreenState
   Future<void> _submit() async {
     setState(() => _loading = true);
     try {
-      final db = ref.read(appDatabaseProvider);
       final user = ref.read(authStateProvider).value;
       final storeId = ref.read(activeStoreIdProvider).value ?? '';
       final slots = ref.read(planogramEditorProvider(widget.planogramId));
+      final notes = _notesCtrl.text.trim();
+      final now = DateTime.now();
 
-      await db.planogramProposalsDao.upsert(
-        PlanogramProposalsTableCompanion.insert(
-          id: const Uuid().v4(),
-          planogramId: widget.planogramId,
-          storeId: storeId,
-          proposedByUid: user?.uid ?? '',
-          proposedAt: DateTime.now().millisecondsSinceEpoch,
-          status: 'pending',
-          notes: Value(
-            _notesCtrl.text.trim().isEmpty ? null : _notesCtrl.text.trim(),
-          ),
-          slotChanges: Value(PgSlot.encodeList(slots)),
-        ),
+      final proposal = PlanogramProposal(
+        id: const Uuid().v4(),
+        planogramId: widget.planogramId,
+        storeId: storeId,
+        proposedByUid: user?.uid ?? '',
+        status: 'pending',
+        notes: notes,
+        slotChanges: PgSlot.encodeList(slots),
+        updatedAt: now,
       );
+
+      await FirestoreRefs.proposals(storeId)
+          .doc(proposal.id)
+          .set({
+        ...proposal.toFirestore(),
+        'proposedAt': Timestamp.fromDate(now),
+      });
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
