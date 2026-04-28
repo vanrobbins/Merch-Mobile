@@ -4,7 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import '../providers/store_provider.dart';
 import '../widgets/app_scaffold.dart';
 import '../../features/auth/splash_screen.dart';
 import '../../features/auth/login_screen.dart';
@@ -28,15 +28,17 @@ import '../../features/store/group_management_screen.dart';
 
 part 'app_router.g.dart';
 
-/// Bridges Firebase Auth's stream to GoRouter's refreshListenable so the
-/// router re-evaluates its redirect whenever auth state changes.
-class _AuthChangeNotifier extends ChangeNotifier {
-  _AuthChangeNotifier() {
+/// Bridges Firebase Auth and the active store ID to GoRouter's
+/// refreshListenable so the router re-evaluates whenever either changes.
+class _AppRefreshNotifier extends ChangeNotifier {
+  _AppRefreshNotifier() {
     _subscription =
         FirebaseAuth.instance.authStateChanges().listen((_) => notifyListeners());
   }
 
   late final StreamSubscription<User?> _subscription;
+
+  void notifyStoreChanged() => notifyListeners();
 
   @override
   void dispose() {
@@ -94,9 +96,17 @@ class AppPaths {
 
 @Riverpod(keepAlive: true)
 GoRouter appRouter(AppRouterRef ref) {
+  final notifier = _AppRefreshNotifier();
+  // Re-evaluate router whenever the active store ID changes (e.g. cleared when
+  // a stale storeId is detected, or set after store creation/join).
+  ref.listen<AsyncValue<String?>>(
+    activeStoreIdProvider,
+    (_, __) => notifier.notifyStoreChanged(),
+  );
+
   return GoRouter(
     initialLocation: AppPaths.splash,
-    refreshListenable: _AuthChangeNotifier(),
+    refreshListenable: notifier,
     redirect: (context, state) async {
       final isLoggedIn = FirebaseAuth.instance.currentUser != null;
       final loc = state.matchedLocation;
@@ -105,15 +115,12 @@ GoRouter appRouter(AppRouterRef ref) {
 
       if (!isLoggedIn && !isPublic) return AppPaths.login;
       if (isLoggedIn && loc == AppPaths.login) {
-        // Will be redirected to storeGate or home by store gate check below
         return AppPaths.zoneMap;
       }
 
-      // Store gate: if logged in but no active store, send to gate
-      // (Skip this check for store gate routes themselves)
+      // Store gate: if logged in but no active store, send to gate.
       if (isLoggedIn && !isPublic && !isStoreGate) {
-        final prefs = await SharedPreferences.getInstance();
-        final storeId = prefs.getString('active_store_id');
+        final storeId = ref.read(activeStoreIdProvider).value;
         if (storeId == null || storeId.isEmpty) return AppPaths.storeGate;
       }
       return null;

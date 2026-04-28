@@ -37,7 +37,16 @@ Stream<Store?> activeStore(ActiveStoreRef ref) {
   final storeId = ref.watch(activeStoreIdProvider).value;
   if (storeId == null) return Stream.value(null);
   return FirestoreRefs.store(storeId).snapshots().map(
-    (snap) => snap.exists ? StoreFirestore.fromDoc(snap) : null,
+    (snap) {
+      if (!snap.exists) {
+        // Stale storeId in SharedPreferences (e.g. from pre-Firestore SQLite
+        // data). Clear it so the router redirects to the store gate.
+        Future.microtask(
+            () => ref.read(activeStoreIdProvider.notifier).clearStore());
+        return null;
+      }
+      return StoreFirestore.fromDoc(snap);
+    },
   );
 }
 
