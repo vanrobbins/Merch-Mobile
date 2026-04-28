@@ -20,6 +20,10 @@ _$FixtureImpl _$$FixtureImplFromJson(Map<String, dynamic> json) =>
       planogramId: json['planogramId'] as String?,
       planogramIdBack: json['planogramIdBack'] as String?,
       wallAdjacent: json['wallAdjacent'] as bool? ?? false,
+      mountType: json['mountType'] as String? ?? 'floor',
+      mannequinType: json['mannequinType'] as String? ?? 'full',
+      positionX: (json['positionX'] as num?)?.toDouble() ?? 0.0,
+      positionY: (json['positionY'] as num?)?.toDouble() ?? 0.0,
       updatedAt: DateTime.parse(json['updatedAt'] as String),
     );
 
@@ -37,5 +41,9 @@ Map<String, dynamic> _$$FixtureImplToJson(_$FixtureImpl instance) =>
       'planogramId': instance.planogramId,
       'planogramIdBack': instance.planogramIdBack,
       'wallAdjacent': instance.wallAdjacent,
+      'mountType': instance.mountType,
+      'mannequinType': instance.mannequinType,
+      'positionX': instance.positionX,
+      'positionY': instance.positionY,
       'updatedAt': instance.updatedAt.toIso8601String(),
     };

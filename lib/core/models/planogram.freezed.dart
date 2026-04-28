@@ -25,7 +25,7 @@ mixin _$Planogram {
   String get title => throw _privateConstructorUsedError;
   String get season => throw _privateConstructorUsedError;
   String get status => throw _privateConstructorUsedError;
-  List<PlanogramSlot> get slots => throw _privateConstructorUsedError;
+  String get slotsJson => throw _privateConstructorUsedError;
   DateTime? get publishedAt => throw _privateConstructorUsedError;
   DateTime get updatedAt => throw _privateConstructorUsedError;
 
@@ -50,7 +50,7 @@ abstract class $PlanogramCopyWith<$Res> {
       String title,
       String season,
       String status,
-      List<PlanogramSlot> slots,
+      String slotsJson,
       DateTime? publishedAt,
       DateTime updatedAt});
 }
@@ -75,7 +75,7 @@ class _$PlanogramCopyWithImpl<$Res, $Val extends Planogram>
     Object? title = null,
     Object? season = null,
     Object? status = null,
-    Object? slots = null,
+    Object? slotsJson = null,
     Object? publishedAt = freezed,
     Object? updatedAt = null,
   }) {
@@ -100,10 +100,10 @@ class _$PlanogramCopyWithImpl<$Res, $Val extends Planogram>
           ? _value.status
           : status // ignore: cast_nullable_to_non_nullable
               as String,
-      slots: null == slots
-          ? _value.slots
-          : slots // ignore: cast_nullable_to_non_nullable
-              as List<PlanogramSlot>,
+      slotsJson: null == slotsJson
+          ? _value.slotsJson
+          : slotsJson // ignore: cast_nullable_to_non_nullable
+              as String,
       publishedAt: freezed == publishedAt
           ? _value.publishedAt
           : publishedAt // ignore: cast_nullable_to_non_nullable
@@ -130,7 +130,7 @@ abstract class _$$PlanogramImplCopyWith<$Res>
       String title,
       String season,
       String status,
-      List<PlanogramSlot> slots,
+      String slotsJson,
       DateTime? publishedAt,
       DateTime updatedAt});
 }
@@ -153,7 +153,7 @@ class __$$PlanogramImplCopyWithImpl<$Res>
     Object? title = null,
     Object? season = null,
     Object? status = null,
-    Object? slots = null,
+    Object? slotsJson = null,
     Object? publishedAt = freezed,
     Object? updatedAt = null,
   }) {
@@ -178,10 +178,10 @@ class __$$PlanogramImplCopyWithImpl<$Res>
           ? _value.status
           : status // ignore: cast_nullable_to_non_nullable
               as String,
-      slots: null == slots
-          ? _value._slots
-          : slots // ignore: cast_nullable_to_non_nullable
-              as List<PlanogramSlot>,
+      slotsJson: null == slotsJson
+          ? _value.slotsJson
+          : slotsJson // ignore: cast_nullable_to_non_nullable
+              as String,
       publishedAt: freezed == publishedAt
           ? _value.publishedAt
           : publishedAt // ignore: cast_nullable_to_non_nullable
@@ -203,10 +203,9 @@ class _$PlanogramImpl implements _Planogram {
       required this.title,
       required this.season,
       this.status = 'draft',
-      final List<PlanogramSlot> slots = const <PlanogramSlot>[],
+      this.slotsJson = '',
       this.publishedAt,
-      required this.updatedAt})
-      : _slots = slots;
+      required this.updatedAt});
 
   factory _$PlanogramImpl.fromJson(Map<String, dynamic> json) =>
       _$$PlanogramImplFromJson(json);
@@ -222,15 +221,9 @@ class _$PlanogramImpl implements _Planogram {
   @override
   @JsonKey()
   final String status;
-  final List<PlanogramSlot> _slots;
   @override
   @JsonKey()
-  List<PlanogramSlot> get slots {
-    if (_slots is EqualUnmodifiableListView) return _slots;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableListView(_slots);
-  }
-
+  final String slotsJson;
   @override
   final DateTime? publishedAt;
   @override
@@ -238,7 +231,7 @@ class _$PlanogramImpl implements _Planogram {
 
   @override
   String toString() {
-    return 'Planogram(id: $id, fixtureId: $fixtureId, title: $title, season: $season, status: $status, slots: $slots, publishedAt: $publishedAt, updatedAt: $updatedAt)';
+    return 'Planogram(id: $id, fixtureId: $fixtureId, title: $title, season: $season, status: $status, slotsJson: $slotsJson, publishedAt: $publishedAt, updatedAt: $updatedAt)';
   }
 
   @override
@@ -252,7 +245,8 @@ class _$PlanogramImpl implements _Planogram {
             (identical(other.title, title) || other.title == title) &&
             (identical(other.season, season) || other.season == season) &&
             (identical(other.status, status) || other.status == status) &&
-            const DeepCollectionEquality().equals(other._slots, _slots) &&
+            (identical(other.slotsJson, slotsJson) ||
+                other.slotsJson == slotsJson) &&
             (identical(other.publishedAt, publishedAt) ||
                 other.publishedAt == publishedAt) &&
             (identical(other.updatedAt, updatedAt) ||
@@ -261,16 +255,8 @@ class _$PlanogramImpl implements _Planogram {
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(
-      runtimeType,
-      id,
-      fixtureId,
-      title,
-      season,
-      status,
-      const DeepCollectionEquality().hash(_slots),
-      publishedAt,
-      updatedAt);
+  int get hashCode => Object.hash(runtimeType, id, fixtureId, title, season,
+      status, slotsJson, publishedAt, updatedAt);
 
   /// Create a copy of Planogram
   /// with the given fields replaced by the non-null parameter values.
@@ -295,7 +281,7 @@ abstract class _Planogram implements Planogram {
       required final String title,
       required final String season,
       final String status,
-      final List<PlanogramSlot> slots,
+      final String slotsJson,
       final DateTime? publishedAt,
       required final DateTime updatedAt}) = _$PlanogramImpl;
 
@@ -313,7 +299,7 @@ abstract class _Planogram implements Planogram {
   @override
   String get status;
   @override
-  List<PlanogramSlot> get slots;
+  String get slotsJson;
   @override
   DateTime? get publishedAt;
   @override

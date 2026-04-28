@@ -24,13 +24,12 @@ mixin _$PlanogramProposal {
   String get planogramId => throw _privateConstructorUsedError;
   String get storeId => throw _privateConstructorUsedError;
   String get proposedByUid => throw _privateConstructorUsedError;
-  int get proposedAt => throw _privateConstructorUsedError;
-  String get status =>
-      throw _privateConstructorUsedError; // pending | approved | rejected
-  String? get notes => throw _privateConstructorUsedError;
-  String? get slotChanges => throw _privateConstructorUsedError; // JSON
+  String get status => throw _privateConstructorUsedError;
+  String get notes => throw _privateConstructorUsedError;
+  String get slotChanges => throw _privateConstructorUsedError;
   String? get reviewedByUid => throw _privateConstructorUsedError;
-  int? get reviewedAt => throw _privateConstructorUsedError;
+  DateTime? get reviewedAt => throw _privateConstructorUsedError;
+  DateTime get updatedAt => throw _privateConstructorUsedError;
 
   /// Serializes this PlanogramProposal to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -53,12 +52,12 @@ abstract class $PlanogramProposalCopyWith<$Res> {
       String planogramId,
       String storeId,
       String proposedByUid,
-      int proposedAt,
       String status,
-      String? notes,
-      String? slotChanges,
+      String notes,
+      String slotChanges,
       String? reviewedByUid,
-      int? reviewedAt});
+      DateTime? reviewedAt,
+      DateTime updatedAt});
 }
 
 /// @nodoc
@@ -80,12 +79,12 @@ class _$PlanogramProposalCopyWithImpl<$Res, $Val extends PlanogramProposal>
     Object? planogramId = null,
     Object? storeId = null,
     Object? proposedByUid = null,
-    Object? proposedAt = null,
     Object? status = null,
-    Object? notes = freezed,
-    Object? slotChanges = freezed,
+    Object? notes = null,
+    Object? slotChanges = null,
     Object? reviewedByUid = freezed,
     Object? reviewedAt = freezed,
+    Object? updatedAt = null,
   }) {
     return _then(_value.copyWith(
       id: null == id
@@ -104,22 +103,18 @@ class _$PlanogramProposalCopyWithImpl<$Res, $Val extends PlanogramProposal>
           ? _value.proposedByUid
           : proposedByUid // ignore: cast_nullable_to_non_nullable
               as String,
-      proposedAt: null == proposedAt
-          ? _value.proposedAt
-          : proposedAt // ignore: cast_nullable_to_non_nullable
-              as int,
       status: null == status
           ? _value.status
           : status // ignore: cast_nullable_to_non_nullable
               as String,
-      notes: freezed == notes
+      notes: null == notes
           ? _value.notes
           : notes // ignore: cast_nullable_to_non_nullable
-              as String?,
-      slotChanges: freezed == slotChanges
+              as String,
+      slotChanges: null == slotChanges
           ? _value.slotChanges
           : slotChanges // ignore: cast_nullable_to_non_nullable
-              as String?,
+              as String,
       reviewedByUid: freezed == reviewedByUid
           ? _value.reviewedByUid
           : reviewedByUid // ignore: cast_nullable_to_non_nullable
@@ -127,7 +122,11 @@ class _$PlanogramProposalCopyWithImpl<$Res, $Val extends PlanogramProposal>
       reviewedAt: freezed == reviewedAt
           ? _value.reviewedAt
           : reviewedAt // ignore: cast_nullable_to_non_nullable
-              as int?,
+              as DateTime?,
+      updatedAt: null == updatedAt
+          ? _value.updatedAt
+          : updatedAt // ignore: cast_nullable_to_non_nullable
+              as DateTime,
     ) as $Val);
   }
 }
@@ -145,12 +144,12 @@ abstract class _$$PlanogramProposalImplCopyWith<$Res>
       String planogramId,
       String storeId,
       String proposedByUid,
-      int proposedAt,
       String status,
-      String? notes,
-      String? slotChanges,
+      String notes,
+      String slotChanges,
       String? reviewedByUid,
-      int? reviewedAt});
+      DateTime? reviewedAt,
+      DateTime updatedAt});
 }
 
 /// @nodoc
@@ -170,12 +169,12 @@ class __$$PlanogramProposalImplCopyWithImpl<$Res>
     Object? planogramId = null,
     Object? storeId = null,
     Object? proposedByUid = null,
-    Object? proposedAt = null,
     Object? status = null,
-    Object? notes = freezed,
-    Object? slotChanges = freezed,
+    Object? notes = null,
+    Object? slotChanges = null,
     Object? reviewedByUid = freezed,
     Object? reviewedAt = freezed,
+    Object? updatedAt = null,
   }) {
     return _then(_$PlanogramProposalImpl(
       id: null == id
@@ -194,22 +193,18 @@ class __$$PlanogramProposalImplCopyWithImpl<$Res>
           ? _value.proposedByUid
           : proposedByUid // ignore: cast_nullable_to_non_nullable
               as String,
-      proposedAt: null == proposedAt
-          ? _value.proposedAt
-          : proposedAt // ignore: cast_nullable_to_non_nullable
-              as int,
       status: null == status
           ? _value.status
           : status // ignore: cast_nullable_to_non_nullable
               as String,
-      notes: freezed == notes
+      notes: null == notes
           ? _value.notes
           : notes // ignore: cast_nullable_to_non_nullable
-              as String?,
-      slotChanges: freezed == slotChanges
+              as String,
+      slotChanges: null == slotChanges
           ? _value.slotChanges
           : slotChanges // ignore: cast_nullable_to_non_nullable
-              as String?,
+              as String,
       reviewedByUid: freezed == reviewedByUid
           ? _value.reviewedByUid
           : reviewedByUid // ignore: cast_nullable_to_non_nullable
@@ -217,7 +212,11 @@ class __$$PlanogramProposalImplCopyWithImpl<$Res>
       reviewedAt: freezed == reviewedAt
           ? _value.reviewedAt
           : reviewedAt // ignore: cast_nullable_to_non_nullable
-              as int?,
+              as DateTime?,
+      updatedAt: null == updatedAt
+          ? _value.updatedAt
+          : updatedAt // ignore: cast_nullable_to_non_nullable
+              as DateTime,
     ));
   }
 }
@@ -230,12 +229,12 @@ class _$PlanogramProposalImpl implements _PlanogramProposal {
       required this.planogramId,
       required this.storeId,
       required this.proposedByUid,
-      required this.proposedAt,
-      required this.status,
-      this.notes,
-      this.slotChanges,
+      this.status = 'pending',
+      this.notes = '',
+      this.slotChanges = '',
       this.reviewedByUid,
-      this.reviewedAt});
+      this.reviewedAt,
+      required this.updatedAt});
 
   factory _$PlanogramProposalImpl.fromJson(Map<String, dynamic> json) =>
       _$$PlanogramProposalImplFromJson(json);
@@ -249,23 +248,24 @@ class _$PlanogramProposalImpl implements _PlanogramProposal {
   @override
   final String proposedByUid;
   @override
-  final int proposedAt;
-  @override
+  @JsonKey()
   final String status;
-// pending | approved | rejected
   @override
-  final String? notes;
+  @JsonKey()
+  final String notes;
   @override
-  final String? slotChanges;
-// JSON
+  @JsonKey()
+  final String slotChanges;
   @override
   final String? reviewedByUid;
   @override
-  final int? reviewedAt;
+  final DateTime? reviewedAt;
+  @override
+  final DateTime updatedAt;
 
   @override
   String toString() {
-    return 'PlanogramProposal(id: $id, planogramId: $planogramId, storeId: $storeId, proposedByUid: $proposedByUid, proposedAt: $proposedAt, status: $status, notes: $notes, slotChanges: $slotChanges, reviewedByUid: $reviewedByUid, reviewedAt: $reviewedAt)';
+    return 'PlanogramProposal(id: $id, planogramId: $planogramId, storeId: $storeId, proposedByUid: $proposedByUid, status: $status, notes: $notes, slotChanges: $slotChanges, reviewedByUid: $reviewedByUid, reviewedAt: $reviewedAt, updatedAt: $updatedAt)';
   }
 
   @override
@@ -279,8 +279,6 @@ class _$PlanogramProposalImpl implements _PlanogramProposal {
             (identical(other.storeId, storeId) || other.storeId == storeId) &&
             (identical(other.proposedByUid, proposedByUid) ||
                 other.proposedByUid == proposedByUid) &&
-            (identical(other.proposedAt, proposedAt) ||
-                other.proposedAt == proposedAt) &&
             (identical(other.status, status) || other.status == status) &&
             (identical(other.notes, notes) || other.notes == notes) &&
             (identical(other.slotChanges, slotChanges) ||
@@ -288,7 +286,9 @@ class _$PlanogramProposalImpl implements _PlanogramProposal {
             (identical(other.reviewedByUid, reviewedByUid) ||
                 other.reviewedByUid == reviewedByUid) &&
             (identical(other.reviewedAt, reviewedAt) ||
-                other.reviewedAt == reviewedAt));
+                other.reviewedAt == reviewedAt) &&
+            (identical(other.updatedAt, updatedAt) ||
+                other.updatedAt == updatedAt));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -299,12 +299,12 @@ class _$PlanogramProposalImpl implements _PlanogramProposal {
       planogramId,
       storeId,
       proposedByUid,
-      proposedAt,
       status,
       notes,
       slotChanges,
       reviewedByUid,
-      reviewedAt);
+      reviewedAt,
+      updatedAt);
 
   /// Create a copy of PlanogramProposal
   /// with the given fields replaced by the non-null parameter values.
@@ -329,12 +329,12 @@ abstract class _PlanogramProposal implements PlanogramProposal {
       required final String planogramId,
       required final String storeId,
       required final String proposedByUid,
-      required final int proposedAt,
-      required final String status,
-      final String? notes,
-      final String? slotChanges,
+      final String status,
+      final String notes,
+      final String slotChanges,
       final String? reviewedByUid,
-      final int? reviewedAt}) = _$PlanogramProposalImpl;
+      final DateTime? reviewedAt,
+      required final DateTime updatedAt}) = _$PlanogramProposalImpl;
 
   factory _PlanogramProposal.fromJson(Map<String, dynamic> json) =
       _$PlanogramProposalImpl.fromJson;
@@ -348,17 +348,17 @@ abstract class _PlanogramProposal implements PlanogramProposal {
   @override
   String get proposedByUid;
   @override
-  int get proposedAt;
+  String get status;
   @override
-  String get status; // pending | approved | rejected
+  String get notes;
   @override
-  String? get notes;
-  @override
-  String? get slotChanges; // JSON
+  String get slotChanges;
   @override
   String? get reviewedByUid;
   @override
-  int? get reviewedAt;
+  DateTime? get reviewedAt;
+  @override
+  DateTime get updatedAt;
 
   /// Create a copy of PlanogramProposal
   /// with the given fields replaced by the non-null parameter values.

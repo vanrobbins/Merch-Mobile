@@ -27,6 +27,8 @@ mixin _$Product {
   String get imageUrl => throw _privateConstructorUsedError;
   List<String> get sizes => throw _privateConstructorUsedError;
   int get stockQty => throw _privateConstructorUsedError;
+  String? get colorId => throw _privateConstructorUsedError;
+  String? get templateId => throw _privateConstructorUsedError;
   DateTime get updatedAt => throw _privateConstructorUsedError;
 
   /// Serializes this Product to a JSON map.
@@ -51,6 +53,8 @@ abstract class $ProductCopyWith<$Res> {
       String imageUrl,
       List<String> sizes,
       int stockQty,
+      String? colorId,
+      String? templateId,
       DateTime updatedAt});
 }
 
@@ -76,6 +80,8 @@ class _$ProductCopyWithImpl<$Res, $Val extends Product>
     Object? imageUrl = null,
     Object? sizes = null,
     Object? stockQty = null,
+    Object? colorId = freezed,
+    Object? templateId = freezed,
     Object? updatedAt = null,
   }) {
     return _then(_value.copyWith(
@@ -107,6 +113,14 @@ class _$ProductCopyWithImpl<$Res, $Val extends Product>
           ? _value.stockQty
           : stockQty // ignore: cast_nullable_to_non_nullable
               as int,
+      colorId: freezed == colorId
+          ? _value.colorId
+          : colorId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      templateId: freezed == templateId
+          ? _value.templateId
+          : templateId // ignore: cast_nullable_to_non_nullable
+              as String?,
       updatedAt: null == updatedAt
           ? _value.updatedAt
           : updatedAt // ignore: cast_nullable_to_non_nullable
@@ -130,6 +144,8 @@ abstract class _$$ProductImplCopyWith<$Res> implements $ProductCopyWith<$Res> {
       String imageUrl,
       List<String> sizes,
       int stockQty,
+      String? colorId,
+      String? templateId,
       DateTime updatedAt});
 }
 
@@ -153,6 +169,8 @@ class __$$ProductImplCopyWithImpl<$Res>
     Object? imageUrl = null,
     Object? sizes = null,
     Object? stockQty = null,
+    Object? colorId = freezed,
+    Object? templateId = freezed,
     Object? updatedAt = null,
   }) {
     return _then(_$ProductImpl(
@@ -184,6 +202,14 @@ class __$$ProductImplCopyWithImpl<$Res>
           ? _value.stockQty
           : stockQty // ignore: cast_nullable_to_non_nullable
               as int,
+      colorId: freezed == colorId
+          ? _value.colorId
+          : colorId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      templateId: freezed == templateId
+          ? _value.templateId
+          : templateId // ignore: cast_nullable_to_non_nullable
+              as String?,
       updatedAt: null == updatedAt
           ? _value.updatedAt
           : updatedAt // ignore: cast_nullable_to_non_nullable
@@ -203,6 +229,8 @@ class _$ProductImpl implements _Product {
       this.imageUrl = '',
       final List<String> sizes = const <String>[],
       this.stockQty = 0,
+      this.colorId,
+      this.templateId,
       required this.updatedAt})
       : _sizes = sizes;
 
@@ -233,11 +261,15 @@ class _$ProductImpl implements _Product {
   @JsonKey()
   final int stockQty;
   @override
+  final String? colorId;
+  @override
+  final String? templateId;
+  @override
   final DateTime updatedAt;
 
   @override
   String toString() {
-    return 'Product(id: $id, sku: $sku, name: $name, category: $category, imageUrl: $imageUrl, sizes: $sizes, stockQty: $stockQty, updatedAt: $updatedAt)';
+    return 'Product(id: $id, sku: $sku, name: $name, category: $category, imageUrl: $imageUrl, sizes: $sizes, stockQty: $stockQty, colorId: $colorId, templateId: $templateId, updatedAt: $updatedAt)';
   }
 
   @override
@@ -255,6 +287,9 @@ class _$ProductImpl implements _Product {
             const DeepCollectionEquality().equals(other._sizes, _sizes) &&
             (identical(other.stockQty, stockQty) ||
                 other.stockQty == stockQty) &&
+            (identical(other.colorId, colorId) || other.colorId == colorId) &&
+            (identical(other.templateId, templateId) ||
+                other.templateId == templateId) &&
             (identical(other.updatedAt, updatedAt) ||
                 other.updatedAt == updatedAt));
   }
@@ -270,6 +305,8 @@ class _$ProductImpl implements _Product {
       imageUrl,
       const DeepCollectionEquality().hash(_sizes),
       stockQty,
+      colorId,
+      templateId,
       updatedAt);
 
   /// Create a copy of Product
@@ -297,6 +334,8 @@ abstract class _Product implements Product {
       final String imageUrl,
       final List<String> sizes,
       final int stockQty,
+      final String? colorId,
+      final String? templateId,
       required final DateTime updatedAt}) = _$ProductImpl;
 
   factory _Product.fromJson(Map<String, dynamic> json) = _$ProductImpl.fromJson;
@@ -315,6 +354,10 @@ abstract class _Product implements Product {
   List<String> get sizes;
   @override
   int get stockQty;
+  @override
+  String? get colorId;
+  @override
+  String? get templateId;
   @override
   DateTime get updatedAt;
 

@@ -32,6 +32,10 @@ mixin _$Fixture {
   String? get planogramId => throw _privateConstructorUsedError;
   String? get planogramIdBack => throw _privateConstructorUsedError;
   bool get wallAdjacent => throw _privateConstructorUsedError;
+  String get mountType => throw _privateConstructorUsedError;
+  String get mannequinType => throw _privateConstructorUsedError;
+  double get positionX => throw _privateConstructorUsedError;
+  double get positionY => throw _privateConstructorUsedError;
   DateTime get updatedAt => throw _privateConstructorUsedError;
 
   /// Serializes this Fixture to a JSON map.
@@ -61,6 +65,10 @@ abstract class $FixtureCopyWith<$Res> {
       String? planogramId,
       String? planogramIdBack,
       bool wallAdjacent,
+      String mountType,
+      String mannequinType,
+      double positionX,
+      double positionY,
       DateTime updatedAt});
 }
 
@@ -91,6 +99,10 @@ class _$FixtureCopyWithImpl<$Res, $Val extends Fixture>
     Object? planogramId = freezed,
     Object? planogramIdBack = freezed,
     Object? wallAdjacent = null,
+    Object? mountType = null,
+    Object? mannequinType = null,
+    Object? positionX = null,
+    Object? positionY = null,
     Object? updatedAt = null,
   }) {
     return _then(_value.copyWith(
@@ -142,6 +154,22 @@ class _$FixtureCopyWithImpl<$Res, $Val extends Fixture>
           ? _value.wallAdjacent
           : wallAdjacent // ignore: cast_nullable_to_non_nullable
               as bool,
+      mountType: null == mountType
+          ? _value.mountType
+          : mountType // ignore: cast_nullable_to_non_nullable
+              as String,
+      mannequinType: null == mannequinType
+          ? _value.mannequinType
+          : mannequinType // ignore: cast_nullable_to_non_nullable
+              as String,
+      positionX: null == positionX
+          ? _value.positionX
+          : positionX // ignore: cast_nullable_to_non_nullable
+              as double,
+      positionY: null == positionY
+          ? _value.positionY
+          : positionY // ignore: cast_nullable_to_non_nullable
+              as double,
       updatedAt: null == updatedAt
           ? _value.updatedAt
           : updatedAt // ignore: cast_nullable_to_non_nullable
@@ -170,6 +198,10 @@ abstract class _$$FixtureImplCopyWith<$Res> implements $FixtureCopyWith<$Res> {
       String? planogramId,
       String? planogramIdBack,
       bool wallAdjacent,
+      String mountType,
+      String mannequinType,
+      double positionX,
+      double positionY,
       DateTime updatedAt});
 }
 
@@ -198,6 +230,10 @@ class __$$FixtureImplCopyWithImpl<$Res>
     Object? planogramId = freezed,
     Object? planogramIdBack = freezed,
     Object? wallAdjacent = null,
+    Object? mountType = null,
+    Object? mannequinType = null,
+    Object? positionX = null,
+    Object? positionY = null,
     Object? updatedAt = null,
   }) {
     return _then(_$FixtureImpl(
@@ -249,6 +285,22 @@ class __$$FixtureImplCopyWithImpl<$Res>
           ? _value.wallAdjacent
           : wallAdjacent // ignore: cast_nullable_to_non_nullable
               as bool,
+      mountType: null == mountType
+          ? _value.mountType
+          : mountType // ignore: cast_nullable_to_non_nullable
+              as String,
+      mannequinType: null == mannequinType
+          ? _value.mannequinType
+          : mannequinType // ignore: cast_nullable_to_non_nullable
+              as String,
+      positionX: null == positionX
+          ? _value.positionX
+          : positionX // ignore: cast_nullable_to_non_nullable
+              as double,
+      positionY: null == positionY
+          ? _value.positionY
+          : positionY // ignore: cast_nullable_to_non_nullable
+              as double,
       updatedAt: null == updatedAt
           ? _value.updatedAt
           : updatedAt // ignore: cast_nullable_to_non_nullable
@@ -273,6 +325,10 @@ class _$FixtureImpl implements _Fixture {
       this.planogramId,
       this.planogramIdBack,
       this.wallAdjacent = false,
+      this.mountType = 'floor',
+      this.mannequinType = 'full',
+      this.positionX = 0.0,
+      this.positionY = 0.0,
       required this.updatedAt});
 
   factory _$FixtureImpl.fromJson(Map<String, dynamic> json) =>
@@ -310,11 +366,23 @@ class _$FixtureImpl implements _Fixture {
   @JsonKey()
   final bool wallAdjacent;
   @override
+  @JsonKey()
+  final String mountType;
+  @override
+  @JsonKey()
+  final String mannequinType;
+  @override
+  @JsonKey()
+  final double positionX;
+  @override
+  @JsonKey()
+  final double positionY;
+  @override
   final DateTime updatedAt;
 
   @override
   String toString() {
-    return 'Fixture(id: $id, zoneId: $zoneId, fixtureType: $fixtureType, posX: $posX, posY: $posY, rotation: $rotation, widthFt: $widthFt, depthFt: $depthFt, label: $label, planogramId: $planogramId, planogramIdBack: $planogramIdBack, wallAdjacent: $wallAdjacent, updatedAt: $updatedAt)';
+    return 'Fixture(id: $id, zoneId: $zoneId, fixtureType: $fixtureType, posX: $posX, posY: $posY, rotation: $rotation, widthFt: $widthFt, depthFt: $depthFt, label: $label, planogramId: $planogramId, planogramIdBack: $planogramIdBack, wallAdjacent: $wallAdjacent, mountType: $mountType, mannequinType: $mannequinType, positionX: $positionX, positionY: $positionY, updatedAt: $updatedAt)';
   }
 
   @override
@@ -339,6 +407,14 @@ class _$FixtureImpl implements _Fixture {
                 other.planogramIdBack == planogramIdBack) &&
             (identical(other.wallAdjacent, wallAdjacent) ||
                 other.wallAdjacent == wallAdjacent) &&
+            (identical(other.mountType, mountType) ||
+                other.mountType == mountType) &&
+            (identical(other.mannequinType, mannequinType) ||
+                other.mannequinType == mannequinType) &&
+            (identical(other.positionX, positionX) ||
+                other.positionX == positionX) &&
+            (identical(other.positionY, positionY) ||
+                other.positionY == positionY) &&
             (identical(other.updatedAt, updatedAt) ||
                 other.updatedAt == updatedAt));
   }
@@ -359,6 +435,10 @@ class _$FixtureImpl implements _Fixture {
       planogramId,
       planogramIdBack,
       wallAdjacent,
+      mountType,
+      mannequinType,
+      positionX,
+      positionY,
       updatedAt);
 
   /// Create a copy of Fixture
@@ -391,6 +471,10 @@ abstract class _Fixture implements Fixture {
       final String? planogramId,
       final String? planogramIdBack,
       final bool wallAdjacent,
+      final String mountType,
+      final String mannequinType,
+      final double positionX,
+      final double positionY,
       required final DateTime updatedAt}) = _$FixtureImpl;
 
   factory _Fixture.fromJson(Map<String, dynamic> json) = _$FixtureImpl.fromJson;
@@ -419,6 +503,14 @@ abstract class _Fixture implements Fixture {
   String? get planogramIdBack;
   @override
   bool get wallAdjacent;
+  @override
+  String get mountType;
+  @override
+  String get mannequinType;
+  @override
+  double get positionX;
+  @override
+  double get positionY;
   @override
   DateTime get updatedAt;
 

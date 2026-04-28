@@ -22,13 +22,11 @@ StoreMembership _$StoreMembershipFromJson(Map<String, dynamic> json) {
 mixin _$StoreMembership {
   String get id => throw _privateConstructorUsedError;
   String get storeId => throw _privateConstructorUsedError;
-  String get userUid => throw _privateConstructorUsedError;
-  String get role =>
-      throw _privateConstructorUsedError; // coordinator | manager | staff
+  String get uid => throw _privateConstructorUsedError;
+  String get role => throw _privateConstructorUsedError;
+  String get status => throw _privateConstructorUsedError;
   String get displayName => throw _privateConstructorUsedError;
-  String get status =>
-      throw _privateConstructorUsedError; // pending | active | rejected
-  int get joinedAt => throw _privateConstructorUsedError;
+  DateTime get joinedAt => throw _privateConstructorUsedError;
 
   /// Serializes this StoreMembership to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -49,11 +47,11 @@ abstract class $StoreMembershipCopyWith<$Res> {
   $Res call(
       {String id,
       String storeId,
-      String userUid,
+      String uid,
       String role,
-      String displayName,
       String status,
-      int joinedAt});
+      String displayName,
+      DateTime joinedAt});
 }
 
 /// @nodoc
@@ -73,10 +71,10 @@ class _$StoreMembershipCopyWithImpl<$Res, $Val extends StoreMembership>
   $Res call({
     Object? id = null,
     Object? storeId = null,
-    Object? userUid = null,
+    Object? uid = null,
     Object? role = null,
-    Object? displayName = null,
     Object? status = null,
+    Object? displayName = null,
     Object? joinedAt = null,
   }) {
     return _then(_value.copyWith(
@@ -88,26 +86,26 @@ class _$StoreMembershipCopyWithImpl<$Res, $Val extends StoreMembership>
           ? _value.storeId
           : storeId // ignore: cast_nullable_to_non_nullable
               as String,
-      userUid: null == userUid
-          ? _value.userUid
-          : userUid // ignore: cast_nullable_to_non_nullable
+      uid: null == uid
+          ? _value.uid
+          : uid // ignore: cast_nullable_to_non_nullable
               as String,
       role: null == role
           ? _value.role
           : role // ignore: cast_nullable_to_non_nullable
               as String,
-      displayName: null == displayName
-          ? _value.displayName
-          : displayName // ignore: cast_nullable_to_non_nullable
-              as String,
       status: null == status
           ? _value.status
           : status // ignore: cast_nullable_to_non_nullable
               as String,
+      displayName: null == displayName
+          ? _value.displayName
+          : displayName // ignore: cast_nullable_to_non_nullable
+              as String,
       joinedAt: null == joinedAt
           ? _value.joinedAt
           : joinedAt // ignore: cast_nullable_to_non_nullable
-              as int,
+              as DateTime,
     ) as $Val);
   }
 }
@@ -123,11 +121,11 @@ abstract class _$$StoreMembershipImplCopyWith<$Res>
   $Res call(
       {String id,
       String storeId,
-      String userUid,
+      String uid,
       String role,
-      String displayName,
       String status,
-      int joinedAt});
+      String displayName,
+      DateTime joinedAt});
 }
 
 /// @nodoc
@@ -145,10 +143,10 @@ class __$$StoreMembershipImplCopyWithImpl<$Res>
   $Res call({
     Object? id = null,
     Object? storeId = null,
-    Object? userUid = null,
+    Object? uid = null,
     Object? role = null,
-    Object? displayName = null,
     Object? status = null,
+    Object? displayName = null,
     Object? joinedAt = null,
   }) {
     return _then(_$StoreMembershipImpl(
@@ -160,26 +158,26 @@ class __$$StoreMembershipImplCopyWithImpl<$Res>
           ? _value.storeId
           : storeId // ignore: cast_nullable_to_non_nullable
               as String,
-      userUid: null == userUid
-          ? _value.userUid
-          : userUid // ignore: cast_nullable_to_non_nullable
+      uid: null == uid
+          ? _value.uid
+          : uid // ignore: cast_nullable_to_non_nullable
               as String,
       role: null == role
           ? _value.role
           : role // ignore: cast_nullable_to_non_nullable
               as String,
-      displayName: null == displayName
-          ? _value.displayName
-          : displayName // ignore: cast_nullable_to_non_nullable
-              as String,
       status: null == status
           ? _value.status
           : status // ignore: cast_nullable_to_non_nullable
               as String,
+      displayName: null == displayName
+          ? _value.displayName
+          : displayName // ignore: cast_nullable_to_non_nullable
+              as String,
       joinedAt: null == joinedAt
           ? _value.joinedAt
           : joinedAt // ignore: cast_nullable_to_non_nullable
-              as int,
+              as DateTime,
     ));
   }
 }
@@ -190,10 +188,10 @@ class _$StoreMembershipImpl implements _StoreMembership {
   const _$StoreMembershipImpl(
       {required this.id,
       required this.storeId,
-      required this.userUid,
+      required this.uid,
       required this.role,
-      required this.displayName,
       required this.status,
+      required this.displayName,
       required this.joinedAt});
 
   factory _$StoreMembershipImpl.fromJson(Map<String, dynamic> json) =>
@@ -204,21 +202,19 @@ class _$StoreMembershipImpl implements _StoreMembership {
   @override
   final String storeId;
   @override
-  final String userUid;
+  final String uid;
   @override
   final String role;
-// coordinator | manager | staff
+  @override
+  final String status;
   @override
   final String displayName;
   @override
-  final String status;
-// pending | active | rejected
-  @override
-  final int joinedAt;
+  final DateTime joinedAt;
 
   @override
   String toString() {
-    return 'StoreMembership(id: $id, storeId: $storeId, userUid: $userUid, role: $role, displayName: $displayName, status: $status, joinedAt: $joinedAt)';
+    return 'StoreMembership(id: $id, storeId: $storeId, uid: $uid, role: $role, status: $status, displayName: $displayName, joinedAt: $joinedAt)';
   }
 
   @override
@@ -228,11 +224,11 @@ class _$StoreMembershipImpl implements _StoreMembership {
             other is _$StoreMembershipImpl &&
             (identical(other.id, id) || other.id == id) &&
             (identical(other.storeId, storeId) || other.storeId == storeId) &&
-            (identical(other.userUid, userUid) || other.userUid == userUid) &&
+            (identical(other.uid, uid) || other.uid == uid) &&
             (identical(other.role, role) || other.role == role) &&
+            (identical(other.status, status) || other.status == status) &&
             (identical(other.displayName, displayName) ||
                 other.displayName == displayName) &&
-            (identical(other.status, status) || other.status == status) &&
             (identical(other.joinedAt, joinedAt) ||
                 other.joinedAt == joinedAt));
   }
@@ -240,7 +236,7 @@ class _$StoreMembershipImpl implements _StoreMembership {
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   int get hashCode => Object.hash(
-      runtimeType, id, storeId, userUid, role, displayName, status, joinedAt);
+      runtimeType, id, storeId, uid, role, status, displayName, joinedAt);
 
   /// Create a copy of StoreMembership
   /// with the given fields replaced by the non-null parameter values.
@@ -263,11 +259,11 @@ abstract class _StoreMembership implements StoreMembership {
   const factory _StoreMembership(
       {required final String id,
       required final String storeId,
-      required final String userUid,
+      required final String uid,
       required final String role,
-      required final String displayName,
       required final String status,
-      required final int joinedAt}) = _$StoreMembershipImpl;
+      required final String displayName,
+      required final DateTime joinedAt}) = _$StoreMembershipImpl;
 
   factory _StoreMembership.fromJson(Map<String, dynamic> json) =
       _$StoreMembershipImpl.fromJson;
@@ -277,15 +273,15 @@ abstract class _StoreMembership implements StoreMembership {
   @override
   String get storeId;
   @override
-  String get userUid;
+  String get uid;
   @override
-  String get role; // coordinator | manager | staff
+  String get role;
+  @override
+  String get status;
   @override
   String get displayName;
   @override
-  String get status; // pending | active | rejected
-  @override
-  int get joinedAt;
+  DateTime get joinedAt;
 
   /// Create a copy of StoreMembership
   /// with the given fields replaced by the non-null parameter values.

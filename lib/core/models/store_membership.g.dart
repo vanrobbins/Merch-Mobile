@@ -11,11 +11,11 @@ _$StoreMembershipImpl _$$StoreMembershipImplFromJson(
     _$StoreMembershipImpl(
       id: json['id'] as String,
       storeId: json['storeId'] as String,
-      userUid: json['userUid'] as String,
+      uid: json['uid'] as String,
       role: json['role'] as String,
-      displayName: json['displayName'] as String,
       status: json['status'] as String,
-      joinedAt: (json['joinedAt'] as num).toInt(),
+      displayName: json['displayName'] as String,
+      joinedAt: DateTime.parse(json['joinedAt'] as String),
     );
 
 Map<String, dynamic> _$$StoreMembershipImplToJson(
@@ -23,9 +23,9 @@ Map<String, dynamic> _$$StoreMembershipImplToJson(
     <String, dynamic>{
       'id': instance.id,
       'storeId': instance.storeId,
-      'userUid': instance.userUid,
+      'uid': instance.uid,
       'role': instance.role,
-      'displayName': instance.displayName,
       'status': instance.status,
-      'joinedAt': instance.joinedAt,
+      'displayName': instance.displayName,
+      'joinedAt': instance.joinedAt.toIso8601String(),
     };

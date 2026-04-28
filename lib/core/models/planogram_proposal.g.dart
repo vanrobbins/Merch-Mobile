@@ -13,12 +13,14 @@ _$PlanogramProposalImpl _$$PlanogramProposalImplFromJson(
       planogramId: json['planogramId'] as String,
       storeId: json['storeId'] as String,
       proposedByUid: json['proposedByUid'] as String,
-      proposedAt: (json['proposedAt'] as num).toInt(),
-      status: json['status'] as String,
-      notes: json['notes'] as String?,
-      slotChanges: json['slotChanges'] as String?,
+      status: json['status'] as String? ?? 'pending',
+      notes: json['notes'] as String? ?? '',
+      slotChanges: json['slotChanges'] as String? ?? '',
       reviewedByUid: json['reviewedByUid'] as String?,
-      reviewedAt: (json['reviewedAt'] as num?)?.toInt(),
+      reviewedAt: json['reviewedAt'] == null
+          ? null
+          : DateTime.parse(json['reviewedAt'] as String),
+      updatedAt: DateTime.parse(json['updatedAt'] as String),
     );
 
 Map<String, dynamic> _$$PlanogramProposalImplToJson(
@@ -28,10 +30,10 @@ Map<String, dynamic> _$$PlanogramProposalImplToJson(
       'planogramId': instance.planogramId,
       'storeId': instance.storeId,
       'proposedByUid': instance.proposedByUid,
-      'proposedAt': instance.proposedAt,
       'status': instance.status,
       'notes': instance.notes,
       'slotChanges': instance.slotChanges,
       'reviewedByUid': instance.reviewedByUid,
-      'reviewedAt': instance.reviewedAt,
+      'reviewedAt': instance.reviewedAt?.toIso8601String(),
+      'updatedAt': instance.updatedAt.toIso8601String(),
     };

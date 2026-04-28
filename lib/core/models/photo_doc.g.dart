@@ -11,11 +11,12 @@ _$PhotoDocImpl _$$PhotoDocImplFromJson(Map<String, dynamic> json) =>
       id: json['id'] as String,
       fixtureId: json['fixtureId'] as String,
       phase: json['phase'] as String,
-      localPath: json['localPath'] as String,
-      remoteUrl: json['remoteUrl'] as String? ?? '',
+      localPath: json['localPath'] as String?,
+      remoteUrl: json['remoteUrl'] as String?,
       uploadStatus: json['uploadStatus'] as String? ?? 'pending',
-      approvalStatus: json['approvalStatus'] as String? ?? 'pending',
+      approvalStatus: json['approvalStatus'] as String? ?? 'none',
       planogramId: json['planogramId'] as String?,
+      storeId: json['storeId'] as String,
       capturedAt: DateTime.parse(json['capturedAt'] as String),
       updatedAt: DateTime.parse(json['updatedAt'] as String),
     );
@@ -30,6 +31,7 @@ Map<String, dynamic> _$$PhotoDocImplToJson(_$PhotoDocImpl instance) =>
       'uploadStatus': instance.uploadStatus,
       'approvalStatus': instance.approvalStatus,
       'planogramId': instance.planogramId,
+      'storeId': instance.storeId,
       'capturedAt': instance.capturedAt.toIso8601String(),
       'updatedAt': instance.updatedAt.toIso8601String(),
     };

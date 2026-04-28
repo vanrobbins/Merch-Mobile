@@ -22,12 +22,13 @@ PhotoDoc _$PhotoDocFromJson(Map<String, dynamic> json) {
 mixin _$PhotoDoc {
   String get id => throw _privateConstructorUsedError;
   String get fixtureId => throw _privateConstructorUsedError;
-  String get phase => throw _privateConstructorUsedError; // before/after
-  String get localPath => throw _privateConstructorUsedError;
-  String get remoteUrl => throw _privateConstructorUsedError;
+  String get phase => throw _privateConstructorUsedError;
+  String? get localPath => throw _privateConstructorUsedError;
+  String? get remoteUrl => throw _privateConstructorUsedError;
   String get uploadStatus => throw _privateConstructorUsedError;
   String get approvalStatus => throw _privateConstructorUsedError;
   String? get planogramId => throw _privateConstructorUsedError;
+  String get storeId => throw _privateConstructorUsedError;
   DateTime get capturedAt => throw _privateConstructorUsedError;
   DateTime get updatedAt => throw _privateConstructorUsedError;
 
@@ -50,11 +51,12 @@ abstract class $PhotoDocCopyWith<$Res> {
       {String id,
       String fixtureId,
       String phase,
-      String localPath,
-      String remoteUrl,
+      String? localPath,
+      String? remoteUrl,
       String uploadStatus,
       String approvalStatus,
       String? planogramId,
+      String storeId,
       DateTime capturedAt,
       DateTime updatedAt});
 }
@@ -77,11 +79,12 @@ class _$PhotoDocCopyWithImpl<$Res, $Val extends PhotoDoc>
     Object? id = null,
     Object? fixtureId = null,
     Object? phase = null,
-    Object? localPath = null,
-    Object? remoteUrl = null,
+    Object? localPath = freezed,
+    Object? remoteUrl = freezed,
     Object? uploadStatus = null,
     Object? approvalStatus = null,
     Object? planogramId = freezed,
+    Object? storeId = null,
     Object? capturedAt = null,
     Object? updatedAt = null,
   }) {
@@ -98,14 +101,14 @@ class _$PhotoDocCopyWithImpl<$Res, $Val extends PhotoDoc>
           ? _value.phase
           : phase // ignore: cast_nullable_to_non_nullable
               as String,
-      localPath: null == localPath
+      localPath: freezed == localPath
           ? _value.localPath
           : localPath // ignore: cast_nullable_to_non_nullable
-              as String,
-      remoteUrl: null == remoteUrl
+              as String?,
+      remoteUrl: freezed == remoteUrl
           ? _value.remoteUrl
           : remoteUrl // ignore: cast_nullable_to_non_nullable
-              as String,
+              as String?,
       uploadStatus: null == uploadStatus
           ? _value.uploadStatus
           : uploadStatus // ignore: cast_nullable_to_non_nullable
@@ -118,6 +121,10 @@ class _$PhotoDocCopyWithImpl<$Res, $Val extends PhotoDoc>
           ? _value.planogramId
           : planogramId // ignore: cast_nullable_to_non_nullable
               as String?,
+      storeId: null == storeId
+          ? _value.storeId
+          : storeId // ignore: cast_nullable_to_non_nullable
+              as String,
       capturedAt: null == capturedAt
           ? _value.capturedAt
           : capturedAt // ignore: cast_nullable_to_non_nullable
@@ -142,11 +149,12 @@ abstract class _$$PhotoDocImplCopyWith<$Res>
       {String id,
       String fixtureId,
       String phase,
-      String localPath,
-      String remoteUrl,
+      String? localPath,
+      String? remoteUrl,
       String uploadStatus,
       String approvalStatus,
       String? planogramId,
+      String storeId,
       DateTime capturedAt,
       DateTime updatedAt});
 }
@@ -167,11 +175,12 @@ class __$$PhotoDocImplCopyWithImpl<$Res>
     Object? id = null,
     Object? fixtureId = null,
     Object? phase = null,
-    Object? localPath = null,
-    Object? remoteUrl = null,
+    Object? localPath = freezed,
+    Object? remoteUrl = freezed,
     Object? uploadStatus = null,
     Object? approvalStatus = null,
     Object? planogramId = freezed,
+    Object? storeId = null,
     Object? capturedAt = null,
     Object? updatedAt = null,
   }) {
@@ -188,14 +197,14 @@ class __$$PhotoDocImplCopyWithImpl<$Res>
           ? _value.phase
           : phase // ignore: cast_nullable_to_non_nullable
               as String,
-      localPath: null == localPath
+      localPath: freezed == localPath
           ? _value.localPath
           : localPath // ignore: cast_nullable_to_non_nullable
-              as String,
-      remoteUrl: null == remoteUrl
+              as String?,
+      remoteUrl: freezed == remoteUrl
           ? _value.remoteUrl
           : remoteUrl // ignore: cast_nullable_to_non_nullable
-              as String,
+              as String?,
       uploadStatus: null == uploadStatus
           ? _value.uploadStatus
           : uploadStatus // ignore: cast_nullable_to_non_nullable
@@ -208,6 +217,10 @@ class __$$PhotoDocImplCopyWithImpl<$Res>
           ? _value.planogramId
           : planogramId // ignore: cast_nullable_to_non_nullable
               as String?,
+      storeId: null == storeId
+          ? _value.storeId
+          : storeId // ignore: cast_nullable_to_non_nullable
+              as String,
       capturedAt: null == capturedAt
           ? _value.capturedAt
           : capturedAt // ignore: cast_nullable_to_non_nullable
@@ -227,11 +240,12 @@ class _$PhotoDocImpl implements _PhotoDoc {
       {required this.id,
       required this.fixtureId,
       required this.phase,
-      required this.localPath,
-      this.remoteUrl = '',
+      this.localPath,
+      this.remoteUrl,
       this.uploadStatus = 'pending',
-      this.approvalStatus = 'pending',
+      this.approvalStatus = 'none',
       this.planogramId,
+      required this.storeId,
       required this.capturedAt,
       required this.updatedAt});
 
@@ -244,12 +258,10 @@ class _$PhotoDocImpl implements _PhotoDoc {
   final String fixtureId;
   @override
   final String phase;
-// before/after
   @override
-  final String localPath;
+  final String? localPath;
   @override
-  @JsonKey()
-  final String remoteUrl;
+  final String? remoteUrl;
   @override
   @JsonKey()
   final String uploadStatus;
@@ -259,13 +271,15 @@ class _$PhotoDocImpl implements _PhotoDoc {
   @override
   final String? planogramId;
   @override
+  final String storeId;
+  @override
   final DateTime capturedAt;
   @override
   final DateTime updatedAt;
 
   @override
   String toString() {
-    return 'PhotoDoc(id: $id, fixtureId: $fixtureId, phase: $phase, localPath: $localPath, remoteUrl: $remoteUrl, uploadStatus: $uploadStatus, approvalStatus: $approvalStatus, planogramId: $planogramId, capturedAt: $capturedAt, updatedAt: $updatedAt)';
+    return 'PhotoDoc(id: $id, fixtureId: $fixtureId, phase: $phase, localPath: $localPath, remoteUrl: $remoteUrl, uploadStatus: $uploadStatus, approvalStatus: $approvalStatus, planogramId: $planogramId, storeId: $storeId, capturedAt: $capturedAt, updatedAt: $updatedAt)';
   }
 
   @override
@@ -287,6 +301,7 @@ class _$PhotoDocImpl implements _PhotoDoc {
                 other.approvalStatus == approvalStatus) &&
             (identical(other.planogramId, planogramId) ||
                 other.planogramId == planogramId) &&
+            (identical(other.storeId, storeId) || other.storeId == storeId) &&
             (identical(other.capturedAt, capturedAt) ||
                 other.capturedAt == capturedAt) &&
             (identical(other.updatedAt, updatedAt) ||
@@ -305,6 +320,7 @@ class _$PhotoDocImpl implements _PhotoDoc {
       uploadStatus,
       approvalStatus,
       planogramId,
+      storeId,
       capturedAt,
       updatedAt);
 
@@ -329,11 +345,12 @@ abstract class _PhotoDoc implements PhotoDoc {
       {required final String id,
       required final String fixtureId,
       required final String phase,
-      required final String localPath,
-      final String remoteUrl,
+      final String? localPath,
+      final String? remoteUrl,
       final String uploadStatus,
       final String approvalStatus,
       final String? planogramId,
+      required final String storeId,
       required final DateTime capturedAt,
       required final DateTime updatedAt}) = _$PhotoDocImpl;
 
@@ -345,17 +362,19 @@ abstract class _PhotoDoc implements PhotoDoc {
   @override
   String get fixtureId;
   @override
-  String get phase; // before/after
+  String get phase;
   @override
-  String get localPath;
+  String? get localPath;
   @override
-  String get remoteUrl;
+  String? get remoteUrl;
   @override
   String get uploadStatus;
   @override
   String get approvalStatus;
   @override
   String? get planogramId;
+  @override
+  String get storeId;
   @override
   DateTime get capturedAt;
   @override
