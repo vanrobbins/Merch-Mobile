@@ -1,6 +1,6 @@
 # Merch Mobile — Project Context for Agents
 
-> **Read this first.** This document is the single source of truth for project state, past decisions, and architecture rules. Check it before exploring the codebase. Last updated: 2026-04-27 (v0.25 complete).
+> **Read this first.** This document is the single source of truth for project state, past decisions, and architecture rules. Check it before exploring the codebase. Last updated: 2026-04-27 (v0.29 — v0.2 complete).
 
 ---
 
@@ -17,13 +17,12 @@
 | Framework  | Flutter (Dart)                                      |
 | State      | Riverpod 2.5+ with `riverpod_annotation` (code-gen) |
 | Navigation | GoRouter 14+ with role-based guards                 |
-| Local DB   | Drift 2.18+ (SQLite, offline-first)                 |
-| Auth       | Firebase Auth 5+ with custom claims                 |
+| Database   | Cloud Firestore (real-time, replaces Drift/SQLite)  |
+| Auth       | Firebase Auth 5+                                    |
 | Photos     | Firebase Storage + image_picker                     |
-| HTTP       | Dio 5.5+ with Bearer token interceptor              |
 | Models     | `@freezed` with fromJson/toJson                     |
 
-**Key pattern:** `dart run build_runner build --delete-conflicting-outputs` regenerates Drift table companions, Riverpod providers, and Freezed models. Run this after any schema or annotation change.
+**Key pattern:** `dart run build_runner build --delete-conflicting-outputs` regenerates Riverpod providers and Freezed models. Run this after any `@riverpod` or `@freezed` annotation change.
 
 ---
 
@@ -31,34 +30,31 @@
 
 ```
 lib/
-├── main.dart                  # Firebase init + ProviderScope
+├── main.dart                  # Firebase init + ProviderScope + global error handlers
 ├── app.dart                   # MaterialApp.router + GoRouter
 ├── core/
-│   ├── database/
-│   │   ├── app_database.dart  # DriftDatabase — all tables + DAOs registered here
-│   │   ├── tables/            # One file per table
-│   │   └── daos/              # One DAO file per table
-│   ├── models/                # @freezed models
-│   ├── providers/             # appDatabaseProvider, authStateProvider,
-│   │                          # currentUserProvider, activeStoreProvider,
-│   │                          # currentMembershipProvider, connectivityProvider
+│   ├── models/                # @freezed models (Store, StoreMembership, Zone, …)
+│   ├── providers/             # authStateProvider, activeStoreIdProvider,
+│   │                          # activeStoreProvider, currentMembershipProvider,
+│   │                          # myStoresProvider
 │   ├── router/                # app_router.dart — GoRouter + AppRoutes/AppPaths constants
-│   ├── services/              # AuthService, ApiClient (Dio), SyncService
+│   ├── services/              # firestore_refs.dart (all collection paths)
 │   ├── theme/                 # AppTheme, design_tokens.dart
 │   └── widgets/               # AppScaffold (4-tab), RoleGuard, shared mm_* components
 └── features/
     ├── auth/                  # SplashScreen, LoginScreen
     ├── store/                 # StoreGateScreen, CreateStoreScreen, JoinStoreScreen,
-    │                          # PendingApprovalScreen, MembersScreen, GroupManagementScreen
-    ├── dashboard/             # DashboardScreen
-    ├── zone_manager/          # ZoneMapScreen, ZoneDetailScreen
+    │                          # PendingApprovalScreen, MembersScreen, GroupManagementScreen,
+    │                          # StoreSwitcherSheet
+    ├── dashboard/             # DashboardScreen, dashboard_provider.dart
+    ├── zone_manager/          # ZoneMapScreen, ZoneDetailScreen, zone_map_provider.dart
     ├── floor_builder/         # FloorBuilderScreen, BuilderCanvasPainter,
     │                          # FloorBuilderProvider
     ├── auto_build/            # AutoBuildScreen (stub)
     ├── planogram/             # PlanogramListScreen, PlanogramDetailScreen,
     │                          # ProposalReviewScreen
-    ├── product_catalog/       # CatalogScreen
-    └── photo_docs/            # PhotoListScreen, PhotoDetailScreen
+    ├── product_catalog/       # CatalogScreen, ProductCard
+    └── photo_docs/            # PhotoListScreen, PhotoDetailScreen, photo_provider.dart
 ```
 
 ---
@@ -76,30 +72,26 @@ lib/
 
 ---
 
-## Current Database Schema (schemaVersion = 4)
+## Firestore Collections
 
-Migration strategy: `destructiveFallback` — dev only; schema version bumps wipe and recreate the DB.
+All data lives in Firestore. `FirestoreRefs` (`lib/core/services/firestore_refs.dart`) is the single source of truth for all collection paths.
 
-### Tables currently in `app_database.dart`
+| Collection path | Key fields |
+| --- | --- |
+| `/stores/{storeId}` | name, inviteCode, ownerUid, widthFt?, depthFt?, entranceJson?, createdAt |
+| `/stores/{storeId}/memberships/{uid}` | uid, role, status, displayName, joinedAt |
+| `/stores/{storeId}/zones/{zoneId}` | name, color, shapePoints (JSON), zoneType, notes |
+| `/stores/{storeId}/fixtures/{fixtureId}` | fixtureType, posX, posY, rotation, widthFt, depthFt, label, zoneId?, planogramId?, planogramIdBack?, wallAdjacent, updatedAt |
+| `/stores/{storeId}/products/{productId}` | sku, name, category, imageUrl, sizesJson, stockQty, updatedAt |
+| `/stores/{storeId}/planograms/{planogramId}` | name, season |
+| `/stores/{storeId}/proposals/{proposalId}` | planogramId, proposedByUid, proposedAt, status, notes, slotChanges (JSON), reviewedByUid?, reviewedAt? |
+| `/stores/{storeId}/photos/{photoId}` | zoneId, imageUrl, notes, status, submittedByUid, createdAt |
+| `/stores/{storeId}/groups/{groupId}` | name, description, createdByUid, createdAt |
+| `/userStores/{uid}` | activeStoreIds: [storeId, …] — fast lookup of all stores a user belongs to |
 
-| Table                 | Key columns                                                                                                                                                                                                     |
-| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `stores`              | id, name, invite_code, created_at, owner_uid, **width_ft REAL nullable**, **depth_ft REAL nullable**, **entrance_json TEXT nullable** (JSON: `{wall,pos,widthFrac}`)                                            |
-| `store_memberships`   | id, store_id→stores, user_uid, role, display_name, status, joined_at                                                                                                                                            |
-| `store_groups`        | id, name, description, created_by_uid, created_at                                                                                                                                                               |
-| `store_group_members` | id, group_id→store_groups, store_id→stores, added_at, added_by_uid                                                                                                                                              |
-| `zones`               | id, store_id→stores, name, color, shape_points (JSON), zone_type, notes                                                                                                                                         |
-| `fixtures`            | id, **zone_id nullable**→zones, fixture_type, pos_x, pos_y, rotation, width_ft, depth_ft, label, store_id→stores, planogram_id nullable, **planogram_id_back nullable**, **wall_adjacent BOOL default false**, updated_at |
-| `products`            | id, sku, name, category, image_url, sizes_json, stock_qty, store_id→stores, updated_at                                                                                                                          |
-| `planograms`          | id, store_id→stores, name, season, (slots via separate table)                                                                                                                                                   |
-| `photo_docs`          | id, store_id→stores, zone_id, image_url, notes, status, submitted_by_uid, created_at                                                                                                                            |
-| `planogram_proposals` | id, planogram_id→planograms, store_id→stores, proposed_by_uid, proposed_at, status, notes, slot_changes (JSON), reviewed_by_uid, reviewed_at                                                                   |
+### Active store flow
 
-> **Note:** `planogram_slots` data lives in planogram detail logic — verify exact table name in `lib/core/database/tables/` before writing queries.
-
-### DAOs registered
-
-ZonesDao, FixturesDao, ProductsDao, PlanogramsDao, PhotoDocsDao, StoresDao, StoreMembershipsDao, StoreGroupsDao, PlanogramProposalsDao
+`activeStoreIdProvider` persists the selected storeId in SharedPreferences. On fresh login (storeId null), `StoreGateScreen` loads `myStoresProvider` which reads `/userStores/{uid}`. If that document is empty it runs a one-time migration scan (reads all stores, checks `/stores/{id}/memberships/{uid}`) and populates `/userStores/{uid}`. All future logins use the fast path.
 
 ---
 
@@ -127,7 +119,11 @@ ZonesDao, FixturesDao, ProductsDao, PlanogramsDao, PhotoDocsDao, StoresDao, Stor
 /home/groups                   → GroupManagementScreen
 ```
 
-Router redirect: unauthenticated → `/login`; logged in + no active_store_id in SharedPreferences → `/store-gate`.
+Router redirect logic:
+- Unauthenticated → `/login`
+- Logged in + no `activeStoreId` → `/store-gate` (shows existing stores from `myStoresProvider`)
+- Logged in + `activeStoreId` set + membership loaded as `pending` → `/store-gate/pending`
+- Otherwise → pass through to requested route
 
 ---
 
@@ -155,21 +151,19 @@ Three roles on `store_memberships.role`: `coordinator` | `manager` | `staff`.
 
 Foundation scaffold. Firebase Auth, GoRouter skeleton, Drift DB stub, 4-tab AppScaffold, all feature screen stubs, RoleGuard, AppTheme.
 
-### v0.2 — Partial (branch: `feature/v0.2`) ⚠️
+### v0.2 — Complete ✅ (branch: `feature/v0.2`, tagged v0.29)
 
 Spec: `docs/superpowers/specs/2026-04-13-v0.2-design.md`
 
 | Agent                                  | Scope                                                                                                                                                      | Status                                      |
 | -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------- |
-| Agent 1 — Foundation & Schema          | Stores, memberships, store groups, planogram proposals tables + DAOs; store onboarding flow; `activeStoreProvider`, `currentMembershipProvider`; RoleGuard | ✅ Complete                                 |
+| Agent 1 — Foundation & Schema          | Stores, memberships, store groups, planogram proposals; store onboarding flow; `activeStoreProvider`, `currentMembershipProvider`; RoleGuard               | ✅ Complete                                 |
 | Agent 2 — Zone Manager                 | Polygon canvas, vertex drag reshape, zone type selector, zone shape picker, ZoneDetailScreen                                                               | ✅ Complete                                 |
-| Agent 3 — Floor Builder + Catalog      | Fixtures DB-backed, drag/move/rotate/delete, Product CRUD                                                                                                  | ✅ Complete (auto_build stub still pending) |
-| Agent 4 — Planogram Editor + Dashboard | Slot editing, ProductSlotPicker, proposal flow, DashboardScreen stats                                                                                      | ❌ Not started                              |
+| Agent 3 — Floor Builder + Catalog      | Fixtures Firestore-backed, drag/move/rotate/delete, Product CRUD                                                                                           | ✅ Complete (auto_build stub still pending) |
+| Agent 4 — Planogram Editor + Dashboard | Slot editing, ProductSlotPicker, proposal flow, DashboardScreen stats                                                                                      | ✅ Complete (dashboard stats live)          |
 | Agent 5 — Role Enforcement             | Route guards, RoleGuard audit                                                                                                                              | ✅ Complete                                 |
-| Agent 6 — UI Polish                    | Design token pass, empty/error states                                                                                                                      | ❌ Not started                              |
-| Agent 7 — Tests                        | DAO + widget + integration tests                                                                                                                           | ❌ Not started                              |
-
-**What this means:** Planogram detail is a stub. Dashboard is a stub. No tests exist. Most UI is functional but unpolished.
+| Agent 6 — Firestore Migration          | Full Drift → Firestore rewrite; store membership reliability; `userStores` collection; invite code on members screen; pending approval flow                | ✅ Complete (v0.29)                         |
+| Agent 7 — Tests                        | Integration tests                                                                                                                                          | ✅ Basic tests added                        |
 
 ### v0.25 — Complete ✅ (branch: `feature/v0.2`)
 
@@ -192,7 +186,7 @@ Plans: `docs/superpowers/plans/2026-04-27-v0.3-*.md`
 
 Adds the VM merchandising layer: brand color palettes, product templates with garment silhouettes, mannequin placement (5 body types, floor/wall/platform mount), and Mannequin Lock (outfit slot assignment per body part). Agent 3 also delivers: undo/redo (command pattern, 20-deep stack), multi-select fixtures (long-press to enter, delete all / move group), and zone overlap validation (SAT polygon check, red warning tint).
 
-**Prerequisite:** v0.25 merged first, then v0.2 Agents 4/6/7 completed, then v0.3.
+**Prerequisite:** v0.2 complete ✅ — ready to start v0.3.
 
 ---
 
@@ -206,19 +200,19 @@ Adds the VM merchandising layer: brand color palettes, product templates with ga
 
 ### 2. Store-scoped queries
 
-All DAOs must scope queries to `storeId` via `activeStoreProvider`. Never return cross-store data.
+All Firestore queries must scope to `storeId` via `activeStoreIdProvider`. Never return cross-store data. Use `FirestoreRefs` helpers — never construct collection paths by hand.
 
 ### 3. RoleGuard wrapping
 
 Every write action (FAB, edit button, delete swipe) must be wrapped in `RoleGuard`. Do not use raw role checks in widget build methods — always use the widget.
 
-### 4. Destructive migration (dev only)
+### 4. Firestore schema changes
 
-`schemaVersion` bump + `destructiveFallback` is intentional for dev. Any schema change requires a version bump. Do not add incremental `MigrationStrategy` steps — just bump and wipe.
+There is no migration system — Firestore is schemaless. Adding a field requires updating `FirestoreRefs`/model fromDoc/toFirestore and deploying updated security rules if the field affects read/write access. Document the change in this file.
 
 ### 5. Code generation
 
-After any change to Drift table classes, `@freezed` models, or `@riverpod` providers: run `dart run build_runner build --delete-conflicting-outputs`. The `.g.dart` files are committed to the repo.
+After any change to `@freezed` models or `@riverpod` providers: run `dart run build_runner build --delete-conflicting-outputs`. The `.g.dart` files are committed to the repo.
 
 ### 6. File ownership (multi-agent sessions)
 
@@ -281,11 +275,10 @@ After any change to Drift table classes, `@freezed` models, or `@riverpod` provi
 
 ## Pending Work (ordered)
 
-1. **v0.2 Agent 4** — Planogram Editor + Dashboard (spec: `docs/superpowers/specs/2026-04-13-v0.2-design.md` §4–5)
-2. **v0.2 Agent 6** — UI Polish pass
-3. **v0.2 Agent 7** — Tests (no test suite yet)
-4. **v0.3** — VM merchandising layer (plans at `docs/superpowers/plans/2026-04-27-v0.3-*.md`)
-   - Prerequisite: v0.25 ✅ + v0.2 Agents 4/6/7 complete
+1. **Merge `feature/v0.2` → `main`** — v0.2 is complete at tag v0.29
+2. **v0.3** — VM merchandising layer (plans at `docs/superpowers/plans/2026-04-27-v0.3-*.md`)
+   - Brand color palettes, product templates, mannequin placement, Mannequin Lock
+   - Undo/redo (command pattern), multi-select fixtures, zone overlap validation
 
 ---
 
