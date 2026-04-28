@@ -1,9 +1,8 @@
-import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../core/database/app_database.dart';
-import '../../core/providers/database_provider.dart';
+import '../../core/models/store_membership.dart';
 import '../../core/providers/store_provider.dart';
+import '../../core/services/firestore_refs.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/design_tokens.dart';
 import '../../core/widgets/mm_empty_state.dart';
@@ -15,12 +14,21 @@ class MembersScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final storeId = ref.watch(activeStoreIdProvider).value;
     if (storeId == null) return const SizedBox();
-    final db = ref.watch(appDatabaseProvider);
     final pending = ref.watch(
-      StreamProvider((ref) => db.storeMembershipsDao.watchPending(storeId)),
+      StreamProvider((ref) => FirestoreRefs.memberships(storeId)
+          .where('status', isEqualTo: 'pending')
+          .snapshots()
+          .map((s) => s.docs
+              .map((d) => StoreMembershipFirestore.fromDoc(d, storeId))
+              .toList())),
     );
     final members = ref.watch(
-      StreamProvider((ref) => db.storeMembershipsDao.watchByStore(storeId)),
+      StreamProvider((ref) => FirestoreRefs.memberships(storeId)
+          .where('status', isEqualTo: 'active')
+          .snapshots()
+          .map((s) => s.docs
+              .map((d) => StoreMembershipFirestore.fromDoc(d, storeId))
+              .toList())),
     );
     final myRole = ref.watch(currentMembershipProvider).value?.role ?? 'staff';
 
@@ -126,9 +134,7 @@ class MembersScreen extends ConsumerWidget {
           ),
           members.when(
             data: (list) {
-              final active =
-                  list.where((m) => m.status == 'active').toList();
-              if (active.isEmpty) {
+              if (list.isEmpty) {
                 return const MmEmptyState(
                   icon: Icons.people_outline,
                   headline: 'No Active Members',
@@ -137,12 +143,12 @@ class MembersScreen extends ConsumerWidget {
               }
               return Column(
                 children: [
-                  for (var i = 0; i < active.length; i++) ...[
+                  for (var i = 0; i < list.length; i++) ...[
                     _ActiveMemberTile(
-                      membership: active[i],
+                      membership: list[i],
                       myRole: myRole,
                     ),
-                    if (i < active.length - 1)
+                    if (i < list.length - 1)
                       const Divider(
                           height: 1, indent: DesignTokens.spaceMd),
                   ],
@@ -169,7 +175,7 @@ class MembersScreen extends ConsumerWidget {
 
 class _PendingMemberTile extends ConsumerWidget {
   const _PendingMemberTile({required this.membership, required this.myRole});
-  final StoreMembershipsTableData membership;
+  final StoreMembership membership;
   final String myRole;
 
   @override
@@ -212,10 +218,9 @@ class _PendingMemberTile extends ConsumerWidget {
   }
 
   void _deny(WidgetRef ref) {
-    final db = ref.read(appDatabaseProvider);
-    db.storeMembershipsDao.upsert(membership.toCompanion(true).copyWith(
-          status: const Value('rejected'),
-        ));
+    FirestoreRefs.memberships(membership.storeId)
+        .doc(membership.uid)
+        .update({'status': 'rejected'});
   }
 
   void _showApproveDialog(BuildContext context, WidgetRef ref) {
@@ -256,16 +261,13 @@ class _PendingMemberTile extends ConsumerWidget {
   }
 
   void _approve(WidgetRef ref, String role) {
-    final db = ref.read(appDatabaseProvider);
-    db.storeMembershipsDao.upsert(membership.toCompanion(true).copyWith(
-          status: const Value('active'),
-          role: Value(role),
-        ));
+    FirestoreRefs.memberships(membership.storeId)
+        .doc(membership.uid)
+        .update({'status': 'active', 'role': role});
   }
 
-  String _timeAgo(int ms) {
-    final diff = DateTime.now()
-        .difference(DateTime.fromMillisecondsSinceEpoch(ms));
+  String _timeAgo(DateTime dt) {
+    final diff = DateTime.now().difference(dt);
     if (diff.inMinutes < 60) return '${diff.inMinutes} min ago';
     if (diff.inHours < 24) return '${diff.inHours} hr ago';
     return '${diff.inDays}d ago';
@@ -274,7 +276,7 @@ class _PendingMemberTile extends ConsumerWidget {
 
 class _ActiveMemberTile extends ConsumerWidget {
   const _ActiveMemberTile({required this.membership, required this.myRole});
-  final StoreMembershipsTableData membership;
+  final StoreMembership membership;
   final String myRole;
 
   @override
@@ -316,9 +318,9 @@ class _ActiveMemberTile extends ConsumerWidget {
             ElevatedButton(
               onPressed: () {
                 Navigator.pop(ctx);
-                final db = ref.read(appDatabaseProvider);
-                db.storeMembershipsDao.upsert(
-                    membership.toCompanion(true).copyWith(role: Value(selectedRole)));
+                FirestoreRefs.memberships(membership.storeId)
+                    .doc(membership.uid)
+                    .update({'role': selectedRole});
               },
               child: const Text('SAVE'),
             ),

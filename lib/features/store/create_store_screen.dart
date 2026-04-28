@@ -3,11 +3,12 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:uuid/uuid.dart';
-import '../../core/database/app_database.dart';
+import '../../core/models/store.dart';
+import '../../core/models/store_membership.dart';
 import '../../core/providers/auth_provider.dart';
-import '../../core/providers/database_provider.dart';
 import '../../core/providers/store_provider.dart';
 import '../../core/router/app_router.dart';
+import '../../core/services/firestore_refs.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/design_tokens.dart';
 import '../../core/utils/invite_code_util.dart';
@@ -37,28 +38,29 @@ class _CreateStoreScreenState extends ConsumerState<CreateStoreScreen> {
     try {
       final user = ref.read(authStateProvider).value;
       if (user == null) return;
-      final db = ref.read(appDatabaseProvider);
       final code = generateInviteCode();
       final storeId = const Uuid().v4();
-      final now = DateTime.now().millisecondsSinceEpoch;
+      final now = DateTime.now();
 
-      await db.storesDao.upsert(StoresTableCompanion.insert(
+      final store = Store(
         id: storeId,
         name: name,
         inviteCode: code,
-        createdAt: now,
         ownerUid: user.uid,
-      ));
+        createdAt: now,
+      );
+      await FirestoreRefs.store(storeId).set(store.toFirestore());
 
-      await db.storeMembershipsDao.upsert(StoreMembershipsTableCompanion.insert(
-        id: const Uuid().v4(),
+      final membership = StoreMembership(
+        id: user.uid,
         storeId: storeId,
-        userUid: user.uid,
+        uid: user.uid,
         role: 'coordinator',
-        displayName: user.displayName ?? user.email ?? 'Coordinator',
         status: 'active',
+        displayName: user.displayName ?? user.email ?? 'Coordinator',
         joinedAt: now,
-      ));
+      );
+      await FirestoreRefs.memberships(storeId).doc(user.uid).set(membership.toFirestore());
 
       await ref.read(activeStoreIdProvider.notifier).setStore(storeId);
       setState(() => _generatedCode = code);

@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../core/database/app_database.dart';
-import '../../core/providers/auth_provider.dart';
-import '../../core/providers/database_provider.dart';
+import '../../core/models/store.dart';
 import '../../core/providers/store_provider.dart';
 import '../../core/router/app_router.dart';
 import '../../core/theme/app_theme.dart';
@@ -93,29 +91,19 @@ class StoreSwitcherSheet extends ConsumerWidget {
   }
 }
 
-/// Single store row with a role badge pulled from the user's membership.
+/// Single store row — role badge is derived from myStoresProvider membership data.
 class _StoreTile extends ConsumerWidget {
   const _StoreTile({required this.store, required this.isActive});
-  final StoresTableData store;
+  final Store store;
   final bool isActive;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Pull the current user's membership for this store to derive the role badge.
-    final db = ref.watch(appDatabaseProvider);
-    final user = ref.watch(authStateProvider).value;
-    final memberships = user == null
-        ? const <StoreMembershipsTableData>[]
-        : (ref
-                .watch(StreamProvider<List<StoreMembershipsTableData>>(
-                  (r) => db.storeMembershipsDao.watchByUser(user.uid),
-                ))
-                .value ??
-            const <StoreMembershipsTableData>[]);
-    final m = memberships
-        .where((x) => x.storeId == store.id && x.status == 'active')
-        .firstOrNull;
-    final role = m?.role ?? '';
+    // The active store's membership is available via currentMembershipProvider.
+    // For non-active stores, we show no badge (role unknown without extra query).
+    final role = isActive
+        ? (ref.watch(currentMembershipProvider).value?.role ?? '')
+        : '';
 
     return ListTile(
       tileColor: isActive ? AppTheme.canvasBg : null,

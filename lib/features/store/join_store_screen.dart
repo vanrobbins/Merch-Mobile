@@ -1,22 +1,20 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:uuid/uuid.dart';
-import '../../core/database/app_database.dart';
-import '../../core/providers/auth_provider.dart';
-import '../../core/providers/database_provider.dart';
 import '../../core/router/app_router.dart';
+import '../../core/services/firestore_refs.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/design_tokens.dart';
 
-class JoinStoreScreen extends ConsumerStatefulWidget {
+class JoinStoreScreen extends StatefulWidget {
   const JoinStoreScreen({super.key});
 
   @override
-  ConsumerState<JoinStoreScreen> createState() => _JoinStoreScreenState();
+  State<JoinStoreScreen> createState() => _JoinStoreScreenState();
 }
 
-class _JoinStoreScreenState extends ConsumerState<JoinStoreScreen> {
+class _JoinStoreScreenState extends State<JoinStoreScreen> {
   final _codeCtrl = TextEditingController();
   bool _loading = false;
   String? _error;
@@ -35,32 +33,37 @@ class _JoinStoreScreenState extends ConsumerState<JoinStoreScreen> {
     }
     setState(() { _loading = true; _error = null; });
     try {
-      final db = ref.read(appDatabaseProvider);
-      final store = await db.storesDao.findByInviteCode(code);
-      if (store == null) {
+      final snap = await FirebaseFirestore.instance
+          .collection('stores')
+          .where('inviteCode', isEqualTo: code)
+          .limit(1)
+          .get();
+      if (snap.docs.isEmpty) {
         setState(() => _error = 'Invalid invite code.');
         return;
       }
-      final user = ref.read(authStateProvider).value;
+      final storeDoc = snap.docs.first;
+      final storeId = storeDoc.id;
+      final user = FirebaseAuth.instance.currentUser;
       if (user == null) return;
 
       // Check for existing membership
-      final existing = await db.storeMembershipsDao.findActive(store.id, user.uid);
-      if (existing != null) {
-        // Already a member — just navigate
-        if (mounted) context.goNamed(AppRoutes.zoneMap);
-        return;
+      final existingSnap = await FirestoreRefs.memberships(storeId).doc(user.uid).get();
+      if (existingSnap.exists) {
+        final status = existingSnap.data()?['status'] as String?;
+        if (status == 'active') {
+          // Already a member — just navigate
+          if (mounted) context.goNamed(AppRoutes.zoneMap);
+          return;
+        }
       }
 
-      await db.storeMembershipsDao.upsert(StoreMembershipsTableCompanion.insert(
-        id: const Uuid().v4(),
-        storeId: store.id,
-        userUid: user.uid,
-        role: 'staff',
-        displayName: user.displayName ?? user.email ?? 'Staff',
-        status: 'pending',
-        joinedAt: DateTime.now().millisecondsSinceEpoch,
-      ));
+      await FirestoreRefs.memberships(storeId).doc(user.uid).set({
+        'role': 'staff',
+        'status': 'pending',
+        'displayName': user.displayName ?? user.email ?? 'Staff',
+        'joinedAt': Timestamp.now(),
+      });
 
       if (mounted) context.goNamed(AppRoutes.pendingApproval);
     } finally {
