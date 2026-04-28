@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:drift/drift.dart' show Value;
 import 'package:uuid/uuid.dart';
-import '../../core/database/app_database.dart';
-import '../../core/providers/database_provider.dart';
+import '../../core/models/product.dart';
 import '../../core/providers/store_provider.dart';
+import '../../core/services/firestore_refs.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/design_tokens.dart';
 
@@ -23,7 +22,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
   final _categoryCtrl = TextEditingController();
   final _stockCtrl = TextEditingController(text: '0');
   bool _loading = false;
-  ProductsTableData? _existing;
+  Product? _existing;
 
   @override
   void initState() {
@@ -32,9 +31,11 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
   }
 
   Future<void> _loadExisting() async {
-    final db = ref.read(appDatabaseProvider);
-    final product = await db.productsDao.findById(widget.productId!);
-    if (product != null && mounted) {
+    final storeId = ref.read(activeStoreIdProvider).value ?? '';
+    final snap =
+        await FirestoreRefs.products(storeId).doc(widget.productId!).get();
+    if (snap.exists && mounted) {
+      final product = ProductFirestore.fromDoc(snap);
       setState(() {
         _existing = product;
         _nameCtrl.text = product.name;
@@ -58,17 +59,18 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _loading = true);
     try {
-      final db = ref.read(appDatabaseProvider);
       final storeId = ref.read(activeStoreIdProvider).value ?? '';
-      await db.productsDao.upsert(ProductsTableCompanion.insert(
+      final product = Product(
         id: _existing?.id ?? const Uuid().v4(),
         sku: _skuCtrl.text.trim(),
         name: _nameCtrl.text.trim(),
         category: _categoryCtrl.text.trim(),
-        storeId: Value(storeId),
-        stockQty: Value(int.tryParse(_stockCtrl.text) ?? 0),
+        stockQty: int.tryParse(_stockCtrl.text) ?? 0,
         updatedAt: DateTime.now(),
-      ));
+      );
+      await FirestoreRefs.products(storeId)
+          .doc(product.id)
+          .set(product.toFirestore());
       if (mounted) Navigator.pop(context);
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -96,8 +98,8 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
       ),
     );
     if (confirm == true) {
-      final db = ref.read(appDatabaseProvider);
-      await db.productsDao.deleteById(_existing!.id);
+      final storeId = ref.read(activeStoreIdProvider).value ?? '';
+      await FirestoreRefs.products(storeId).doc(_existing!.id).delete();
       if (mounted) Navigator.pop(context);
     }
   }

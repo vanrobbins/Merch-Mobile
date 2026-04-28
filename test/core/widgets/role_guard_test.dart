@@ -1,33 +1,33 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:merch_mobile/core/database/app_database.dart';
+import 'package:merch_mobile/core/models/store_membership.dart';
 import 'package:merch_mobile/core/providers/store_provider.dart';
 import 'package:merch_mobile/core/widgets/role_guard.dart';
 
-/// Builds a [StoreMembershipsTableData] with the given role/status.
-StoreMembershipsTableData _membership({
+/// Builds a [StoreMembership] with the given role/status.
+StoreMembership _membership({
   String role = 'staff',
   String status = 'active',
 }) =>
-    StoreMembershipsTableData(
+    StoreMembership(
       id: 'test',
       storeId: 'store',
-      userUid: 'user',
+      uid: 'user',
       role: role,
       displayName: 'Test',
       status: status,
-      joinedAt: 0,
+      joinedAt: DateTime(2024),
     );
 
 /// Creates a [currentMembershipProvider] override that streams the given
 /// membership (or null for the "no membership" state).
-Override _membershipOverride(StoreMembershipsTableData? m) =>
+Override _membershipOverride(StoreMembership? m) =>
     currentMembershipProvider.overrideWith((ref) => Stream.value(m));
 
 /// Wraps [child] in a [ProviderScope] with the membership override applied.
 Widget _buildApp({
-  StoreMembershipsTableData? membership,
+  StoreMembership? membership,
   required Widget child,
 }) =>
     ProviderScope(

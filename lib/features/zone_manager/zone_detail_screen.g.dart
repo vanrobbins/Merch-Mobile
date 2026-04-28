@@ -6,7 +6,7 @@ part of 'zone_detail_screen.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$zoneDetailZonesHash() => r'89b6c7c882cac40b0624f0c00e97cb2ad57c7eee';
+String _$zoneDetailZonesHash() => r'6b4829ba83e9b111a687060ecd055703a8c9daab';
 
 /// Copied from Dart SDK
 class _SystemHash {
@@ -34,7 +34,7 @@ class _SystemHash {
 const zoneDetailZonesProvider = ZoneDetailZonesFamily();
 
 /// See also [zoneDetailZones].
-class ZoneDetailZonesFamily extends Family<AsyncValue<List<ZonesTableData>>> {
+class ZoneDetailZonesFamily extends Family<AsyncValue<List<StoreZone>>> {
   /// See also [zoneDetailZones].
   const ZoneDetailZonesFamily();
 
@@ -73,7 +73,7 @@ class ZoneDetailZonesFamily extends Family<AsyncValue<List<ZonesTableData>>> {
 
 /// See also [zoneDetailZones].
 class ZoneDetailZonesProvider
-    extends AutoDisposeStreamProvider<List<ZonesTableData>> {
+    extends AutoDisposeStreamProvider<List<StoreZone>> {
   /// See also [zoneDetailZones].
   ZoneDetailZonesProvider(
     String storeId,
@@ -108,7 +108,7 @@ class ZoneDetailZonesProvider
 
   @override
   Override overrideWith(
-    Stream<List<ZonesTableData>> Function(ZoneDetailZonesRef provider) create,
+    Stream<List<StoreZone>> Function(ZoneDetailZonesRef provider) create,
   ) {
     return ProviderOverride(
       origin: this,
@@ -125,7 +125,7 @@ class ZoneDetailZonesProvider
   }
 
   @override
-  AutoDisposeStreamProviderElement<List<ZonesTableData>> createElement() {
+  AutoDisposeStreamProviderElement<List<StoreZone>> createElement() {
     return _ZoneDetailZonesProviderElement(this);
   }
 
@@ -145,13 +145,13 @@ class ZoneDetailZonesProvider
 
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
-mixin ZoneDetailZonesRef on AutoDisposeStreamProviderRef<List<ZonesTableData>> {
+mixin ZoneDetailZonesRef on AutoDisposeStreamProviderRef<List<StoreZone>> {
   /// The parameter `storeId` of this provider.
   String get storeId;
 }
 
 class _ZoneDetailZonesProviderElement
-    extends AutoDisposeStreamProviderElement<List<ZonesTableData>>
+    extends AutoDisposeStreamProviderElement<List<StoreZone>>
     with ZoneDetailZonesRef {
   _ZoneDetailZonesProviderElement(super.provider);
 

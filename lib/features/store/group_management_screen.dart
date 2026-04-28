@@ -1,11 +1,10 @@
-import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
-import '../../core/database/app_database.dart';
+import '../../core/models/store_group.dart';
 import '../../core/providers/auth_provider.dart';
-import '../../core/providers/database_provider.dart';
 import '../../core/providers/store_provider.dart';
+import '../../core/services/firestore_refs.dart';
 import '../../core/theme/app_theme.dart';
 
 class GroupManagementScreen extends ConsumerWidget {
@@ -13,10 +12,14 @@ class GroupManagementScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final db = ref.watch(appDatabaseProvider);
     final storeId = ref.watch(activeStoreIdProvider).value ?? '';
     final groups = ref.watch(
-      StreamProvider((ref) => db.storeGroupsDao.watchGroupsForStore(storeId)),
+      StreamProvider<List<StoreGroup>>((ref) {
+        if (storeId.isEmpty) return Stream.value([]);
+        return FirestoreRefs.groups(storeId)
+            .snapshots()
+            .map((s) => s.docs.map(StoreGroupFirestore.fromDoc).toList());
+      }),
     );
 
     return Scaffold(
@@ -28,7 +31,9 @@ class GroupManagementScreen extends ConsumerWidget {
                 children: list
                     .map((g) => ListTile(
                           title: Text(g.name),
-                          subtitle: g.description != null ? Text(g.description!) : null,
+                          subtitle: g.description != null
+                              ? Text(g.description!)
+                              : null,
                         ))
                     .toList(),
               ),
@@ -54,32 +59,38 @@ class GroupManagementScreen extends ConsumerWidget {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: 'Group name')),
-            TextField(controller: descCtrl, decoration: const InputDecoration(labelText: 'Description (optional)')),
+            TextField(
+              controller: nameCtrl,
+              decoration: const InputDecoration(labelText: 'Group name'),
+            ),
+            TextField(
+              controller: descCtrl,
+              decoration:
+                  const InputDecoration(labelText: 'Description (optional)'),
+            ),
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('CANCEL')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('CANCEL'),
+          ),
           ElevatedButton(
             onPressed: () async {
-              final db = ref.read(appDatabaseProvider);
               final user = ref.read(authStateProvider).value;
-              final now = DateTime.now().millisecondsSinceEpoch;
               final groupId = const Uuid().v4();
-              await db.storeGroupsDao.upsertGroup(StoreGroupsTableCompanion.insert(
+              final group = StoreGroup(
                 id: groupId,
                 name: nameCtrl.text.trim(),
-                description: Value(descCtrl.text.trim().isEmpty ? null : descCtrl.text.trim()),
+                description: descCtrl.text.trim().isEmpty
+                    ? null
+                    : descCtrl.text.trim(),
                 createdByUid: user?.uid ?? '',
-                createdAt: now,
-              ));
-              await db.storeGroupsDao.addMember(StoreGroupMembersTableCompanion.insert(
-                id: const Uuid().v4(),
-                groupId: groupId,
-                storeId: storeId,
-                addedAt: now,
-                addedByUid: user?.uid ?? '',
-              ));
+                createdAt: DateTime.now().millisecondsSinceEpoch,
+              );
+              await FirestoreRefs.groups(storeId)
+                  .doc(groupId)
+                  .set(group.toFirestore());
               if (ctx.mounted) Navigator.pop(ctx);
             },
             style: ElevatedButton.styleFrom(backgroundColor: AppTheme.accent),

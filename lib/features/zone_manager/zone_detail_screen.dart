@@ -4,10 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import '../../core/database/app_database.dart';
-import '../../core/providers/database_provider.dart';
+import '../../core/models/store_zone.dart';
 import '../../core/providers/store_provider.dart';
 import '../../core/router/app_router.dart';
+import '../../core/services/firestore_refs.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/design_tokens.dart';
 import '../../core/widgets/role_guard.dart';
@@ -20,8 +20,12 @@ import 'zone_shape.dart';
 part 'zone_detail_screen.g.dart';
 
 @riverpod
-Stream<List<ZonesTableData>> zoneDetailZones(Ref ref, String storeId) =>
-    ref.watch(appDatabaseProvider).zonesDao.watchByStore(storeId);
+Stream<List<StoreZone>> zoneDetailZones(Ref ref, String storeId) {
+  if (storeId.isEmpty) return Stream.value([]);
+  return FirestoreRefs.zones(storeId)
+      .snapshots()
+      .map((s) => s.docs.map(StoreZoneFirestore.fromDoc).toList());
+}
 
 class ZoneDetailScreen extends ConsumerStatefulWidget {
   const ZoneDetailScreen({super.key, required this.zoneId});

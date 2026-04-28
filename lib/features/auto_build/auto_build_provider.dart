@@ -1,11 +1,12 @@
 import 'dart:convert';
-import 'package:drift/drift.dart' show Value;
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
-import '../../core/database/app_database.dart';
 import '../../core/models/fixture.dart';
-import '../../core/providers/database_provider.dart';
+import '../../core/models/store_zone.dart';
+import '../../core/providers/store_provider.dart';
+import '../../core/services/firestore_refs.dart';
 
 part 'auto_build_provider.g.dart';
 
@@ -38,42 +39,6 @@ class AutoBuildState {
 }
 
 // ---------------------------------------------------------------------------
-// Row <-> Domain model helpers (same pattern as floor_builder_provider)
-// ---------------------------------------------------------------------------
-
-Fixture _rowToFixture(FixturesTableData r) => Fixture(
-      id: r.id,
-      zoneId: r.zoneId,
-      fixtureType: r.fixtureType,
-      posX: r.posX,
-      posY: r.posY,
-      rotation: r.rotation,
-      widthFt: r.widthFt,
-      depthFt: r.depthFt,
-      label: r.label,
-      updatedAt: r.updatedAt,
-      planogramId: r.planogramId,
-      planogramIdBack: r.planogramIdBack,
-      wallAdjacent: r.wallAdjacent,
-    );
-
-FixturesTableCompanion _fixtureToCompanion(Fixture f) => FixturesTableCompanion(
-      id: Value(f.id),
-      zoneId: Value(f.zoneId),
-      fixtureType: Value(f.fixtureType),
-      posX: Value(f.posX),
-      posY: Value(f.posY),
-      rotation: Value(f.rotation),
-      widthFt: Value(f.widthFt),
-      depthFt: Value(f.depthFt),
-      label: Value(f.label),
-      updatedAt: Value(f.updatedAt),
-      planogramId: Value(f.planogramId),
-      planogramIdBack: Value(f.planogramIdBack),
-      wallAdjacent: Value(f.wallAdjacent),
-    );
-
-// ---------------------------------------------------------------------------
 // Notifier
 // ---------------------------------------------------------------------------
 
@@ -97,19 +62,19 @@ class AutoBuildNotifier extends _$AutoBuildNotifier {
     state = state.copyWith(isComputing: true);
 
     try {
-      final db = ref.read(appDatabaseProvider);
+      final storeId = ref.read(activeStoreIdProvider).value ?? '';
 
-      // 1. Load current fixtures for this zone
-      final currentRows =
-          await db.fixturesDao.watchByParentId(zoneId).first;
-      final current = currentRows.map(_rowToFixture).toList();
+      // 1. Load current fixtures for this zone via Firestore
+      final fixtureSnap = await FirestoreRefs.fixtures(storeId)
+          .where('zoneId', isEqualTo: zoneId)
+          .get();
+      final current = fixtureSnap.docs.map(FixtureFirestore.fromDoc).toList();
 
       // 2. Find the zone to get its bounds
-      final allZoneRows = await db.zonesDao.watchAll().first;
-      final ZonesTableData? zoneRow = allZoneRows.cast<ZonesTableData?>().firstWhere(
-            (r) => r?.id == zoneId,
-            orElse: () => null,
-          );
+      final zoneSnap =
+          await FirestoreRefs.zones(storeId).doc(zoneId).get();
+      final StoreZone? zone =
+          zoneSnap.exists ? StoreZoneFirestore.fromDoc(zoneSnap) : null;
 
       // Zone dimensions in feet — fall back to sensible defaults if zone
       // is not found. posX/posY/width/height are stored as normalized
@@ -122,9 +87,9 @@ class AutoBuildNotifier extends _$AutoBuildNotifier {
       double zoneFtW = storeFtW * 0.4; // default ~40% of store width
       double zoneFtH = storeFtH * 0.4;
 
-      if (zoneRow != null) {
-        zoneFtW = zoneRow.width * storeFtW;
-        zoneFtH = zoneRow.height * storeFtH;
+      if (zone != null) {
+        zoneFtW = zone.width * storeFtW;
+        zoneFtH = zone.height * storeFtH;
       }
 
       // 3. Build suggested layout
@@ -251,13 +216,16 @@ class AutoBuildNotifier extends _$AutoBuildNotifier {
   }
 
   // -------------------------------------------------------------------------
-  // applyAutoLayout — bulk-upsert suggestedFixtures into the database
+  // applyAutoLayout — bulk-upsert suggestedFixtures into Firestore
   // -------------------------------------------------------------------------
   Future<void> applyAutoLayout(String zoneId) async {
-    final db = ref.read(appDatabaseProvider);
+    final storeId = ref.read(activeStoreIdProvider).value ?? '';
+    final batch = FirebaseFirestore.instance.batch();
     for (final fixture in state.suggestedFixtures) {
-      await db.fixturesDao.upsert(_fixtureToCompanion(fixture));
+      final ref = FirestoreRefs.fixtures(storeId).doc(fixture.id);
+      batch.set(ref, fixture.toFirestore(), SetOptions(merge: true));
     }
+    await batch.commit();
   }
 
   // -------------------------------------------------------------------------
@@ -265,9 +233,7 @@ class AutoBuildNotifier extends _$AutoBuildNotifier {
   // -------------------------------------------------------------------------
   Future<void> saveAsPreset(String name, String zoneId) async {
     final prefs = await SharedPreferences.getInstance();
-    final jsonList = state.suggestedFixtures
-        .map((f) => f.toJson())
-        .toList();
+    final jsonList = state.suggestedFixtures.map((f) => f.toJson()).toList();
     await prefs.setString('preset_$name', jsonEncode(jsonList));
   }
 

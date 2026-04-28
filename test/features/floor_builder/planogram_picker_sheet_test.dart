@@ -1,36 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:merch_mobile/core/database/app_database.dart';
+import 'package:merch_mobile/core/models/planogram.dart';
 import 'package:merch_mobile/features/floor_builder/planogram_picker_sheet.dart';
 
-import '../../helpers/test_database.dart';
-
 void main() {
-  late AppDatabase db;
-  late List<PlanogramsTableData> planograms;
-
-  setUp(() async {
-    // setUp runs outside testWidgets' FakeAsync, so real async (Drift/SQLite)
-    // works correctly here.
-    db = createTestDatabase();
-    await db.planogramsDao.upsert(PlanogramsTableCompanion.insert(
+  final planograms = [
+    Planogram(
       id: 'p1',
       fixtureId: 'fixture_a',
       title: 'Spring Collection',
       season: 'Spring 2025',
       updatedAt: DateTime(2025, 1, 1),
-    ));
-    await db.planogramsDao.upsert(PlanogramsTableCompanion.insert(
+    ),
+    Planogram(
       id: 'p2',
       fixtureId: 'fixture_b',
       title: 'Summer Essentials',
       season: 'Summer 2025',
       updatedAt: DateTime(2025, 6, 1),
-    ));
-    planograms = await db.planogramsDao.watchAll().first;
-  });
-
-  tearDown(() => db.close());
+    ),
+  ];
 
   /// Opens the sheet via showModalBottomSheet so DraggableScrollableSheet
   /// receives proper BoxConstraints. Uses two pump() calls — never
@@ -100,7 +89,7 @@ void main() {
 
   testWidgets('shows remove assignment when planogram is assigned',
       (tester) async {
-    await openSheet(tester, currentId: planograms.firstWhere((p) => p.id == 'p1').id);
+    await openSheet(tester, currentId: 'p1');
     expect(find.text('Remove assignment'), findsOneWidget);
   });
 
@@ -111,10 +100,10 @@ void main() {
   });
 
   testWidgets('tapping remove calls onSelect with null', (tester) async {
-    String? selected = planograms.firstWhere((p) => p.id == 'p1').id;
+    String? selected = 'p1';
     await openSheet(
       tester,
-      currentId: planograms.firstWhere((p) => p.id == 'p1').id,
+      currentId: 'p1',
       onSelect: (id) => selected = id,
     );
     tapTileWithText(tester, 'Remove assignment');
@@ -126,9 +115,9 @@ void main() {
       (tester) async {
     String? selected;
     await openSheet(tester, onSelect: (id) => selected = id);
-    tapTileWithText(tester, planograms.firstWhere((p) => p.id == 'p1').title);
+    tapTileWithText(tester, 'Spring Collection');
     await tester.pump();
-    expect(selected, planograms.firstWhere((p) => p.id == 'p1').id);
+    expect(selected, 'p1');
   });
 
   testWidgets('shows empty state when search yields no results',
