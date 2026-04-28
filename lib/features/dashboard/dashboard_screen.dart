@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../core/database/app_database.dart';
+import '../../core/models/store.dart';
 import '../../core/providers/store_provider.dart';
 import '../../core/router/app_router.dart';
 import '../../core/theme/app_theme.dart';
@@ -351,7 +351,7 @@ class _StoreSetupCard extends StatelessWidget {
 class _EntranceRow extends StatelessWidget {
   const _EntranceRow({required this.ref, required this.store});
   final WidgetRef ref;
-  final StoresTableData? store;
+  final Store? store;
 
   @override
   Widget build(BuildContext context) {

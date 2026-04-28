@@ -6,13 +6,9 @@ part of 'dashboard_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$dashboardStatsHash() => r'952e9fab3d6ebb67e5097f687d24658de637f840';
+String _$dashboardStatsHash() => r'233087110d136c2cb296c5122604a40e68ce1ad8';
 
-/// Live dashboard stats for the active store, scoped to the current
-/// membership's role. Staff see their own counts; coordinator/manager see
-/// store-wide counts and pending queues.
-///
-/// Copied from [dashboardStats].
+/// See also [dashboardStats].
 @ProviderFor(dashboardStats)
 final dashboardStatsProvider =
     AutoDisposeStreamProvider<DashboardStats>.internal(

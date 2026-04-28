@@ -21,7 +21,6 @@ mixin _$DashboardStats {
   int get productCount => throw _privateConstructorUsedError;
   int get pendingJoinRequests => throw _privateConstructorUsedError;
   int get pendingProposals => throw _privateConstructorUsedError;
-  int get pendingPhotoApprovals => throw _privateConstructorUsedError;
   int get myPhotoCount => throw _privateConstructorUsedError;
   int get myProposalCount => throw _privateConstructorUsedError;
 
@@ -44,7 +43,6 @@ abstract class $DashboardStatsCopyWith<$Res> {
       int productCount,
       int pendingJoinRequests,
       int pendingProposals,
-      int pendingPhotoApprovals,
       int myPhotoCount,
       int myProposalCount});
 }
@@ -69,7 +67,6 @@ class _$DashboardStatsCopyWithImpl<$Res, $Val extends DashboardStats>
     Object? productCount = null,
     Object? pendingJoinRequests = null,
     Object? pendingProposals = null,
-    Object? pendingPhotoApprovals = null,
     Object? myPhotoCount = null,
     Object? myProposalCount = null,
   }) {
@@ -93,10 +90,6 @@ class _$DashboardStatsCopyWithImpl<$Res, $Val extends DashboardStats>
       pendingProposals: null == pendingProposals
           ? _value.pendingProposals
           : pendingProposals // ignore: cast_nullable_to_non_nullable
-              as int,
-      pendingPhotoApprovals: null == pendingPhotoApprovals
-          ? _value.pendingPhotoApprovals
-          : pendingPhotoApprovals // ignore: cast_nullable_to_non_nullable
               as int,
       myPhotoCount: null == myPhotoCount
           ? _value.myPhotoCount
@@ -124,7 +117,6 @@ abstract class _$$DashboardStatsImplCopyWith<$Res>
       int productCount,
       int pendingJoinRequests,
       int pendingProposals,
-      int pendingPhotoApprovals,
       int myPhotoCount,
       int myProposalCount});
 }
@@ -147,7 +139,6 @@ class __$$DashboardStatsImplCopyWithImpl<$Res>
     Object? productCount = null,
     Object? pendingJoinRequests = null,
     Object? pendingProposals = null,
-    Object? pendingPhotoApprovals = null,
     Object? myPhotoCount = null,
     Object? myProposalCount = null,
   }) {
@@ -172,10 +163,6 @@ class __$$DashboardStatsImplCopyWithImpl<$Res>
           ? _value.pendingProposals
           : pendingProposals // ignore: cast_nullable_to_non_nullable
               as int,
-      pendingPhotoApprovals: null == pendingPhotoApprovals
-          ? _value.pendingPhotoApprovals
-          : pendingPhotoApprovals // ignore: cast_nullable_to_non_nullable
-              as int,
       myPhotoCount: null == myPhotoCount
           ? _value.myPhotoCount
           : myPhotoCount // ignore: cast_nullable_to_non_nullable
@@ -197,7 +184,6 @@ class _$DashboardStatsImpl implements _DashboardStats {
       this.productCount = 0,
       this.pendingJoinRequests = 0,
       this.pendingProposals = 0,
-      this.pendingPhotoApprovals = 0,
       this.myPhotoCount = 0,
       this.myProposalCount = 0});
 
@@ -218,9 +204,6 @@ class _$DashboardStatsImpl implements _DashboardStats {
   final int pendingProposals;
   @override
   @JsonKey()
-  final int pendingPhotoApprovals;
-  @override
-  @JsonKey()
   final int myPhotoCount;
   @override
   @JsonKey()
@@ -228,7 +211,7 @@ class _$DashboardStatsImpl implements _DashboardStats {
 
   @override
   String toString() {
-    return 'DashboardStats(zoneCount: $zoneCount, fixtureCount: $fixtureCount, productCount: $productCount, pendingJoinRequests: $pendingJoinRequests, pendingProposals: $pendingProposals, pendingPhotoApprovals: $pendingPhotoApprovals, myPhotoCount: $myPhotoCount, myProposalCount: $myProposalCount)';
+    return 'DashboardStats(zoneCount: $zoneCount, fixtureCount: $fixtureCount, productCount: $productCount, pendingJoinRequests: $pendingJoinRequests, pendingProposals: $pendingProposals, myPhotoCount: $myPhotoCount, myProposalCount: $myProposalCount)';
   }
 
   @override
@@ -246,8 +229,6 @@ class _$DashboardStatsImpl implements _DashboardStats {
                 other.pendingJoinRequests == pendingJoinRequests) &&
             (identical(other.pendingProposals, pendingProposals) ||
                 other.pendingProposals == pendingProposals) &&
-            (identical(other.pendingPhotoApprovals, pendingPhotoApprovals) ||
-                other.pendingPhotoApprovals == pendingPhotoApprovals) &&
             (identical(other.myPhotoCount, myPhotoCount) ||
                 other.myPhotoCount == myPhotoCount) &&
             (identical(other.myProposalCount, myProposalCount) ||
@@ -262,7 +243,6 @@ class _$DashboardStatsImpl implements _DashboardStats {
       productCount,
       pendingJoinRequests,
       pendingProposals,
-      pendingPhotoApprovals,
       myPhotoCount,
       myProposalCount);
 
@@ -283,7 +263,6 @@ abstract class _DashboardStats implements DashboardStats {
       final int productCount,
       final int pendingJoinRequests,
       final int pendingProposals,
-      final int pendingPhotoApprovals,
       final int myPhotoCount,
       final int myProposalCount}) = _$DashboardStatsImpl;
 
@@ -297,8 +276,6 @@ abstract class _DashboardStats implements DashboardStats {
   int get pendingJoinRequests;
   @override
   int get pendingProposals;
-  @override
-  int get pendingPhotoApprovals;
   @override
   int get myPhotoCount;
   @override
