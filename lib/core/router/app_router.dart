@@ -27,6 +27,7 @@ import '../../features/store/pending_approval_screen.dart';
 import '../../features/store/members_screen.dart';
 import '../../features/store/group_management_screen.dart';
 import '../../features/zone_manager/outfit_proposal_review_screen.dart';
+import '../../features/planogram/planogram_editor_screen.dart';
 
 part 'app_router.g.dart';
 
@@ -71,6 +72,7 @@ class AppRoutes {
   static const zoneDetail = 'zoneDetail';
   static const proposalReview = 'proposalReview';
   static const outfitProposalReview = 'outfitProposalReview';
+  static const planogramEdit = 'planogramEdit';
 }
 
 class AppPaths {
@@ -95,6 +97,7 @@ class AppPaths {
   static const zoneDetail = '/home/zones/:zoneId/detail';
   static const proposalReview = '/home/planograms/:planogramId/proposals';
   static const outfitProposalReview = '/home/zones/outfit-proposals';
+  static const planogramEdit = '/home/planograms/:planogramId/edit';
 }
 
 
@@ -233,6 +236,13 @@ GoRouter appRouter(AppRouterRef ref) {
                     name: AppRoutes.proposalReview,
                     path: 'proposals',
                     builder: (context, state) => ProposalReviewScreen(
+                      planogramId: state.pathParameters['planogramId']!,
+                    ),
+                  ),
+                  GoRoute(
+                    name: AppRoutes.planogramEdit,
+                    path: 'edit',
+                    builder: (context, state) => PlanogramEditorScreen(
                       planogramId: state.pathParameters['planogramId']!,
                     ),
                   ),
