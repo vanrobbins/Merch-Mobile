@@ -558,12 +558,27 @@ class _MannequinSection extends StatelessWidget {
                       fontWeight: DesignTokens.weightBold,
                     ),
                   ),
-                  subtitle: Text(
-                    '${_formatType(m.mannequinType)}  ·  ${_formatType(m.mountType)}',
-                    style: const TextStyle(
-                      fontSize: DesignTokens.typeSm,
-                      color: AppTheme.textSecondary,
-                    ),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '${_formatType(m.mannequinType)}  ·  ${_formatType(m.mountType)}',
+                        style: const TextStyle(
+                          fontSize: DesignTokens.typeSm,
+                          color: AppTheme.textSecondary,
+                        ),
+                      ),
+                      if (m.outfitName != null && m.outfitName!.isNotEmpty)
+                        Text(
+                          m.outfitName!,
+                          style: const TextStyle(
+                            fontSize: DesignTokens.typeXs,
+                            color: AppTheme.accent,
+                            fontWeight: DesignTokens.weightBold,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                    ],
                   ),
                   trailing: OutlinedButton(
                     onPressed: () =>
