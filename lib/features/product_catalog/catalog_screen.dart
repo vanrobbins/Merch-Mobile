@@ -92,13 +92,22 @@ class _CatalogBody extends ConsumerStatefulWidget {
 
 class _CatalogBodyState extends ConsumerState<_CatalogBody> {
   String? _selectedCategory;
+  String? _selectedGender;
   bool _autoSeeded = false;
 
   List<Product> get _categoryFiltered {
-    if (_selectedCategory == null) return widget.filtered;
-    return widget.filtered
-        .where((p) => p.category == _selectedCategory)
-        .toList();
+    var products = widget.filtered;
+    if (_selectedCategory != null) {
+      products = products
+          .where((p) => p.category == _selectedCategory)
+          .toList();
+    }
+    if (_selectedGender != null) {
+      products = products
+          .where((p) => p.gender == _selectedGender)
+          .toList();
+    }
+    return products;
   }
 
   @override
@@ -210,12 +219,50 @@ class _CatalogBodyState extends ConsumerState<_CatalogBody> {
               ),
             ),
           ),
+        // Gender filter row
+        SliverToBoxAdapter(
+          child: SizedBox(
+            height: 44,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(
+                horizontal: DesignTokens.spaceMd,
+                vertical: DesignTokens.spaceXs,
+              ),
+              children: [
+                _CategoryChip(
+                  label: 'All',
+                  selected: _selectedGender == null,
+                  onTap: () => setState(() => _selectedGender = null),
+                ),
+                const SizedBox(width: DesignTokens.spaceXs),
+                _CategoryChip(
+                  label: 'Men',
+                  selected: _selectedGender == 'male',
+                  onTap: () => setState(() => _selectedGender = 'male'),
+                ),
+                const SizedBox(width: DesignTokens.spaceXs),
+                _CategoryChip(
+                  label: 'Women',
+                  selected: _selectedGender == 'female',
+                  onTap: () => setState(() => _selectedGender = 'female'),
+                ),
+                const SizedBox(width: DesignTokens.spaceXs),
+                _CategoryChip(
+                  label: 'Unisex',
+                  selected: _selectedGender == 'unisex',
+                  onTap: () => setState(() => _selectedGender = 'unisex'),
+                ),
+              ],
+            ),
+          ),
+        ),
         if (displayProducts.isEmpty)
           SliverFillRemaining(
             child: MmEmptyState(
               icon: Icons.inventory_2_outlined,
               headline: 'No Products',
-              body: widget.query.isEmpty && _selectedCategory == null
+              body: widget.query.isEmpty && _selectedCategory == null && _selectedGender == null
                   ? 'No products yet.\nAdd your first product.'
                   : 'No products match your filter.',
             ),
