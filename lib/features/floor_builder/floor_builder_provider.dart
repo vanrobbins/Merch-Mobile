@@ -122,6 +122,12 @@ class FloorBuilderNotifier extends _$FloorBuilderNotifier {
     state = state.copyWith(canUndo: true, canRedo: false);
   }
 
+  Offset _snap(Offset pos) {
+    if (!state.snapGridEnabled) return pos;
+    final gs = state.gridSizeFt;
+    return Offset((pos.dx / gs).round() * gs, (pos.dy / gs).round() * gs);
+  }
+
   CollectionReference<Map<String, dynamic>> _collectionRef(
       String storeId, String collection) {
     switch (collection) {
@@ -488,12 +494,8 @@ class FloorBuilderNotifier extends _$FloorBuilderNotifier {
 
   void setDragging(bool v) => state = state.copyWith(isDragging: v);
 
-  Future<void> _patch(String id, Map<String, dynamic> fields) async {
-    await FirestoreRefs.fixtures(_storeId).doc(id).update({
-      ...fields,
-      'updatedAt': Timestamp.now(),
-    });
-  }
+  Future<void> _patch(String id, Map<String, dynamic> fields) =>
+      _patchDoc('fixtures', id, fields);
 
   Future<void> _patchDoc(String collection, String id, Map<String, dynamic> fields) async {
     await _collectionRef(_storeId, collection).doc(id).update({
@@ -503,15 +505,11 @@ class FloorBuilderNotifier extends _$FloorBuilderNotifier {
   }
 
   void moveFixtureLocal(String id, Offset pos) {
-    double x = pos.dx;
-    double y = pos.dy;
-    if (state.snapGridEnabled) {
-      final gs = state.gridSizeFt;
-      x = (x / gs).round() * gs;
-      y = (y / gs).round() * gs;
-    }
+    final p = _snap(pos);
     state = state.copyWith(
-      fixtures: state.fixtures.map((f) => f.id == id ? f.copyWith(posX: x, posY: y) : f).toList(),
+      fixtures: state.fixtures
+          .map((f) => f.id == id ? f.copyWith(posX: p.dx, posY: p.dy) : f)
+          .toList(),
     );
   }
 
@@ -530,15 +528,11 @@ class FloorBuilderNotifier extends _$FloorBuilderNotifier {
   }
 
   void moveScenePropLocal(String id, Offset pos) {
-    double x = pos.dx;
-    double y = pos.dy;
-    if (state.snapGridEnabled) {
-      final gs = state.gridSizeFt;
-      x = (x / gs).round() * gs;
-      y = (y / gs).round() * gs;
-    }
+    final p = _snap(pos);
     state = state.copyWith(
-      sceneProps: state.sceneProps.map((p) => p.id == id ? p.copyWith(positionX: x, positionY: y) : p).toList(),
+      sceneProps: state.sceneProps
+          .map((prop) => prop.id == id ? prop.copyWith(positionX: p.dx, positionY: p.dy) : prop)
+          .toList(),
     );
   }
 
@@ -557,15 +551,11 @@ class FloorBuilderNotifier extends _$FloorBuilderNotifier {
   }
 
   void moveMannequinLocal(String id, Offset pos) {
-    double x = pos.dx;
-    double y = pos.dy;
-    if (state.snapGridEnabled) {
-      final gs = state.gridSizeFt;
-      x = (x / gs).round() * gs;
-      y = (y / gs).round() * gs;
-    }
+    final p = _snap(pos);
     state = state.copyWith(
-      mannequins: state.mannequins.map((m) => m.id == id ? m.copyWith(positionX: x, positionY: y) : m).toList(),
+      mannequins: state.mannequins
+          .map((m) => m.id == id ? m.copyWith(positionX: p.dx, positionY: p.dy) : m)
+          .toList(),
     );
   }
 
@@ -584,15 +574,11 @@ class FloorBuilderNotifier extends _$FloorBuilderNotifier {
   }
 
   void movePlatformLocal(String id, Offset pos) {
-    double x = pos.dx;
-    double y = pos.dy;
-    if (state.snapGridEnabled) {
-      final gs = state.gridSizeFt;
-      x = (x / gs).round() * gs;
-      y = (y / gs).round() * gs;
-    }
+    final p = _snap(pos);
     state = state.copyWith(
-      platforms: state.platforms.map((p) => p.id == id ? p.copyWith(positionX: x, positionY: y) : p).toList(),
+      platforms: state.platforms
+          .map((p2) => p2.id == id ? p2.copyWith(positionX: p.dx, positionY: p.dy) : p2)
+          .toList(),
     );
   }
 
