@@ -730,9 +730,16 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
               final s = ref.read(activeStoreProvider).valueOrNull;
               Rect? bounds;
               if (z != null && s?.widthFt != null && s?.depthFt != null) {
-                bounds = Rect.fromLTWH(0, 0,
-                  z.width * s!.widthFt! * _pixelsPerFt,
-                  z.height * s.depthFt! * _pixelsPerFt);
+                final zPts = ZoneShape.decode(z.shapePoints);
+                if (zPts.length >= 3) {
+                  final minX = zPts.map((p) => p.dx).reduce((a, b) => a < b ? a : b);
+                  final maxX = zPts.map((p) => p.dx).reduce((a, b) => a > b ? a : b);
+                  final minY = zPts.map((p) => p.dy).reduce((a, b) => a < b ? a : b);
+                  final maxY = zPts.map((p) => p.dy).reduce((a, b) => a > b ? a : b);
+                  bounds = Rect.fromLTWH(0, 0,
+                    (maxX - minX) * s!.widthFt! * _pixelsPerFt,
+                    (maxY - minY) * s.depthFt! * _pixelsPerFt);
+                }
               }
               _fitFixtures(state.fixtures, zoneBoundsPx: bounds);
             },
@@ -783,14 +790,18 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
                     _canvasSize = constraints.biggest;
                     _pixelsPerFt = constraints.maxWidth / 20;
                     final hasZonePts = zonePts != null && zonePts.length >= 3;
-                    final zoneBoundsPx = (hasZonePts && zone != null &&
-                            store?.widthFt != null && store?.depthFt != null)
-                        ? Rect.fromLTWH(
-                            0, 0,
-                            zone.width * store!.widthFt! * _pixelsPerFt,
-                            zone.height * store.depthFt! * _pixelsPerFt,
-                          )
-                        : null;
+                    Rect? zoneBoundsPx;
+                    if (hasZonePts && store?.widthFt != null && store?.depthFt != null) {
+                      final minX = zonePts.map((p) => p.dx).reduce((a, b) => a < b ? a : b);
+                      final maxX = zonePts.map((p) => p.dx).reduce((a, b) => a > b ? a : b);
+                      final minY = zonePts.map((p) => p.dy).reduce((a, b) => a < b ? a : b);
+                      final maxY = zonePts.map((p) => p.dy).reduce((a, b) => a > b ? a : b);
+                      zoneBoundsPx = Rect.fromLTWH(
+                        0, 0,
+                        (maxX - minX) * store!.widthFt! * _pixelsPerFt,
+                        (maxY - minY) * store.depthFt! * _pixelsPerFt,
+                      );
+                    }
                     if (!_hasFitView && _canvasSize != Size.zero &&
                         (state.fixtures.isNotEmpty || hasZonePts)) {
                       _hasFitView = true;

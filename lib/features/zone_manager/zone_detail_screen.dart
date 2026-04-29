@@ -307,14 +307,18 @@ class _ZoneDetailScreenState extends ConsumerState<ZoneDetailScreen> {
                     _canvasSize = constraints.biggest;
                     _pixelsPerFt = constraints.maxWidth / 20;
                     final hasZonePts = zonePts != null && zonePts.length >= 3;
-                    final zoneBoundsPx = (hasZonePts && zoneRow != null &&
-                            store?.widthFt != null && store?.depthFt != null)
-                        ? Rect.fromLTWH(
-                            0, 0,
-                            zoneRow.width * store!.widthFt! * _pixelsPerFt,
-                            zoneRow.height * store.depthFt! * _pixelsPerFt,
-                          )
-                        : null;
+                    Rect? zoneBoundsPx;
+                    if (hasZonePts && store?.widthFt != null && store?.depthFt != null) {
+                      final minX = zonePts.map((p) => p.dx).reduce((a, b) => a < b ? a : b);
+                      final maxX = zonePts.map((p) => p.dx).reduce((a, b) => a > b ? a : b);
+                      final minY = zonePts.map((p) => p.dy).reduce((a, b) => a < b ? a : b);
+                      final maxY = zonePts.map((p) => p.dy).reduce((a, b) => a > b ? a : b);
+                      zoneBoundsPx = Rect.fromLTWH(
+                        0, 0,
+                        (maxX - minX) * store!.widthFt! * _pixelsPerFt,
+                        (maxY - minY) * store.depthFt! * _pixelsPerFt,
+                      );
+                    }
                     if (!_hasFitView && _canvasSize != Size.zero &&
                         (builderState.fixtures.isNotEmpty || hasZonePts)) {
                       _hasFitView = true;

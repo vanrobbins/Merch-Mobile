@@ -137,11 +137,13 @@ class BuilderCanvasPainter extends CustomPainter {
 
     final List<Offset> screenPts;
 
-    if (zoneOriginNorm != null && storeWidthFt != null && storeDepthFt != null) {
-      // Feet-based: aligns with fixture coordinate space (posX/posY in ft from zone top-left)
+    if (storeWidthFt != null && storeDepthFt != null) {
+      // Derive origin from actual shape-point extents — zone.posX/posY is not kept in sync.
+      final minX = pts.map((p) => p.dx).reduce((a, b) => a < b ? a : b);
+      final minY = pts.map((p) => p.dy).reduce((a, b) => a < b ? a : b);
       screenPts = pts.map((p) => Offset(
-        (p.dx - zoneOriginNorm!.dx) * storeWidthFt! * pixelsPerFt,
-        (p.dy - zoneOriginNorm!.dy) * storeDepthFt! * pixelsPerFt,
+        (p.dx - minX) * storeWidthFt! * pixelsPerFt,
+        (p.dy - minY) * storeDepthFt! * pixelsPerFt,
       )).toList();
     } else {
       // Fallback: scale to fill canvas (disconnected from fixture space)

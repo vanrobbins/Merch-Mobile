@@ -38,10 +38,12 @@ class ZoneEdge {
     if (normalizedPts.length < 3) return [];
 
     final Offset Function(Offset) toCanvas;
-    if (zoneOriginNorm != null && storeWidthFt != null && storeDepthFt != null) {
+    if (storeWidthFt != null && storeDepthFt != null) {
+      final minX = normalizedPts.map((p) => p.dx).reduce(math.min);
+      final minY = normalizedPts.map((p) => p.dy).reduce(math.min);
       toCanvas = (p) => Offset(
-        (p.dx - zoneOriginNorm.dx) * storeWidthFt * pixelsPerFt,
-        (p.dy - zoneOriginNorm.dy) * storeDepthFt * pixelsPerFt,
+        (p.dx - minX) * storeWidthFt * pixelsPerFt,
+        (p.dy - minY) * storeDepthFt * pixelsPerFt,
       );
     } else {
       final minX = normalizedPts.map((p) => p.dx).reduce(math.min);
