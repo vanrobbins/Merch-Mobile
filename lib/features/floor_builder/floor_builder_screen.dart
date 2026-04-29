@@ -7,11 +7,16 @@ import '../../core/theme/app_theme.dart';
 import '../../core/theme/design_tokens.dart';
 import '../zone_manager/zone_shape.dart';
 import 'builder_canvas_painter.dart';
+import 'element_delete_sheet.dart';
 import 'element_library_panel.dart';
+import 'fixture_actions_sheet.dart';
 import 'fixture_mini_panel.dart';
 import 'floor_builder_provider.dart';
+import 'mannequin_type_sheet.dart';
 import 'planogram_picker_sheet.dart';
+import 'prop_type_sheet.dart';
 import 'snap_grid.dart';
+import 'wall_placement_sheet.dart';
 import 'zone_edge_helper.dart';
 
 class FloorBuilderScreen extends ConsumerStatefulWidget {
@@ -101,7 +106,7 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
     showModalBottomSheet<void>(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (_) => _MannequinTypeSheet(
+      builder: (_) => MannequinTypeSheet(
         onSelect: (type, mount) {
           ref.read(floorBuilderNotifierProvider.notifier).addMannequin(
             mannequinType: type,
@@ -117,7 +122,7 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
     showModalBottomSheet<void>(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (_) => _PropTypeSheet(
+      builder: (_) => PropTypeSheet(
         onSelect: (type) {
           ref.read(floorBuilderNotifierProvider.notifier).addSceneProp(
             propType: type,
@@ -152,7 +157,7 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (_) => _WallPlacementSheet(
+      builder: (_) => WallPlacementSheet(
         edges: edges,
         pixelsPerFt: _pixelsPerFt,
         onPlace: (edge, lengthFt) {
@@ -178,7 +183,7 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
         .firstWhere((f) => f.id == fixtureId);
     showModalBottomSheet<void>(
       context: context,
-      builder: (_) => _FixtureActionsSheet(
+      builder: (_) => FixtureActionsSheet(
         fixtureId: fixtureId,
         currentLabel: currentLabel,
         fixtureType: fixture.fixtureType,
@@ -263,7 +268,7 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
     if (prop == null) return;
     showModalBottomSheet<void>(
       context: context,
-      builder: (_) => _ElementDeleteSheet(
+      builder: (_) => ElementDeleteSheet(
         title: prop.propType.toUpperCase(),
         subtitle: 'SCENE PROP',
         onDelete: () =>
@@ -278,7 +283,7 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
     if (m == null) return;
     showModalBottomSheet<void>(
       context: context,
-      builder: (_) => _ElementDeleteSheet(
+      builder: (_) => ElementDeleteSheet(
         title: m.mannequinType.toUpperCase().replaceAll('_', ' '),
         subtitle: 'MANNEQUIN',
         onDelete: () =>
@@ -290,7 +295,7 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
   void _showPlatformActionsSheet(String platformId) {
     showModalBottomSheet<void>(
       context: context,
-      builder: (_) => _ElementDeleteSheet(
+      builder: (_) => ElementDeleteSheet(
         title: 'PLATFORM',
         subtitle: 'RAISED ELEMENT',
         onDelete: () =>
@@ -923,534 +928,6 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
               tooltip: 'Add element',
               child: const Icon(Icons.add),
             ),
-    );
-  }
-}
-
-class _WallPlacementSheet extends StatefulWidget {
-  const _WallPlacementSheet({
-    required this.edges,
-    required this.pixelsPerFt,
-    required this.onPlace,
-  });
-  final List<ZoneEdge> edges;
-  final double pixelsPerFt;
-  final void Function(ZoneEdge edge, double lengthFt) onPlace;
-
-  @override
-  State<_WallPlacementSheet> createState() => _WallPlacementSheetState();
-}
-
-class _WallPlacementSheetState extends State<_WallPlacementSheet> {
-  ZoneEdge? _selectedEdge;
-  final _lengthCtrl = TextEditingController();
-
-  @override
-  void dispose() {
-    _lengthCtrl.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(DesignTokens.radiusLg)),
-      ),
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom +
-            MediaQuery.of(context).padding.bottom,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Center(
-            child: Container(
-              margin: const EdgeInsets.only(top: DesignTokens.spaceSm),
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: AppTheme.divider,
-                borderRadius: BorderRadius.circular(AppTheme.borderRadius),
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(DesignTokens.spaceMd),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const Text(
-                  'PLACE WALL',
-                  style: TextStyle(
-                    fontSize: DesignTokens.typeLg,
-                    fontWeight: DesignTokens.weightBold,
-                    letterSpacing: DesignTokens.letterSpacingEyebrow,
-                  ),
-                ),
-                const SizedBox(height: DesignTokens.spaceXs),
-                Text(
-                  _selectedEdge == null ? 'SELECT A ZONE EDGE' : 'ENTER WALL LENGTH',
-                  style: const TextStyle(
-                    fontSize: DesignTokens.typeXs,
-                    color: AppTheme.textSecondary,
-                    letterSpacing: DesignTokens.letterSpacingEyebrow,
-                  ),
-                ),
-                const SizedBox(height: DesignTokens.spaceMd),
-                if (_selectedEdge == null) ...[
-                  ...widget.edges.asMap().entries.map((entry) {
-                    final edge = entry.value;
-                    final num = entry.key + 1;
-                    return ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      leading: CircleAvatar(
-                        radius: 14,
-                        backgroundColor: AppTheme.accent,
-                        child: Text(
-                          '$num',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: DesignTokens.typeXs,
-                            fontWeight: DesignTokens.weightBold,
-                          ),
-                        ),
-                      ),
-                      title: Text(
-                        'EDGE $num',
-                        style: const TextStyle(
-                          fontWeight: DesignTokens.weightBold,
-                          fontSize: DesignTokens.typeSm,
-                          letterSpacing: DesignTokens.letterSpacingEyebrow,
-                        ),
-                      ),
-                      subtitle: Text(
-                        '${edge.lengthFt.toStringAsFixed(1)} ft',
-                        style: const TextStyle(
-                          fontSize: DesignTokens.typeXs,
-                          color: AppTheme.textSecondary,
-                        ),
-                      ),
-                      trailing: const Icon(Icons.chevron_right, color: AppTheme.textSecondary),
-                      onTap: () => setState(() {
-                        _selectedEdge = edge;
-                        _lengthCtrl.text = edge.lengthFt.toStringAsFixed(1);
-                      }),
-                    );
-                  }),
-                ] else ...[
-                  Row(
-                    children: [
-                      CircleAvatar(
-                        radius: 14,
-                        backgroundColor: AppTheme.accent,
-                        child: Text(
-                          '${_selectedEdge!.index + 1}',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: DesignTokens.typeXs,
-                            fontWeight: DesignTokens.weightBold,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: DesignTokens.spaceSm),
-                      Text(
-                        'EDGE ${_selectedEdge!.index + 1}  \u2022  ${_selectedEdge!.lengthFt.toStringAsFixed(1)} ft',
-                        style: const TextStyle(
-                          fontWeight: DesignTokens.weightBold,
-                          fontSize: DesignTokens.typeSm,
-                          letterSpacing: DesignTokens.letterSpacingEyebrow,
-                        ),
-                      ),
-                      const Spacer(),
-                      GestureDetector(
-                        onTap: () => setState(() => _selectedEdge = null),
-                        child: const Text(
-                          'CHANGE',
-                          style: TextStyle(
-                            fontSize: DesignTokens.typeXs,
-                            color: AppTheme.accent,
-                            fontWeight: DesignTokens.weightBold,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: DesignTokens.spaceMd),
-                  TextField(
-                    controller: _lengthCtrl,
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    decoration: const InputDecoration(
-                      labelText: 'Wall length',
-                      border: UnderlineInputBorder(),
-                      suffixText: 'ft',
-                    ),
-                  ),
-                  const SizedBox(height: DesignTokens.spaceLg),
-                  ElevatedButton(
-                    onPressed: () {
-                      final parsed = double.tryParse(_lengthCtrl.text) ?? 4.0;
-                      final lengthFt = parsed < 0.5 ? 0.5 : parsed;
-                      widget.onPlace(_selectedEdge!, lengthFt);
-                      Navigator.pop(context);
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.accent,
-                      foregroundColor: Colors.white,
-                      shape: const RoundedRectangleBorder(
-                        borderRadius: BorderRadius.all(Radius.circular(AppTheme.borderRadius)),
-                      ),
-                    ),
-                    child: const Text('PLACE WALL'),
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _FixtureActionsSheet extends StatefulWidget {
-  const _FixtureActionsSheet({
-    required this.fixtureId,
-    required this.currentLabel,
-    required this.fixtureType,
-    required this.wallAdjacent,
-    required this.notifier,
-  });
-  final String fixtureId;
-  final String currentLabel;
-  final String fixtureType;
-  final bool wallAdjacent;
-  final FloorBuilderNotifier notifier;
-
-  @override
-  State<_FixtureActionsSheet> createState() => _FixtureActionsSheetState();
-}
-
-class _FixtureActionsSheetState extends State<_FixtureActionsSheet> {
-  late TextEditingController _ctrl;
-
-  @override
-  void initState() {
-    super.initState();
-    _ctrl = TextEditingController(text: widget.currentLabel);
-  }
-
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom + 16,
-        left: 16, right: 16, top: 16,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const Text(
-            'FIXTURE OPTIONS',
-            style: TextStyle(
-              fontWeight: DesignTokens.weightBold,
-              fontSize: DesignTokens.typeMd,
-              letterSpacing: DesignTokens.letterSpacingEyebrow,
-            ),
-          ),
-          const SizedBox(height: DesignTokens.spaceMd),
-          TextField(
-            controller: _ctrl,
-            decoration: const InputDecoration(
-              labelText: 'Label',
-              border: UnderlineInputBorder(),
-            ),
-          ),
-          if (widget.fixtureType == 'partition') ...[
-            const SizedBox(height: DesignTokens.spaceSm),
-            OutlinedButton(
-              onPressed: () {
-                widget.notifier.toggleWallAdjacent(widget.fixtureId);
-                Navigator.pop(context);
-              },
-              child: Text(widget.wallAdjacent ? 'MARK AS FREE-STANDING' : 'MARK AS WALL-ADJACENT'),
-            ),
-          ],
-          const SizedBox(height: DesignTokens.spaceMd),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: () {
-                    widget.notifier.renameFixture(widget.fixtureId, _ctrl.text);
-                    Navigator.pop(context);
-                  },
-                  style: OutlinedButton.styleFrom(
-                    shape: const RoundedRectangleBorder(
-                      borderRadius: BorderRadius.all(
-                          Radius.circular(AppTheme.borderRadius)),
-                    ),
-                  ),
-                  child: const Text('RENAME'),
-                ),
-              ),
-              const SizedBox(width: DesignTokens.spaceSm),
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () {
-                    widget.notifier.rotateFixture(widget.fixtureId);
-                  },
-                  icon: const Icon(Icons.rotate_right, size: 16),
-                  label: const Text('ROTATE'),
-                  style: OutlinedButton.styleFrom(
-                    shape: const RoundedRectangleBorder(
-                      borderRadius: BorderRadius.all(
-                          Radius.circular(AppTheme.borderRadius)),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: DesignTokens.spaceSm),
-              Expanded(
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.errorColor,
-                    foregroundColor: Colors.white,
-                    shape: const RoundedRectangleBorder(
-                      borderRadius: BorderRadius.all(
-                          Radius.circular(AppTheme.borderRadius)),
-                    ),
-                  ),
-                  onPressed: () {
-                    widget.notifier.deleteFixture(widget.fixtureId);
-                    Navigator.pop(context);
-                  },
-                  child: const Text('DELETE'),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _MannequinTypeSheet extends StatelessWidget {
-  const _MannequinTypeSheet({required this.onSelect});
-  final void Function(String type, String mountType) onSelect;
-
-  static const _types = [
-    _MannequinTypeDef('full_body', Icons.accessibility_new_outlined, 'FULL BODY', 'floor'),
-    _MannequinTypeDef('half_body', Icons.person_outline, 'HALF BODY', 'floor'),
-    _MannequinTypeDef('torso', Icons.radio_button_unchecked, 'TORSO', 'floor'),
-    _MannequinTypeDef('leg_form', Icons.vertical_align_bottom_outlined, 'LEG FORM', 'floor'),
-    _MannequinTypeDef('bra_form', Icons.radio_button_checked, 'BRA FORM', 'floor'),
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        color: AppTheme.cardSurface,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(DesignTokens.radiusLg)),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Center(
-            child: Container(
-              margin: const EdgeInsets.only(top: DesignTokens.spaceSm),
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: AppTheme.divider,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-          ),
-          const Padding(
-            padding: EdgeInsets.all(DesignTokens.spaceMd),
-            child: Text(
-              'MANNEQUIN TYPE',
-              style: TextStyle(
-                fontSize: DesignTokens.typeLg,
-                fontWeight: DesignTokens.weightBold,
-                letterSpacing: DesignTokens.letterSpacingEyebrow,
-              ),
-            ),
-          ),
-          ..._types.map((t) => ListTile(
-                leading: Icon(t.icon, color: AppTheme.accent),
-                title: Text(
-                  t.label,
-                  style: const TextStyle(
-                    fontWeight: DesignTokens.weightBold,
-                    fontSize: DesignTokens.typeMd,
-                    letterSpacing: DesignTokens.letterSpacingEyebrow,
-                  ),
-                ),
-                trailing: const Icon(Icons.chevron_right, color: AppTheme.textSecondary),
-                onTap: () {
-                  Navigator.pop(context);
-                  onSelect(t.type, t.mountType);
-                },
-              )),
-          SizedBox(height: MediaQuery.of(context).padding.bottom + DesignTokens.spaceSm),
-        ],
-      ),
-    );
-  }
-}
-
-class _MannequinTypeDef {
-  const _MannequinTypeDef(this.type, this.icon, this.label, this.mountType);
-  final String type;
-  final IconData icon;
-  final String label;
-  final String mountType;
-}
-
-class _PropTypeSheet extends StatelessWidget {
-  const _PropTypeSheet({required this.onSelect});
-  final void Function(String type) onSelect;
-
-  static const _types = [
-    _PropTypeDef('plant', Icons.park_outlined, 'PLANT'),
-    _PropTypeDef('furniture', Icons.chair_outlined, 'FURNITURE'),
-    _PropTypeDef('riser', Icons.layers_outlined, 'RISER'),
-    _PropTypeDef('signage', Icons.campaign_outlined, 'SIGNAGE'),
-    _PropTypeDef('other', Icons.category_outlined, 'OTHER'),
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        color: AppTheme.cardSurface,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(DesignTokens.radiusLg)),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Center(
-            child: Container(
-              margin: const EdgeInsets.only(top: DesignTokens.spaceSm),
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: AppTheme.divider,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-          ),
-          const Padding(
-            padding: EdgeInsets.all(DesignTokens.spaceMd),
-            child: Text(
-              'PROP TYPE',
-              style: TextStyle(
-                fontSize: DesignTokens.typeLg,
-                fontWeight: DesignTokens.weightBold,
-                letterSpacing: DesignTokens.letterSpacingEyebrow,
-              ),
-            ),
-          ),
-          ..._types.map((t) => ListTile(
-                leading: Icon(t.icon, color: AppTheme.primary),
-                title: Text(
-                  t.label,
-                  style: const TextStyle(
-                    fontWeight: DesignTokens.weightBold,
-                    fontSize: DesignTokens.typeMd,
-                    letterSpacing: DesignTokens.letterSpacingEyebrow,
-                  ),
-                ),
-                trailing: const Icon(Icons.chevron_right, color: AppTheme.textSecondary),
-                onTap: () {
-                  Navigator.pop(context);
-                  onSelect(t.type);
-                },
-              )),
-          SizedBox(height: MediaQuery.of(context).padding.bottom + DesignTokens.spaceSm),
-        ],
-      ),
-    );
-  }
-}
-
-class _PropTypeDef {
-  const _PropTypeDef(this.type, this.icon, this.label);
-  final String type;
-  final IconData icon;
-  final String label;
-}
-
-class _ElementDeleteSheet extends StatelessWidget {
-  const _ElementDeleteSheet({
-    required this.title,
-    required this.subtitle,
-    required this.onDelete,
-  });
-  final String title;
-  final String subtitle;
-  final VoidCallback onDelete;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).padding.bottom + 16,
-        left: 16, right: 16, top: 16,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(
-              fontWeight: DesignTokens.weightBold,
-              fontSize: DesignTokens.typeMd,
-              letterSpacing: DesignTokens.letterSpacingEyebrow,
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            subtitle,
-            style: const TextStyle(
-              fontSize: DesignTokens.typeXs,
-              color: AppTheme.textSecondary,
-              letterSpacing: DesignTokens.letterSpacingEyebrow,
-            ),
-          ),
-          const SizedBox(height: DesignTokens.spaceMd),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.errorColor,
-              foregroundColor: Colors.white,
-              shape: const RoundedRectangleBorder(
-                borderRadius: BorderRadius.all(Radius.circular(AppTheme.borderRadius)),
-              ),
-            ),
-            onPressed: () {
-              Navigator.pop(context);
-              onDelete();
-            },
-            child: const Text('DELETE'),
-          ),
-        ],
-      ),
     );
   }
 }

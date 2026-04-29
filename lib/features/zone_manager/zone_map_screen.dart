@@ -8,7 +8,8 @@ import '../../core/models/store_zone.dart';
 import '../../core/router/app_router.dart';
 import '../../core/widgets/role_guard.dart';
 import '../../core/theme/app_theme.dart';
-import '../../core/theme/design_tokens.dart';
+import 'store_dimensions_dialog.dart';
+import 'zone_actions_sheet.dart';
 import 'zone_map_painter.dart';
 import 'zone_map_provider.dart';
 import 'zone_properties_panel.dart';
@@ -52,7 +53,7 @@ class _ZoneMapScreenState extends ConsumerState<ZoneMapScreen> {
     showDialog<void>(
       context: context,
       barrierDismissible: false,
-      builder: (_) => _StoreDimensionsDialog(
+      builder: (_) => StoreDimensionsDialog(
         onSave: (w, d) => ref
             .read(zoneMapNotifierProvider.notifier)
             .updateStoreDimensions(w, d),
@@ -68,7 +69,7 @@ class _ZoneMapScreenState extends ConsumerState<ZoneMapScreen> {
     showModalBottomSheet<void>(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (_) => _ZoneActionsSheet(
+      builder: (_) => ZoneActionsSheet(
         zone: zone,
         onEdit: () {
           Navigator.pop(context);
@@ -1001,190 +1002,6 @@ class _ZoneCanvasState extends ConsumerState<_ZoneCanvas> {
           ),
         );
       },
-    );
-  }
-}
-
-class _ZoneActionsSheet extends StatelessWidget {
-  const _ZoneActionsSheet({
-    required this.zone,
-    required this.onEdit,
-    this.onOpen,
-  });
-  final StoreZone zone;
-  final VoidCallback onEdit;
-  final VoidCallback? onOpen;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(DesignTokens.radiusLg)),
-      ),
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).padding.bottom + DesignTokens.spaceMd,
-        left: DesignTokens.spaceMd,
-        right: DesignTokens.spaceMd,
-        top: DesignTokens.spaceSm,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Center(
-            child: Container(
-              width: 40,
-              height: 4,
-              margin: const EdgeInsets.only(bottom: DesignTokens.spaceSm),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade300,
-                borderRadius: BorderRadius.circular(AppTheme.borderRadius),
-              ),
-            ),
-          ),
-          Text(
-            zone.name.toUpperCase(),
-            style: const TextStyle(
-              fontSize: DesignTokens.typeLg,
-              fontWeight: DesignTokens.weightBold,
-              letterSpacing: DesignTokens.letterSpacingEyebrow,
-            ),
-          ),
-          Text(
-            zone.zoneType.replaceAll('_', ' ').toUpperCase(),
-            style: const TextStyle(
-              fontSize: DesignTokens.typeXs,
-              color: AppTheme.textSecondary,
-              fontWeight: DesignTokens.weightBold,
-              letterSpacing: DesignTokens.letterSpacingEyebrow,
-            ),
-          ),
-          const SizedBox(height: DesignTokens.spaceMd),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: onEdit,
-                  icon: const Icon(Icons.edit_outlined, size: 18),
-                  label: const Text('EDIT ZONE'),
-                  style: OutlinedButton.styleFrom(
-                    shape: const RoundedRectangleBorder(
-                      borderRadius: BorderRadius.all(Radius.circular(AppTheme.borderRadius)),
-                    ),
-                  ),
-                ),
-              ),
-              if (onOpen != null) ...[
-                const SizedBox(width: DesignTokens.spaceSm),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: onOpen,
-                    icon: const Icon(Icons.open_in_new, size: 18),
-                    label: const Text('OPEN ZONE'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.accent,
-                      foregroundColor: Colors.white,
-                      shape: const RoundedRectangleBorder(
-                        borderRadius: BorderRadius.all(Radius.circular(AppTheme.borderRadius)),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _StoreDimensionsDialog extends StatefulWidget {
-  const _StoreDimensionsDialog({required this.onSave});
-  final void Function(double widthFt, double depthFt) onSave;
-
-  @override
-  State<_StoreDimensionsDialog> createState() => _StoreDimensionsDialogState();
-}
-
-class _StoreDimensionsDialogState extends State<_StoreDimensionsDialog> {
-  final _widthCtrl = TextEditingController();
-  final _depthCtrl = TextEditingController();
-  final _formKey = GlobalKey<FormState>();
-
-  @override
-  void dispose() {
-    _widthCtrl.dispose();
-    _depthCtrl.dispose();
-    super.dispose();
-  }
-
-  String? _validatePositive(String? v) {
-    final n = double.tryParse(v ?? '');
-    if (n == null || n <= 0) return 'Enter a positive number';
-    return null;
-  }
-
-  void _onConfirm() {
-    if (_formKey.currentState!.validate()) {
-      widget.onSave(
-        double.parse(_widthCtrl.text),
-        double.parse(_depthCtrl.text),
-      );
-      Navigator.of(context).pop();
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('STORE DIMENSIONS'),
-      content: Form(
-        key: _formKey,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text(
-              'Enter the floor dimensions of your store to enable the ft grid and boundary.',
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _widthCtrl,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              decoration: const InputDecoration(
-                labelText: 'Width (ft)',
-                border: OutlineInputBorder(),
-              ),
-              validator: _validatePositive,
-            ),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: _depthCtrl,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              decoration: const InputDecoration(
-                labelText: 'Depth (ft)',
-                border: OutlineInputBorder(),
-              ),
-              validator: _validatePositive,
-            ),
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('SKIP'),
-        ),
-        ElevatedButton(
-          onPressed: _onConfirm,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppTheme.accent,
-            foregroundColor: Colors.white,
-          ),
-          child: const Text('CONFIRM'),
-        ),
-      ],
     );
   }
 }
