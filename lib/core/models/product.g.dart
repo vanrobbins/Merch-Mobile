@@ -12,6 +12,7 @@ _$ProductImpl _$$ProductImplFromJson(Map<String, dynamic> json) =>
       sku: json['sku'] as String,
       name: json['name'] as String,
       category: json['category'] as String,
+      gender: json['gender'] as String? ?? 'unisex',
       imageUrl: json['imageUrl'] as String? ?? '',
       sizes:
           (json['sizes'] as List<dynamic>?)?.map((e) => e as String).toList() ??
@@ -31,6 +32,7 @@ Map<String, dynamic> _$$ProductImplToJson(_$ProductImpl instance) =>
       'sku': instance.sku,
       'name': instance.name,
       'category': instance.category,
+      'gender': instance.gender,
       'imageUrl': instance.imageUrl,
       'sizes': instance.sizes,
       'stockQty': instance.stockQty,

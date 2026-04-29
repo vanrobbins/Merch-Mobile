@@ -24,6 +24,7 @@ mixin _$Product {
   String get sku => throw _privateConstructorUsedError;
   String get name => throw _privateConstructorUsedError;
   String get category => throw _privateConstructorUsedError;
+  String get gender => throw _privateConstructorUsedError;
   String get imageUrl => throw _privateConstructorUsedError;
   List<String> get sizes => throw _privateConstructorUsedError;
   int get stockQty => throw _privateConstructorUsedError;
@@ -53,6 +54,7 @@ abstract class $ProductCopyWith<$Res> {
       String sku,
       String name,
       String category,
+      String gender,
       String imageUrl,
       List<String> sizes,
       int stockQty,
@@ -83,6 +85,7 @@ class _$ProductCopyWithImpl<$Res, $Val extends Product>
     Object? sku = null,
     Object? name = null,
     Object? category = null,
+    Object? gender = null,
     Object? imageUrl = null,
     Object? sizes = null,
     Object? stockQty = null,
@@ -109,6 +112,10 @@ class _$ProductCopyWithImpl<$Res, $Val extends Product>
       category: null == category
           ? _value.category
           : category // ignore: cast_nullable_to_non_nullable
+              as String,
+      gender: null == gender
+          ? _value.gender
+          : gender // ignore: cast_nullable_to_non_nullable
               as String,
       imageUrl: null == imageUrl
           ? _value.imageUrl
@@ -162,6 +169,7 @@ abstract class _$$ProductImplCopyWith<$Res> implements $ProductCopyWith<$Res> {
       String sku,
       String name,
       String category,
+      String gender,
       String imageUrl,
       List<String> sizes,
       int stockQty,
@@ -190,6 +198,7 @@ class __$$ProductImplCopyWithImpl<$Res>
     Object? sku = null,
     Object? name = null,
     Object? category = null,
+    Object? gender = null,
     Object? imageUrl = null,
     Object? sizes = null,
     Object? stockQty = null,
@@ -216,6 +225,10 @@ class __$$ProductImplCopyWithImpl<$Res>
       category: null == category
           ? _value.category
           : category // ignore: cast_nullable_to_non_nullable
+              as String,
+      gender: null == gender
+          ? _value.gender
+          : gender // ignore: cast_nullable_to_non_nullable
               as String,
       imageUrl: null == imageUrl
           ? _value.imageUrl
@@ -265,6 +278,7 @@ class _$ProductImpl implements _Product {
       required this.sku,
       required this.name,
       required this.category,
+      this.gender = 'unisex',
       this.imageUrl = '',
       final List<String> sizes = const <String>[],
       this.stockQty = 0,
@@ -287,6 +301,9 @@ class _$ProductImpl implements _Product {
   final String name;
   @override
   final String category;
+  @override
+  @JsonKey()
+  final String gender;
   @override
   @JsonKey()
   final String imageUrl;
@@ -317,7 +334,7 @@ class _$ProductImpl implements _Product {
 
   @override
   String toString() {
-    return 'Product(id: $id, sku: $sku, name: $name, category: $category, imageUrl: $imageUrl, sizes: $sizes, stockQty: $stockQty, colorId: $colorId, templateId: $templateId, colorNotes: $colorNotes, price: $price, imagePath: $imagePath, updatedAt: $updatedAt)';
+    return 'Product(id: $id, sku: $sku, name: $name, category: $category, gender: $gender, imageUrl: $imageUrl, sizes: $sizes, stockQty: $stockQty, colorId: $colorId, templateId: $templateId, colorNotes: $colorNotes, price: $price, imagePath: $imagePath, updatedAt: $updatedAt)';
   }
 
   @override
@@ -330,6 +347,7 @@ class _$ProductImpl implements _Product {
             (identical(other.name, name) || other.name == name) &&
             (identical(other.category, category) ||
                 other.category == category) &&
+            (identical(other.gender, gender) || other.gender == gender) &&
             (identical(other.imageUrl, imageUrl) ||
                 other.imageUrl == imageUrl) &&
             const DeepCollectionEquality().equals(other._sizes, _sizes) &&
@@ -355,6 +373,7 @@ class _$ProductImpl implements _Product {
       sku,
       name,
       category,
+      gender,
       imageUrl,
       const DeepCollectionEquality().hash(_sizes),
       stockQty,
@@ -387,6 +406,7 @@ abstract class _Product implements Product {
       required final String sku,
       required final String name,
       required final String category,
+      final String gender,
       final String imageUrl,
       final List<String> sizes,
       final int stockQty,
@@ -407,6 +427,8 @@ abstract class _Product implements Product {
   String get name;
   @override
   String get category;
+  @override
+  String get gender;
   @override
   String get imageUrl;
   @override
