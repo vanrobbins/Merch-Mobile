@@ -98,6 +98,8 @@ class FloorBuilderNotifier extends _$FloorBuilderNotifier {
   StreamSubscription<List<PlatformElement>>? _platformSub;
   StreamSubscription<List<SceneProp>>? _propSub;
   String? _zoneId;
+  final List<UndoEntry> _undoStack = [];
+  final List<UndoEntry> _redoStack = [];
 
   @override
   FloorBuilderState build() {
@@ -112,6 +114,79 @@ class FloorBuilderNotifier extends _$FloorBuilderNotifier {
   }
 
   String get _storeId => ref.read(activeStoreIdProvider).value ?? '';
+
+  void _push(UndoEntry entry) {
+    if (_undoStack.length >= 20) _undoStack.removeAt(0);
+    _undoStack.add(entry);
+    _redoStack.clear();
+    state = state.copyWith(canUndo: true, canRedo: false);
+  }
+
+  CollectionReference<Map<String, dynamic>> _collectionRef(
+      String storeId, String collection) {
+    switch (collection) {
+      case 'fixtures':
+        return FirestoreRefs.fixtures(storeId);
+      case 'mannequins':
+        return FirestoreRefs.mannequins(storeId);
+      case 'platforms':
+        return FirestoreRefs.platforms(storeId);
+      case 'sceneProps':
+        return FirestoreRefs.sceneProps(storeId);
+      default:
+        throw ArgumentError('Unknown collection: $collection');
+    }
+  }
+
+  Future<void> _applyEntry(
+    List<Map<String, dynamic>?> values,
+    List<String> ids,
+    String collection,
+  ) async {
+    final storeId = _storeId;
+    final coll = _collectionRef(storeId, collection);
+    if (ids.length == 1) {
+      final docRef = coll.doc(ids[0]);
+      if (values[0] == null) {
+        await docRef.delete();
+      } else {
+        await docRef.set({...values[0]!, 'updatedAt': Timestamp.now()});
+      }
+    } else {
+      final batch = FirebaseFirestore.instance.batch();
+      for (int i = 0; i < ids.length; i++) {
+        final docRef = coll.doc(ids[i]);
+        if (values[i] == null) {
+          batch.delete(docRef);
+        } else {
+          batch.set(docRef, {...values[i]!, 'updatedAt': Timestamp.now()});
+        }
+      }
+      await batch.commit();
+    }
+  }
+
+  Future<void> undo() async {
+    if (_undoStack.isEmpty) return;
+    final entry = _undoStack.removeLast();
+    _redoStack.add(entry);
+    state = state.copyWith(
+      canUndo: _undoStack.isNotEmpty,
+      canRedo: true,
+    );
+    await _applyEntry(entry.before, entry.ids, entry.collection);
+  }
+
+  Future<void> redo() async {
+    if (_redoStack.isEmpty) return;
+    final entry = _redoStack.removeLast();
+    _undoStack.add(entry);
+    state = state.copyWith(
+      canUndo: true,
+      canRedo: _redoStack.isNotEmpty,
+    );
+    await _applyEntry(entry.after, entry.ids, entry.collection);
+  }
 
   void loadFixtures(String zoneId) {
     _zoneId = zoneId;
