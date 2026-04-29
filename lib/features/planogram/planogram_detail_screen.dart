@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../core/router/app_router.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/design_tokens.dart';
 import '../../core/providers/store_provider.dart';
@@ -8,10 +10,10 @@ import '../../core/widgets/role_guard.dart';
 import 'planogram_provider.dart';
 import 'planogram_proposal_screen.dart';
 import 'planogram_slot.dart';
-import 'product_slot_picker.dart';
 
-/// Coordinator/manager: tap slot to assign, long-press to clear.
-/// Staff: read-only + floating action button to submit a proposal.
+/// Read-only planogram detail for all roles.
+/// Coordinator/manager see an EDIT button that opens PlanogramEditorScreen.
+/// Staff see a PROPOSE CHANGE FAB.
 class PlanogramDetailScreen extends ConsumerWidget {
   const PlanogramDetailScreen({super.key, required this.planogramId});
 
@@ -50,11 +52,12 @@ class PlanogramDetailScreen extends ConsumerWidget {
               RoleGuard(
                 allowedRoles: const ['coordinator', 'manager'],
                 child: TextButton(
-                  onPressed: () => ref
-                      .read(planogramEditorProvider(planogramId).notifier)
-                      .save(planogramId),
+                  onPressed: () => context.goNamed(
+                    AppRoutes.planogramEdit,
+                    pathParameters: {'planogramId': planogramId},
+                  ),
                   child: const Text(
-                    'SAVE',
+                    'EDIT',
                     style: TextStyle(color: Colors.white),
                   ),
                 ),
@@ -80,7 +83,7 @@ class PlanogramDetailScreen extends ConsumerWidget {
                   ],
                 ),
               ),
-              // Slot grid
+              // Slot grid (read-only)
               Expanded(
                 child: GridView.builder(
                   padding: const EdgeInsets.all(DesignTokens.spaceMd),
@@ -92,19 +95,7 @@ class PlanogramDetailScreen extends ConsumerWidget {
                     childAspectRatio: 0.85,
                   ),
                   itemCount: slots.length,
-                  itemBuilder: (_, i) => _SlotCard(
-                    slot: slots[i],
-                    planogramId: planogramId,
-                    role: role,
-                    onAssign: () => ProductSlotPicker.show(
-                      context,
-                      planogramId,
-                      slots[i].id,
-                    ),
-                    onClear: () => ref
-                        .read(planogramEditorProvider(planogramId).notifier)
-                        .clearSlot(slots[i].id),
-                  ),
+                  itemBuilder: (_, i) => _SlotCard(slot: slots[i]),
                 ),
               ),
             ],
@@ -136,23 +127,12 @@ class PlanogramDetailScreen extends ConsumerWidget {
 }
 
 class _SlotCard extends StatelessWidget {
-  const _SlotCard({
-    required this.slot,
-    required this.planogramId,
-    required this.role,
-    required this.onAssign,
-    required this.onClear,
-  });
+  const _SlotCard({required this.slot});
 
   final PgSlot slot;
-  final String planogramId;
-  final String role;
-  final VoidCallback onAssign;
-  final VoidCallback onClear;
 
   @override
   Widget build(BuildContext context) {
-    final canEdit = role == 'coordinator' || role == 'manager';
     final hasProduct = slot.productId != null;
     final inner = Padding(
       padding: const EdgeInsets.all(DesignTokens.spaceSm),
@@ -241,11 +221,7 @@ class _SlotCard extends StatelessWidget {
             ),
           );
 
-    return GestureDetector(
-      onTap: canEdit ? onAssign : null,
-      onLongPress: canEdit && hasProduct ? onClear : null,
-      child: content,
-    );
+    return content;
   }
 }
 
