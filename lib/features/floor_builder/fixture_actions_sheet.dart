@@ -92,18 +92,19 @@ class _FixtureActionsSheetState extends State<FixtureActionsSheet> {
                 ),
               ),
               const SizedBox(width: DesignTokens.spaceSm),
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () => widget.notifier.rotateFixture(widget.fixtureId),
-                  icon: const Icon(Icons.rotate_right, size: 16),
-                  label: const Text('ROTATE'),
-                  style: OutlinedButton.styleFrom(
-                    shape: const RoundedRectangleBorder(
-                      borderRadius: BorderRadius.all(Radius.circular(AppTheme.borderRadius)),
+              if (widget.fixtureType != 'wall')
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => widget.notifier.rotateFixture(widget.fixtureId),
+                    icon: const Icon(Icons.rotate_right, size: 16),
+                    label: const Text('ROTATE'),
+                    style: OutlinedButton.styleFrom(
+                      shape: const RoundedRectangleBorder(
+                        borderRadius: BorderRadius.all(Radius.circular(AppTheme.borderRadius)),
+                      ),
                     ),
                   ),
                 ),
-              ),
               const SizedBox(width: DesignTokens.spaceSm),
               Expanded(
                 child: ElevatedButton(

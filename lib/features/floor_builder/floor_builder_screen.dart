@@ -72,6 +72,10 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
   Offset? _resizeStartPos;
   double? _resizeStartWidth;
   double? _resizeStartDepth;
+  double? _resizeStartAngle;
+
+  // Drag offset — prevents jump-to-cursor on pointer-down
+  Offset? _dragPointerOffsetFt;
 
   @override
   void initState() {
@@ -321,6 +325,8 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
           _resizingFixtureId = null;
           _resizeHandle = null;
           _resizeStartPos = null;
+          _resizeStartAngle = null;
+          _dragPointerOffsetFt = null;
           _isPanning = false;
           _panStartScreen = null;
         });
@@ -352,6 +358,7 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
             _resizeStartPos = canvas;
             _resizeStartWidth = fixture.widthFt;
             _resizeStartDepth = fixture.depthFt;
+            _resizeStartAngle = fixture.rotation * pi / 180;
           });
           return;
         }
@@ -385,9 +392,13 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
         }
         ref.read(floorBuilderNotifierProvider.notifier).selectFixture(entry.key);
         final f = currentState.fixtures.firstWhereOrNull((f) => f.id == entry.key);
+        final cursorFtF = Offset(canvas.dx / _pixelsPerFt, canvas.dy / _pixelsPerFt);
         setState(() {
           _dragFixtureId = entry.key;
           _dragFixtureBeforePos = f != null ? Offset(f.posX, f.posY) : null;
+          _dragPointerOffsetFt = f != null
+              ? Offset(cursorFtF.dx - f.posX, cursorFtF.dy - f.posY)
+              : Offset.zero;
         });
         return;
       }
@@ -399,9 +410,13 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
         _primaryPointer = event.pointer;
         final p = ref.read(floorBuilderNotifierProvider).sceneProps
             .firstWhereOrNull((p) => p.id == entry.key);
+        final cursorFtP = Offset(canvas.dx / _pixelsPerFt, canvas.dy / _pixelsPerFt);
         setState(() {
           _dragPropId = entry.key;
           _dragPropBeforePos = p != null ? Offset(p.positionX, p.positionY) : null;
+          _dragPointerOffsetFt = p != null
+              ? Offset(cursorFtP.dx - p.positionX, cursorFtP.dy - p.positionY)
+              : Offset.zero;
         });
         return;
       }
@@ -413,9 +428,13 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
         _primaryPointer = event.pointer;
         final m = ref.read(floorBuilderNotifierProvider).mannequins
             .firstWhereOrNull((m) => m.id == entry.key);
+        final cursorFtM = Offset(canvas.dx / _pixelsPerFt, canvas.dy / _pixelsPerFt);
         setState(() {
           _dragMannequinId = entry.key;
           _dragMannequinBeforePos = m != null ? Offset(m.positionX, m.positionY) : null;
+          _dragPointerOffsetFt = m != null
+              ? Offset(cursorFtM.dx - m.positionX, cursorFtM.dy - m.positionY)
+              : Offset.zero;
         });
         return;
       }
@@ -427,9 +446,13 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
         _primaryPointer = event.pointer;
         final p = ref.read(floorBuilderNotifierProvider).platforms
             .firstWhereOrNull((p) => p.id == entry.key);
+        final cursorFtPl = Offset(canvas.dx / _pixelsPerFt, canvas.dy / _pixelsPerFt);
         setState(() {
           _dragPlatformId = entry.key;
           _dragPlatformBeforePos = p != null ? Offset(p.positionX, p.positionY) : null;
+          _dragPointerOffsetFt = p != null
+              ? Offset(cursorFtPl.dx - p.positionX, cursorFtPl.dy - p.positionY)
+              : Offset.zero;
         });
         return;
       }
@@ -463,18 +486,20 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
     // Resize
     if (_resizingFixtureId != null && _resizeHandle != null && _resizeStartPos != null) {
       final delta = canvas - _resizeStartPos!;
-      final dFt = Offset(delta.dx / _pixelsPerFt, delta.dy / _pixelsPerFt);
+      final angle = _resizeStartAngle ?? 0.0;
+      final localW = (delta.dx * cos(angle) + delta.dy * sin(angle)) / _pixelsPerFt;
+      final localD = (-delta.dx * sin(angle) + delta.dy * cos(angle)) / _pixelsPerFt;
       double? newWidth;
       double? newDepth;
       switch (_resizeHandle!) {
         case 'right':
-          newWidth = (_resizeStartWidth! + dFt.dx).clamp(0.5, double.infinity);
+          newWidth = (_resizeStartWidth! + localW).clamp(0.5, double.infinity);
         case 'left':
-          newWidth = (_resizeStartWidth! - dFt.dx).clamp(0.5, double.infinity);
+          newWidth = (_resizeStartWidth! - localW).clamp(0.5, double.infinity);
         case 'bottom':
-          newDepth = (_resizeStartDepth! + dFt.dy).clamp(0.5, double.infinity);
+          newDepth = (_resizeStartDepth! + localD).clamp(0.5, double.infinity);
         case 'top':
-          newDepth = (_resizeStartDepth! - dFt.dy).clamp(0.5, double.infinity);
+          newDepth = (_resizeStartDepth! - localD).clamp(0.5, double.infinity);
       }
       ref.read(floorBuilderNotifierProvider.notifier).resizeFixtureLocal(
             _resizingFixtureId!, newWidth, newDepth);
@@ -483,36 +508,40 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
 
     // Drag fixture
     if (_dragFixtureId != null) {
+      final off = _dragPointerOffsetFt ?? Offset.zero;
       ref.read(floorBuilderNotifierProvider.notifier).moveFixtureLocal(
             _dragFixtureId!,
-            Offset(canvas.dx / _pixelsPerFt, canvas.dy / _pixelsPerFt),
+            Offset(canvas.dx / _pixelsPerFt - off.dx, canvas.dy / _pixelsPerFt - off.dy),
           );
       return;
     }
 
     // Drag prop
     if (_dragPropId != null) {
+      final off = _dragPointerOffsetFt ?? Offset.zero;
       ref.read(floorBuilderNotifierProvider.notifier).moveScenePropLocal(
             _dragPropId!,
-            Offset(canvas.dx / _pixelsPerFt, canvas.dy / _pixelsPerFt),
+            Offset(canvas.dx / _pixelsPerFt - off.dx, canvas.dy / _pixelsPerFt - off.dy),
           );
       return;
     }
 
     // Drag mannequin
     if (_dragMannequinId != null) {
+      final off = _dragPointerOffsetFt ?? Offset.zero;
       ref.read(floorBuilderNotifierProvider.notifier).moveMannequinLocal(
             _dragMannequinId!,
-            Offset(canvas.dx / _pixelsPerFt, canvas.dy / _pixelsPerFt),
+            Offset(canvas.dx / _pixelsPerFt - off.dx, canvas.dy / _pixelsPerFt - off.dy),
           );
       return;
     }
 
     // Drag platform
     if (_dragPlatformId != null) {
+      final off = _dragPointerOffsetFt ?? Offset.zero;
       ref.read(floorBuilderNotifierProvider.notifier).movePlatformLocal(
             _dragPlatformId!,
-            Offset(canvas.dx / _pixelsPerFt, canvas.dy / _pixelsPerFt),
+            Offset(canvas.dx / _pixelsPerFt - off.dx, canvas.dy / _pixelsPerFt - off.dy),
           );
       return;
     }
@@ -547,6 +576,7 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
         _resizeStartPos = null;
         _resizeStartWidth = null;
         _resizeStartDepth = null;
+        _resizeStartAngle = null;
       });
     }
 
@@ -555,28 +585,28 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
         ref.read(floorBuilderNotifierProvider.notifier)
             .commitMoveFixture(_dragFixtureId!, _dragFixtureBeforePos!);
       }
-      setState(() { _dragFixtureId = null; _dragFixtureBeforePos = null; });
+      setState(() { _dragFixtureId = null; _dragFixtureBeforePos = null; _dragPointerOffsetFt = null; });
     }
     if (_dragPropId != null) {
       if (_dragPropBeforePos != null) {
         ref.read(floorBuilderNotifierProvider.notifier)
             .commitMoveSceneProp(_dragPropId!, _dragPropBeforePos!);
       }
-      setState(() { _dragPropId = null; _dragPropBeforePos = null; });
+      setState(() { _dragPropId = null; _dragPropBeforePos = null; _dragPointerOffsetFt = null; });
     }
     if (_dragMannequinId != null) {
       if (_dragMannequinBeforePos != null) {
         ref.read(floorBuilderNotifierProvider.notifier)
             .commitMoveMannequin(_dragMannequinId!, _dragMannequinBeforePos!);
       }
-      setState(() { _dragMannequinId = null; _dragMannequinBeforePos = null; });
+      setState(() { _dragMannequinId = null; _dragMannequinBeforePos = null; _dragPointerOffsetFt = null; });
     }
     if (_dragPlatformId != null) {
       if (_dragPlatformBeforePos != null) {
         ref.read(floorBuilderNotifierProvider.notifier)
             .commitMovePlatform(_dragPlatformId!, _dragPlatformBeforePos!);
       }
-      setState(() { _dragPlatformId = null; _dragPlatformBeforePos = null; });
+      setState(() { _dragPlatformId = null; _dragPlatformBeforePos = null; _dragPointerOffsetFt = null; });
     }
     if (_isPanning) setState(() { _isPanning = false; _panStartScreen = null; _panStartOffset = null; });
   }
