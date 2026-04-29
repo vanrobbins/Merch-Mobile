@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/design_tokens.dart';
+import 'catalog_provider.dart';
 
-class ProductTemplateScreen extends StatelessWidget {
+class ProductTemplateScreen extends ConsumerWidget {
   const ProductTemplateScreen({super.key});
 
-  static const _templates = [
+  static const _builtins = [
     _TemplateDef('builtin_shirt_ss',  'Short Sleeve',  'Tops',        'shirt_ss'),
     _TemplateDef('builtin_shirt_ls',  'Long Sleeve',   'Tops',        'shirt_ls'),
     _TemplateDef('builtin_tank_top',  'Tank Top',      'Tops',        'tank_top'),
@@ -23,19 +25,115 @@ class ProductTemplateScreen extends StatelessWidget {
   ];
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final customAsync = ref.watch(productTemplatesProvider);
+    final customTemplates = customAsync.valueOrNull ?? [];
+
     return Scaffold(
       appBar: AppBar(title: const Text('PRODUCT TEMPLATES')),
-      body: GridView.builder(
-        padding: const EdgeInsets.all(DesignTokens.spaceMd),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 3,
-          crossAxisSpacing: DesignTokens.spaceSm,
-          mainAxisSpacing: DesignTokens.spaceSm,
-          childAspectRatio: 0.85,
-        ),
-        itemCount: _templates.length,
-        itemBuilder: (context, i) => _TemplateTile(template: _templates[i]),
+      body: CustomScrollView(
+        slivers: [
+          // Built-in templates section
+          const SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(
+                DesignTokens.spaceMd,
+                DesignTokens.spaceMd,
+                DesignTokens.spaceMd,
+                DesignTokens.spaceXs,
+              ),
+              child: Text(
+                'BUILT-IN',
+                style: TextStyle(
+                  fontSize: DesignTokens.typeXs,
+                  fontWeight: DesignTokens.weightBold,
+                  letterSpacing: DesignTokens.letterSpacingEyebrow,
+                  color: AppTheme.textSecondary,
+                ),
+              ),
+            ),
+          ),
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: DesignTokens.spaceMd),
+            sliver: SliverGrid(
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 3,
+                crossAxisSpacing: DesignTokens.spaceSm,
+                mainAxisSpacing: DesignTokens.spaceSm,
+                childAspectRatio: 0.85,
+              ),
+              delegate: SliverChildBuilderDelegate(
+                (context, i) => _TemplateTile(template: _builtins[i]),
+                childCount: _builtins.length,
+              ),
+            ),
+          ),
+          // Custom templates section
+          const SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(
+                DesignTokens.spaceMd,
+                DesignTokens.spaceLg,
+                DesignTokens.spaceMd,
+                DesignTokens.spaceXs,
+              ),
+              child: Text(
+                'CUSTOM',
+                style: TextStyle(
+                  fontSize: DesignTokens.typeXs,
+                  fontWeight: DesignTokens.weightBold,
+                  letterSpacing: DesignTokens.letterSpacingEyebrow,
+                  color: AppTheme.textSecondary,
+                ),
+              ),
+            ),
+          ),
+          if (customAsync.isLoading)
+            const SliverToBoxAdapter(
+              child: Center(child: CircularProgressIndicator()),
+            )
+          else if (customTemplates.isEmpty)
+            SliverToBoxAdapter(
+              child: Column(
+                children: [
+                  const SizedBox(height: DesignTokens.spaceMd),
+                  Icon(Icons.style_outlined, size: 36, color: AppTheme.textSecondary.withValues(alpha: 0.4)),
+                  const SizedBox(height: DesignTokens.spaceSm),
+                  const Text(
+                    'NO CUSTOM TEMPLATES',
+                    style: TextStyle(
+                      color: AppTheme.textSecondary,
+                      fontSize: DesignTokens.typeSm,
+                      fontWeight: DesignTokens.weightBold,
+                      letterSpacing: DesignTokens.letterSpacingEyebrow,
+                    ),
+                  ),
+                ],
+              ),
+            )
+          else
+            SliverPadding(
+              padding: const EdgeInsets.symmetric(horizontal: DesignTokens.spaceMd),
+              sliver: SliverGrid(
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 3,
+                  crossAxisSpacing: DesignTokens.spaceSm,
+                  mainAxisSpacing: DesignTokens.spaceSm,
+                  childAspectRatio: 0.85,
+                ),
+                delegate: SliverChildBuilderDelegate(
+                  (context, i) {
+                    final t = customTemplates[i];
+                    return _TemplateTile(
+                      template: _TemplateDef(t.id, t.name, t.category, t.silhouetteType),
+                    );
+                  },
+                  childCount: customTemplates.length,
+                ),
+              ),
+            ),
+          const SliverToBoxAdapter(child: SizedBox(height: DesignTokens.spaceLg)),
+        ],
       ),
     );
   }

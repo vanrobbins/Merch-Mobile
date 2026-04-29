@@ -1,3 +1,4 @@
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/models/product.dart';
@@ -100,6 +101,8 @@ class _CatalogBodyState extends ConsumerState<_CatalogBody> {
   @override
   Widget build(BuildContext context) {
     final displayProducts = _categoryFiltered;
+    final colorsAsync = ref.watch(brandColorsProvider);
+    final colors = colorsAsync.valueOrNull ?? [];
 
     return CustomScrollView(
       slivers: [
@@ -213,16 +216,23 @@ class _CatalogBodyState extends ConsumerState<_CatalogBody> {
                 childAspectRatio: 120 / 160,
               ),
               delegate: SliverChildBuilderDelegate(
-                (context, index) => ProductCard(
-                  product: displayProducts[index],
-                  onTap: () => Navigator.push<void>(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => ProductFormScreen(
-                          productId: displayProducts[index].id),
+                (context, index) {
+                  final product = displayProducts[index];
+                  final colorHex = product.colorId != null
+                      ? colors.firstWhereOrNull((c) => c.id == product.colorId)?.hexValue
+                      : null;
+                  return ProductCard(
+                    product: product,
+                    colorHex: colorHex,
+                    onTap: () => Navigator.push<void>(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => ProductFormScreen(
+                            productId: product.id),
+                      ),
                     ),
-                  ),
-                ),
+                  );
+                },
                 childCount: displayProducts.length,
               ),
             ),

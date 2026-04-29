@@ -5,7 +5,6 @@ import '../../core/models/brand_color.dart';
 import '../../core/providers/store_provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/design_tokens.dart';
-import '../../core/widgets/mm_empty_state.dart';
 import '../../core/widgets/role_guard.dart';
 import 'catalog_provider.dart';
 
@@ -23,10 +22,28 @@ class ColorPaletteScreen extends ConsumerWidget {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text('Error: $e')),
         data: (colors) => colors.isEmpty
-            ? const MmEmptyState(
-                icon: Icons.palette_outlined,
-                headline: 'No Colors',
-                body: 'Add brand colors to assign to products.',
+            ? Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.palette_outlined, size: 48, color: AppTheme.textSecondary.withValues(alpha: 0.4)),
+                    const SizedBox(height: DesignTokens.spaceMd),
+                    const Text(
+                      'NO COLORS YET',
+                      style: TextStyle(
+                        color: AppTheme.textSecondary,
+                        fontSize: DesignTokens.typeMd,
+                        fontWeight: DesignTokens.weightBold,
+                        letterSpacing: DesignTokens.letterSpacingEyebrow,
+                      ),
+                    ),
+                    const SizedBox(height: DesignTokens.spaceXs),
+                    const Text(
+                      'Tap + to add your first brand color.',
+                      style: TextStyle(color: AppTheme.textSecondary, fontSize: DesignTokens.typeSm),
+                    ),
+                  ],
+                ),
               )
             : ListView.separated(
                 padding: const EdgeInsets.all(DesignTokens.spaceMd),

@@ -8,10 +8,11 @@ import '../../core/widgets/mm_card.dart';
 import '../../core/widgets/role_guard.dart';
 
 class ProductCard extends ConsumerWidget {
-  const ProductCard({super.key, required this.product, this.onTap});
+  const ProductCard({super.key, required this.product, this.onTap, this.colorHex});
 
   final Product product;
   final VoidCallback? onTap;
+  final String? colorHex; // hex like '#FF0000'
 
   String? get _silhouette => product.templateId?.replaceFirst('builtin_', '');
 
@@ -108,12 +109,30 @@ class ProductCard extends ConsumerWidget {
                   ],
                 ),
               ),
+              // Color strip at very bottom
+              if (colorHex != null)
+                Container(
+                  height: 6,
+                  decoration: BoxDecoration(
+                    color: _parseHex(colorHex!),
+                    borderRadius: const BorderRadius.only(
+                      bottomLeft: Radius.circular(DesignTokens.radiusSm),
+                      bottomRight: Radius.circular(DesignTokens.radiusSm),
+                    ),
+                  ),
+                ),
             ],
           ),
         ),
       ),
     );
   }
+}
+
+Color _parseHex(String hex) {
+  final clean = hex.replaceFirst('#', '');
+  final full = clean.length == 6 ? 'FF$clean' : clean;
+  return Color(int.tryParse('0x$full') ?? 0xFF888888);
 }
 
 class _StockDot extends StatelessWidget {

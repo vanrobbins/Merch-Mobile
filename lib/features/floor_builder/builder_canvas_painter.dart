@@ -295,18 +295,23 @@ class BuilderCanvasPainter extends CustomPainter {
     final left = platform.positionX * pixelsPerFt;
     final top = platform.positionY * pixelsPerFt;
     final rect = Rect.fromLTWH(left, top, w, d);
-    // Elevated platform: slightly darker warm fill + solid border
-    canvas.drawRect(rect, Paint()..color = const Color(0xFFC8B89A).withValues(alpha: 0.35)..style = PaintingStyle.fill);
-    canvas.drawRect(rect, Paint()..color = const Color(0xFFC8B89A)..strokeWidth = 1.5..style = PaintingStyle.stroke);
-    // Elevation label inside
-    final label = 'PLATFORM\n+${platform.elevation.toStringAsFixed(1)}ft';
+    // Subtle drop shadow
+    canvas.drawRect(
+      rect.translate(2, 2),
+      Paint()..color = Colors.black.withValues(alpha: 0.12)..style = PaintingStyle.fill,
+    );
+    // Khaki fill
+    canvas.drawRect(rect, Paint()..color = const Color(0xFFC8B89A).withValues(alpha: 0.4)..style = PaintingStyle.fill);
+    // Border
+    canvas.drawRect(rect, Paint()..color = const Color(0xFF9B8B6E)..strokeWidth = 1.5..style = PaintingStyle.stroke);
+    // Elevation label
+    final label = '+${platform.elevation.toStringAsFixed(1)}ft';
     final tp = TextPainter(
       text: TextSpan(
         text: label,
-        style: const TextStyle(fontSize: 8, fontWeight: FontWeight.w700, color: Color(0xFF8C7B5E)),
+        style: const TextStyle(fontSize: 8, fontWeight: FontWeight.w700, color: Color(0xFF7A6845)),
       ),
       textDirection: TextDirection.ltr,
-      textAlign: TextAlign.center,
     )..layout(maxWidth: w - 4);
     tp.paint(canvas, Offset(left + (w - tp.width) / 2, top + (d - tp.height) / 2));
   }
@@ -314,36 +319,57 @@ class BuilderCanvasPainter extends CustomPainter {
   void _drawMannequin(Canvas canvas, Mannequin mannequin) {
     final cx = mannequin.positionX * pixelsPerFt;
     final cy = mannequin.positionY * pixelsPerFt;
-    final radius = pixelsPerFt * 0.6;
-    // Body circle
-    canvas.drawCircle(
-      Offset(cx, cy),
-      radius,
-      Paint()..color = AppTheme.accent.withValues(alpha: 0.18)..style = PaintingStyle.fill,
-    );
-    canvas.drawCircle(
-      Offset(cx, cy),
-      radius,
-      Paint()..color = AppTheme.accent..strokeWidth = 1.5..style = PaintingStyle.stroke,
-    );
-    // Head dot
-    canvas.drawCircle(
-      Offset(cx, cy - radius * 0.55),
-      radius * 0.28,
-      Paint()..color = AppTheme.accent..style = PaintingStyle.fill,
-    );
-    // Label below
-    final label = mannequin.outfitName ??
-        mannequin.name ??
-        _mannequinAbbrev(mannequin.mannequinType);
+    const accentColor = AppTheme.accent;
+
+    final strokePaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.8
+      ..strokeCap = StrokeCap.round
+      ..color = accentColor;
+    final fillPaint = Paint()
+      ..style = PaintingStyle.fill
+      ..color = accentColor;
+
+    if (mannequin.mannequinType == 'leg_form') {
+      // Two vertical parallel lines
+      canvas.drawLine(Offset(cx - 4, cy - 10), Offset(cx - 4, cy + 10), strokePaint);
+      canvas.drawLine(Offset(cx + 4, cy - 10), Offset(cx + 4, cy + 10), strokePaint);
+    } else if (mannequin.mannequinType == 'bra_form') {
+      // Horizontal bar with two small arcs
+      canvas.drawLine(Offset(cx - 8, cy), Offset(cx + 8, cy), strokePaint);
+      final rect1 = Rect.fromCircle(center: Offset(cx - 4, cy), radius: 5);
+      final rect2 = Rect.fromCircle(center: Offset(cx + 4, cy), radius: 5);
+      canvas.drawArc(rect1, -3.14159, 3.14159, false, strokePaint);
+      canvas.drawArc(rect2, -3.14159, 3.14159, false, strokePaint);
+    } else {
+      // Standard figure: head + body lines
+      // Head
+      canvas.drawCircle(Offset(cx, cy - 9), 4, fillPaint);
+      // Body
+      canvas.drawLine(Offset(cx, cy - 5), Offset(cx, cy + 5), strokePaint);
+      if (mannequin.mannequinType == 'full_body') {
+        // Arms
+        canvas.drawLine(Offset(cx - 7, cy - 2), Offset(cx + 7, cy - 2), strokePaint);
+        // Legs
+        canvas.drawLine(Offset(cx, cy + 5), Offset(cx - 5, cy + 13), strokePaint);
+        canvas.drawLine(Offset(cx, cy + 5), Offset(cx + 5, cy + 13), strokePaint);
+      } else if (mannequin.mannequinType == 'half_body') {
+        // Arms only, no legs
+        canvas.drawLine(Offset(cx - 7, cy - 2), Offset(cx + 7, cy - 2), strokePaint);
+      }
+      // torso: just head + body, no arms/legs
+    }
+
+    // Label below figure
+    final label = mannequin.outfitName ?? mannequin.name ?? _mannequinAbbrev(mannequin.mannequinType);
     final tp = TextPainter(
       text: TextSpan(
         text: label.toUpperCase(),
-        style: const TextStyle(fontSize: 8, fontWeight: FontWeight.w700, color: AppTheme.accent),
+        style: const TextStyle(fontSize: 7, fontWeight: FontWeight.w700, color: AppTheme.accent),
       ),
       textDirection: TextDirection.ltr,
-    )..layout(maxWidth: 80);
-    tp.paint(canvas, Offset(cx - tp.width / 2, cy + radius + 2));
+    )..layout(maxWidth: 60);
+    tp.paint(canvas, Offset(cx - tp.width / 2, cy + 15));
   }
 
   String _mannequinAbbrev(String type) {
