@@ -72,30 +72,36 @@ class PlanogramEditorNotifier extends _$PlanogramEditorNotifier {
 
   @override
   PlanogramEditorState build(String planogramId) {
-    // Listen to the planogram doc and initialise slots/rows on first load.
-    ref.listen(
-      planogramDetailProvider(planogramId),
-      (_, next) {
-        final pg = next.value;
-        if (pg == null) return;
-        // Only sync if we don't have unsaved changes.
-        if (!state.hasUnsavedChanges) {
-          final slots = pg.slotsJson.isEmpty
-              ? PgSlot.defaultGrid(pg.rows, pg.cols, pg.planogramType)
-              : PgSlot.decodeList(pg.slotsJson);
-          final rows = pg.rowsJson.isEmpty
-              ? PgRow.defaults(pg.rows, pg.planogramType)
-              : PgRow.decodeList(pg.rowsJson);
-          state = state.copyWith(planogram: pg, slots: slots, rows: rows);
-        } else {
-          // Update planogram metadata only (title, type) without clobbering slots.
-          state = state.copyWith(planogram: pg);
-        }
-      },
-      fireImmediately: true,
-    );
+    // Listen for future planogram changes (e.g. remote title edits, status).
+    // fireImmediately is intentionally omitted: it fires synchronously during
+    // build() when the provider already has a cached value, which causes a
+    // StateError because `state` is not yet initialised at that point.
+    ref.listen(planogramDetailProvider(planogramId), (_, next) {
+      final pg = next.value;
+      if (pg == null) return;
+      if (state.hasUnsavedChanges) {
+        state = state.copyWith(planogram: pg);
+      } else {
+        final slots = pg.slotsJson.isEmpty
+            ? PgSlot.defaultGrid(pg.rows, pg.cols, pg.planogramType)
+            : PgSlot.decodeList(pg.slotsJson);
+        final rows = pg.rowsJson.isEmpty
+            ? PgRow.defaults(pg.rows, pg.planogramType)
+            : PgRow.decodeList(pg.rowsJson);
+        state = state.copyWith(planogram: pg, slots: slots, rows: rows);
+      }
+    });
 
-    return const PlanogramEditorState();
+    // Initialise synchronously from whatever value is already cached.
+    final pg = ref.read(planogramDetailProvider(planogramId)).value;
+    if (pg == null) return const PlanogramEditorState();
+    final slots = pg.slotsJson.isEmpty
+        ? PgSlot.defaultGrid(pg.rows, pg.cols, pg.planogramType)
+        : PgSlot.decodeList(pg.slotsJson);
+    final rows = pg.rowsJson.isEmpty
+        ? PgRow.defaults(pg.rows, pg.planogramType)
+        : PgRow.decodeList(pg.rowsJson);
+    return PlanogramEditorState(planogram: pg, slots: slots, rows: rows);
   }
 
   // -------------------------------------------------------------------------
