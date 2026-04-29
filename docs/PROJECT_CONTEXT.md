@@ -1,6 +1,6 @@
 # Merch Mobile — Project Context for Agents
 
-> **Read this first.** This document is the single source of truth for project state, past decisions, and architecture rules. Check it before exploring the codebase. Last updated: 2026-04-29 (v0.3 all 6 agents ✅ complete; v0.35 spec + 6 agent plans written).
+> **Read this first.** This document is the single source of truth for project state, past decisions, and architecture rules. Check it before exploring the codebase. Last updated: 2026-04-29 (v0.3 all 6 agents ✅ complete; v0.35 spec + 7 agent plans written).
 
 ---
 
@@ -224,8 +224,9 @@ Three features: undo/redo delta stack (floor builder + planogram editor), AutoBu
 | Agent 4 — PlanogramEditorScreen | `PlanogramEditorNotifier` + undo stack, `SlotSilhouetteRenderer`, `SlotCellWidget`, `PlanogramEditorScreen` (bay + grid views), detail screen read-only + EDIT button, route `/home/planograms/:id/edit` | 📋 Planned |
 | Agent 5 — SVG Assets | 13 shoulder-out side-profile SVGs, 13 folded SVGs, pubspec.yaml asset declarations | 📋 Planned |
 | Agent 6 — Tests | Unit tests: undo stack, AutoBuild algorithm, PgSlot/PgRow serialization | 📋 Planned |
+| Agent 7 — Product Gender | `@Default('unisex') String gender` on Product, gender picker in form (Men/Women/Unisex), filter chips in CatalogScreen, filter chips in ProductSlotPicker | 📋 Planned |
 
-**Wave execution order:** Wave 1 = Agents 1+2+3 in parallel → Wave 2 = Agent 4 (after Agent 3) → Wave 3 = Agent 5 (after Agent 4) → Wave 4 = Agent 6 (last).
+**Wave execution order:** Wave 1 = Agents 1+2+3 in parallel → Wave 2 = Agent 4 (after Agent 3) → Wave 3 = Agents 5+7 in parallel (after Agent 4) → Wave 4 = Agent 6 (last).
 
 ---
 
@@ -316,8 +317,7 @@ After any change to `@freezed` models or `@riverpod` providers: run `dart run bu
 
 1. **Merge `feature/v0.2` → `main`** — v0.2 is complete at tag v0.29
 2. **Complete `feature/v0.3`** — v0.3 Agents 1–6 all done; run final `flutter analyze` + `flutter test`, then tag `v0.3` and merge to `main`
-3. **v0.35** — undo/redo, AutoBuild enhancements, PlanogramEditorScreen (spec + 6 agent plans written 2026-04-29, branch `feature/v0.35` from `feature/v0.3`)
-4. **Product gender classification** — add `gender` field (`male` | `female` | `unisex`) to Product model + catalog filter; `PgSlot` may also benefit from filtering by gender in the product picker (noted from user request 2026-04-29, not yet specced)
+3. **v0.35** — undo/redo, AutoBuild enhancements, PlanogramEditorScreen, product gender classification (spec + 7 agent plans written 2026-04-29, branch `feature/v0.35` from `feature/v0.3`)
 
 ---
 
@@ -332,4 +332,4 @@ After any change to `@freezed` models or `@riverpod` providers: run `dart run bu
 | `docs/superpowers/plans/2026-04-27-v0.3-agent*.md`  | v0.3 implementation plans (Agents 1–6 + manager) |
 | `docs/superpowers/specs/2026-04-29-v0.35-design.md` | v0.35 design spec (undo/redo, AutoBuild, planogram editor) |
 | `docs/superpowers/plans/2026-04-29-v0.35-manager.md` | v0.35 wave orchestration plan |
-| `docs/superpowers/plans/2026-04-29-v0.35-agent*.md`  | v0.35 implementation plans (Agents 1–6) |
+| `docs/superpowers/plans/2026-04-29-v0.35-agent*.md`  | v0.35 implementation plans (Agents 1–7) |
