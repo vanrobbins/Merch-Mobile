@@ -13,6 +13,7 @@ import '../../core/models/scene_prop.dart';
 import '../../core/models/store_zone.dart';
 import '../../core/providers/store_provider.dart';
 import '../../core/services/firestore_refs.dart';
+import 'undo_entry.dart';
 
 part 'floor_builder_provider.g.dart';
 
@@ -32,6 +33,8 @@ class FloorBuilderState {
   final List<SceneProp> sceneProps;
   final bool isMultiSelectMode;
   final Set<String> selectedFixtureIds;
+  final bool canUndo;
+  final bool canRedo;
 
   const FloorBuilderState({
     this.fixtures = const [],
@@ -46,6 +49,8 @@ class FloorBuilderState {
     this.sceneProps = const [],
     this.isMultiSelectMode = false,
     this.selectedFixtureIds = const {},
+    this.canUndo = false,
+    this.canRedo = false,
   });
 
   FloorBuilderState copyWith({
@@ -61,6 +66,8 @@ class FloorBuilderState {
     List<SceneProp>? sceneProps,
     bool? isMultiSelectMode,
     Set<String>? selectedFixtureIds,
+    bool? canUndo,
+    bool? canRedo,
   }) {
     return FloorBuilderState(
       fixtures: fixtures ?? this.fixtures,
@@ -77,6 +84,8 @@ class FloorBuilderState {
       sceneProps: sceneProps ?? this.sceneProps,
       isMultiSelectMode: isMultiSelectMode ?? this.isMultiSelectMode,
       selectedFixtureIds: selectedFixtureIds ?? this.selectedFixtureIds,
+      canUndo: canUndo ?? this.canUndo,
+      canRedo: canRedo ?? this.canRedo,
     );
   }
 }
