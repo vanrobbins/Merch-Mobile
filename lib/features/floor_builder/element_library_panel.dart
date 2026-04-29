@@ -79,10 +79,10 @@ class ElementLibraryPanel extends StatelessWidget {
             ),
           ),
           const Divider(height: 1, color: AppTheme.divider),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(
+          const Padding(
+            padding: EdgeInsets.fromLTRB(
                 DesignTokens.spaceMd, DesignTokens.spaceSm, DesignTokens.spaceMd, DesignTokens.spaceSm),
-            child: const Text(
+            child: Text(
               'MANNEQUINS & PROPS',
               style: TextStyle(
                 fontSize: DesignTokens.typeXs,
