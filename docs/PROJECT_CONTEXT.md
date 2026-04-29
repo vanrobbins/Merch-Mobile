@@ -1,6 +1,6 @@
 # Merch Mobile — Project Context for Agents
 
-> **Read this first.** This document is the single source of truth for project state, past decisions, and architecture rules. Check it before exploring the codebase. Last updated: 2026-04-29 (v0.3 all 6 agents ✅ complete; v0.35 spec + 7 agent plans written).
+> **Read this first.** This document is the single source of truth for project state, past decisions, and architecture rules. Check it before exploring the codebase. Last updated: 2026-04-29 (v0.3 all 6 agents ✅ complete; v0.35 all 7 agents ✅ complete on feature/v0.3).
 
 ---
 
@@ -209,24 +209,24 @@ Plans: `docs/superpowers/plans/2026-04-27-v0.3-*.md`
 | Agent 5 — UI Polish | Stick-figure mannequin canvas, platform shadow, color chip on ProductCard, empty states | ✅ Complete (2026-04-29) |
 | Agent 6 — Tests | Integration + widget tests for v0.3 features | ✅ Complete (2026-04-29) |
 
-### v0.35 — Planned 📋 (branch: `feature/v0.35`, from `feature/v0.3`)
+### v0.35 — Feature-complete ✅ (branch: `feature/v0.3`, 2026-04-29)
 
 Spec: `docs/superpowers/specs/2026-04-29-v0.35-design.md`
 Plans: `docs/superpowers/plans/2026-04-29-v0.35-*.md`
 
-Three features: undo/redo delta stack (floor builder + planogram editor), AutoBuild enhancements (style/density/mannequins/Firestore presets), and a full PlanogramEditorScreen.
+Four features: undo/redo delta stack (floor builder + planogram editor), AutoBuild enhancements (style/density/mannequins/Firestore presets), full PlanogramEditorScreen, and product gender classification.
 
 | Agent | Scope | Status |
 | --- | --- | --- |
-| Agent 1 — Undo/Redo Delta Stack | `UndoEntry` model, `FloorBuilderNotifier` private stacks, all 11 fixture + 6 mannequin/platform/prop methods wrapped, ↩/↪ AppBar buttons | 📋 Planned |
-| Agent 2 — AutoBuild Enhancements | `LayoutStyle`/`LayoutDensity` enums, zone polygon bounds, style/density algorithm, mannequin output, Firestore presets, `PresetsSheet` | 📋 Planned |
-| Agent 3 — Planogram Data Model | `PgRow` model, `Planogram` expansion (planogramType/rows/cols/linearFt/rowsJson/fixtureId nullable), `PgSlot` expansion (row/col/presentationMode/span/rotation/color), updated creation dialog | 📋 Planned |
-| Agent 4 — PlanogramEditorScreen | `PlanogramEditorNotifier` + undo stack, `SlotSilhouetteRenderer`, `SlotCellWidget`, `PlanogramEditorScreen` (bay + grid views), detail screen read-only + EDIT button, route `/home/planograms/:id/edit` | 📋 Planned |
-| Agent 5 — SVG Assets | 13 shoulder-out side-profile SVGs, 13 folded SVGs, pubspec.yaml asset declarations | 📋 Planned |
-| Agent 6 — Tests | Unit tests: undo stack, AutoBuild algorithm, PgSlot/PgRow serialization | 📋 Planned |
-| Agent 7 — Product Gender | `@Default('unisex') String gender` on Product, gender picker in form (Men/Women/Unisex), filter chips in CatalogScreen, filter chips in ProductSlotPicker | 📋 Planned |
+| Agent 1 — Undo/Redo Delta Stack | `UndoEntry` model, `FloorBuilderNotifier` private stacks, all 11 fixture + 6 mannequin/platform/prop methods wrapped, ↩/↪ AppBar buttons | ✅ Complete (2026-04-29) |
+| Agent 2 — AutoBuild Enhancements | `LayoutStyle`/`LayoutDensity` enums, zone polygon bounds, style/density algorithm, mannequin output, Firestore presets, `PresetsSheet` | ✅ Complete (2026-04-29) |
+| Agent 3 — Planogram Data Model | `PgRow` model, `Planogram` expansion (planogramType/rows/cols/linearFt/rowsJson/fixtureId nullable), `PgSlot` expansion (row/col/presentationMode/span/rotation/color), updated creation dialog | ✅ Complete (2026-04-29) |
+| Agent 4 — PlanogramEditorScreen | `PlanogramEditorNotifier` + undo stack, `SlotSilhouetteRenderer`, `SlotCellWidget`, `PlanogramEditorScreen` (bay + grid views), detail screen read-only + EDIT button, route `/home/planograms/:id/edit` | ✅ Complete (2026-04-29) |
+| Agent 5 — SVG Assets | 13 shoulder-out side-profile SVGs, 13 folded SVGs, pubspec.yaml asset declarations | ✅ Complete (2026-04-29) |
+| Agent 6 — Tests | Unit tests: undo stack, AutoBuild algorithm, PgSlot/PgRow serialization (29 new tests, 102 total) | ✅ Complete (2026-04-29) |
+| Agent 7 — Product Gender | `@Default('unisex') String gender` on Product, gender picker in form (Men/Women/Unisex), filter chips in CatalogScreen, filter chips in ProductSlotPicker | ✅ Complete (2026-04-29) |
 
-**Wave execution order:** Wave 1 = Agents 1+2+3 in parallel → Wave 2 = Agent 4 (after Agent 3) → Wave 3 = Agents 5+7 in parallel (after Agent 4) → Wave 4 = Agent 6 (last).
+**Why:** Adds full planogram editing workflow, undo/redo safety net across floor builder and planogram editor, smarter AutoBuild with preset library, and gender-based product filtering throughout the app.
 
 ---
 
@@ -317,7 +317,7 @@ After any change to `@freezed` models or `@riverpod` providers: run `dart run bu
 
 1. **Merge `feature/v0.2` → `main`** — v0.2 is complete at tag v0.29
 2. **Complete `feature/v0.3`** — v0.3 Agents 1–6 all done; run final `flutter analyze` + `flutter test`, then tag `v0.3` and merge to `main`
-3. **v0.35** — undo/redo, AutoBuild enhancements, PlanogramEditorScreen, product gender classification (spec + 7 agent plans written 2026-04-29, branch `feature/v0.35` from `feature/v0.3`)
+3. **v0.35** — undo/redo, AutoBuild enhancements, PlanogramEditorScreen, product gender classification (all 7 agents ✅ complete 2026-04-29, on `feature/v0.3`, pending emulator testing + PR)
 
 ---
 
