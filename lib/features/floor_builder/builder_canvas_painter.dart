@@ -1,7 +1,10 @@
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import '../../core/models/fixture.dart';
+import '../../core/models/mannequin.dart';
+import '../../core/models/platform_element.dart';
 import '../../core/models/planogram.dart';
+import '../../core/models/scene_prop.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/design_tokens.dart';
 import 'zone_edge_helper.dart';
@@ -18,6 +21,9 @@ class BuilderCanvasPainter extends CustomPainter {
     this.zoneName,
     this.wallEdges,
     this.planograms = const {},
+    this.mannequins = const [],
+    this.platforms = const [],
+    this.sceneProps = const [],
   });
 
   final List<Fixture> fixtures;
@@ -30,6 +36,9 @@ class BuilderCanvasPainter extends CustomPainter {
   final String? zoneName;
   final List<ZoneEdge>? wallEdges;
   final Map<String, Planogram> planograms;
+  final List<Mannequin> mannequins;
+  final List<PlatformElement> platforms;
+  final List<SceneProp> sceneProps;
 
   Map<String, Rect> fixtureRects = {};
   Map<String, Map<String, Rect>> resizeHandleRects = {};
@@ -43,8 +52,17 @@ class BuilderCanvasPainter extends CustomPainter {
     badgeRects = {};
     badgeBackRects = {};
     _drawZoneBackground(canvas, size);
+    for (final platform in platforms) {
+      _drawPlatform(canvas, platform);
+    }
     for (final fixture in fixtures) {
       _drawFixture(canvas, fixture);
+    }
+    for (final prop in sceneProps) {
+      _drawSceneProp(canvas, prop);
+    }
+    for (final mannequin in mannequins) {
+      _drawMannequin(canvas, mannequin);
     }
     if (ghostPos != null && ghostType != null) {
       _drawGhost(canvas, ghostPos!, ghostType!);
@@ -271,6 +289,110 @@ class BuilderCanvasPainter extends CustomPainter {
     }
   }
 
+  void _drawPlatform(Canvas canvas, PlatformElement platform) {
+    final w = platform.width * pixelsPerFt;
+    final d = platform.depth * pixelsPerFt;
+    final left = platform.positionX * pixelsPerFt;
+    final top = platform.positionY * pixelsPerFt;
+    final rect = Rect.fromLTWH(left, top, w, d);
+    // Elevated platform: slightly darker warm fill + solid border
+    canvas.drawRect(rect, Paint()..color = const Color(0xFFC8B89A).withValues(alpha: 0.35)..style = PaintingStyle.fill);
+    canvas.drawRect(rect, Paint()..color = const Color(0xFFC8B89A)..strokeWidth = 1.5..style = PaintingStyle.stroke);
+    // Elevation label inside
+    final label = 'PLATFORM\n+${platform.elevation.toStringAsFixed(1)}ft';
+    final tp = TextPainter(
+      text: TextSpan(
+        text: label,
+        style: const TextStyle(fontSize: 8, fontWeight: FontWeight.w700, color: Color(0xFF8C7B5E)),
+      ),
+      textDirection: TextDirection.ltr,
+      textAlign: TextAlign.center,
+    )..layout(maxWidth: w - 4);
+    tp.paint(canvas, Offset(left + (w - tp.width) / 2, top + (d - tp.height) / 2));
+  }
+
+  void _drawMannequin(Canvas canvas, Mannequin mannequin) {
+    final cx = mannequin.positionX * pixelsPerFt;
+    final cy = mannequin.positionY * pixelsPerFt;
+    final radius = pixelsPerFt * 0.6;
+    // Body circle
+    canvas.drawCircle(
+      Offset(cx, cy),
+      radius,
+      Paint()..color = AppTheme.accent.withValues(alpha: 0.18)..style = PaintingStyle.fill,
+    );
+    canvas.drawCircle(
+      Offset(cx, cy),
+      radius,
+      Paint()..color = AppTheme.accent..strokeWidth = 1.5..style = PaintingStyle.stroke,
+    );
+    // Head dot
+    canvas.drawCircle(
+      Offset(cx, cy - radius * 0.55),
+      radius * 0.28,
+      Paint()..color = AppTheme.accent..style = PaintingStyle.fill,
+    );
+    // Label below
+    final label = mannequin.outfitName ??
+        mannequin.name ??
+        _mannequinAbbrev(mannequin.mannequinType);
+    final tp = TextPainter(
+      text: TextSpan(
+        text: label.toUpperCase(),
+        style: const TextStyle(fontSize: 8, fontWeight: FontWeight.w700, color: AppTheme.accent),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout(maxWidth: 80);
+    tp.paint(canvas, Offset(cx - tp.width / 2, cy + radius + 2));
+  }
+
+  String _mannequinAbbrev(String type) {
+    switch (type) {
+      case 'full_body': return 'FULL';
+      case 'half_body': return 'HALF';
+      case 'torso': return 'TORSO';
+      case 'leg_form': return 'LEGS';
+      case 'bra_form': return 'BRA';
+      default: return type.toUpperCase();
+    }
+  }
+
+  void _drawSceneProp(Canvas canvas, SceneProp prop) {
+    final w = prop.width * pixelsPerFt;
+    final d = prop.depth * pixelsPerFt;
+    final left = prop.positionX * pixelsPerFt;
+    final top = prop.positionY * pixelsPerFt;
+    final rect = Rect.fromLTWH(left, top, w, d);
+    const propColor = Color(0xFF2D6A4F);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(rect, const Radius.circular(4)),
+      Paint()..color = propColor.withValues(alpha: 0.15)..style = PaintingStyle.fill,
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(rect, const Radius.circular(4)),
+      Paint()..color = propColor..strokeWidth = 1.2..style = PaintingStyle.stroke,
+    );
+    final label = _propAbbrev(prop.propType);
+    final tp = TextPainter(
+      text: TextSpan(
+        text: label,
+        style: const TextStyle(fontSize: 8, fontWeight: FontWeight.w700, color: propColor),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout(maxWidth: w - 4);
+    tp.paint(canvas, Offset(left + (w - tp.width) / 2, top + (d - tp.height) / 2));
+  }
+
+  String _propAbbrev(String type) {
+    switch (type) {
+      case 'plant': return 'PLT';
+      case 'furniture': return 'FURN';
+      case 'riser': return 'RISR';
+      case 'signage': return 'SIGN';
+      default: return 'PROP';
+    }
+  }
+
   void _drawGhost(Canvas canvas, Offset pos, String type) {
     final w = 4.0 * pixelsPerFt;
     final d = 2.0 * pixelsPerFt;
@@ -442,5 +564,8 @@ class BuilderCanvasPainter extends CustomPainter {
       old.ghostPos != ghostPos ||
       old.ghostType != ghostType ||
       old.wallEdges != wallEdges ||
-      old.planograms != planograms;
+      old.planograms != planograms ||
+      old.mannequins != mannequins ||
+      old.platforms != platforms ||
+      old.sceneProps != sceneProps;
 }

@@ -573,6 +573,9 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
                       zoneName: zone?.name,
                       wallEdges: _wallEdges,
                       planograms: state.planograms,
+                      mannequins: state.mannequins,
+                      platforms: state.platforms,
+                      sceneProps: state.sceneProps,
                     );
                     return ClipRect(
                       child: Stack(
