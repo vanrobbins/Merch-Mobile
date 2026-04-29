@@ -38,6 +38,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
   final _priceCtrl = TextEditingController();
   final _stockCtrl = TextEditingController(text: '0');
   final _colorNotesCtrl = TextEditingController();
+  String _selectedGender = 'unisex';
 
   // Template definitions (built-in)
   static const _templates = [
@@ -143,6 +144,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
       _priceCtrl.text = p.price?.toString() ?? '';
       _stockCtrl.text = p.stockQty.toString();
       _colorNotesCtrl.text = p.colorNotes ?? '';
+      _selectedGender = p.gender;
       // Skip to details step if editing
       _step = 2;
       // Find silhouette for template
@@ -164,6 +166,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
         sku: sku,
         name: name,
         category: category,
+        gender: _selectedGender,
         stockQty: int.tryParse(_stockCtrl.text) ?? 0,
         updatedAt: DateTime.now(),
         templateId: _selectedTemplateId,
@@ -280,6 +283,8 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
             selectedSilhouette: _selectedSilhouette,
             selectedColorHex: _selectedColorHex,
             selectedColorName: _selectedColorName,
+            selectedGender: _selectedGender,
+            onGenderChanged: (g) => setState(() => _selectedGender = g),
             loading: _loading,
             onSave: _save,
           ),
@@ -536,6 +541,8 @@ class _DetailsStep extends StatelessWidget {
     required this.selectedSilhouette,
     required this.selectedColorHex,
     required this.selectedColorName,
+    required this.selectedGender,
+    required this.onGenderChanged,
     required this.loading,
     required this.onSave,
   });
@@ -550,6 +557,8 @@ class _DetailsStep extends StatelessWidget {
   final String? selectedSilhouette;
   final String? selectedColorHex;
   final String? selectedColorName;
+  final String selectedGender;
+  final void Function(String) onGenderChanged;
   final bool loading;
   final VoidCallback onSave;
 
@@ -633,6 +642,32 @@ class _DetailsStep extends StatelessWidget {
           TextFormField(
             controller: categoryCtrl,
             decoration: const InputDecoration(labelText: 'Category *'),
+          ),
+          const SizedBox(height: DesignTokens.spaceMd),
+          const Text(
+            'GENDER',
+            style: TextStyle(
+              fontSize: DesignTokens.typeXs,
+              fontWeight: DesignTokens.weightBold,
+              letterSpacing: DesignTokens.letterSpacingEyebrow,
+              color: AppTheme.textSecondary,
+            ),
+          ),
+          const SizedBox(height: DesignTokens.spaceSm),
+          SegmentedButton<String>(
+            segments: const [
+              ButtonSegment(value: 'male', label: Text('Men')),
+              ButtonSegment(value: 'female', label: Text('Women')),
+              ButtonSegment(value: 'unisex', label: Text('Unisex')),
+            ],
+            selected: {selectedGender},
+            onSelectionChanged: (s) => onGenderChanged(s.first),
+            style: ButtonStyle(
+              shape: WidgetStateProperty.all(const RoundedRectangleBorder(
+                borderRadius: BorderRadius.all(
+                    Radius.circular(DesignTokens.radiusSm)),
+              )),
+            ),
           ),
           const SizedBox(height: DesignTokens.spaceMd),
           Row(
