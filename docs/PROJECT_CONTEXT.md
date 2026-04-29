@@ -1,6 +1,6 @@
 # Merch Mobile — Project Context for Agents
 
-> **Read this first.** This document is the single source of truth for project state, past decisions, and architecture rules. Check it before exploring the codebase. Last updated: 2026-04-27 (v0.29 — v0.2 complete).
+> **Read this first.** This document is the single source of truth for project state, past decisions, and architecture rules. Check it before exploring the codebase. Last updated: 2026-04-28 (v0.3 — Agents 1–4 complete, Agent 5 in progress).
 
 ---
 
@@ -61,14 +61,21 @@ lib/
 
 ## Theme / Design Language
 
-| Token                 | Value            |
-| --------------------- | ---------------- |
-| Primary (near-black)  | `#1A1917`        |
-| Accent (warm orange)  | `#BF5534`        |
-| Canvas background     | `#F2EFE8`        |
-| Border radius         | 2px throughout   |
-| AppBar titles         | ALL CAPS         |
-| Mini-panel background | `#1A1917` (dark) |
+| Token                 | Value            | Notes |
+| --------------------- | ---------------- | ----- |
+| Primary (near-black)  | `#1A1917`        | AppTheme.primary |
+| Accent (terracotta)   | `#A8472B`        | AppTheme.accent — deepened from v0.2 BF5534 |
+| Canvas background     | `#F2EFE8`        | AppTheme.canvas |
+| Card surface          | `#FFFFFF`        | AppTheme.cardSurface |
+| Surface variant       | `#EAE7E0`        | AppTheme.surfaceVariant |
+| Divider               | `#D5D2CB`        | AppTheme.divider |
+| Text secondary        | `#6B6660`        | AppTheme.textSecondary |
+| Text hint             | `#9E9890`        | AppTheme.textHint |
+| Error                 | `#A8291A`        | AppTheme.errorColor |
+| Success               | `#2D6A4F`        | AppTheme.successColor |
+| Border radius         | 2px throughout   | AppTheme.borderRadius |
+| AppBar titles         | ALL CAPS         | letterSpacingAppBar = 1.5 |
+| Mini-panel background | `#1A1917` (dark) | |
 
 ---
 
@@ -82,11 +89,18 @@ All data lives in Firestore. `FirestoreRefs` (`lib/core/services/firestore_refs.
 | `/stores/{storeId}/memberships/{uid}` | uid, role, status, displayName, joinedAt |
 | `/stores/{storeId}/zones/{zoneId}` | name, color, shapePoints (JSON), zoneType, notes |
 | `/stores/{storeId}/fixtures/{fixtureId}` | fixtureType, posX, posY, rotation, widthFt, depthFt, label, zoneId?, planogramId?, planogramIdBack?, wallAdjacent, updatedAt |
-| `/stores/{storeId}/products/{productId}` | sku, name, category, imageUrl, sizesJson, stockQty, updatedAt |
+| `/stores/{storeId}/products/{productId}` | sku, name, category, imageUrl, sizesJson, stockQty, colorId?, templateId?, updatedAt |
 | `/stores/{storeId}/planograms/{planogramId}` | name, season |
 | `/stores/{storeId}/proposals/{proposalId}` | planogramId, proposedByUid, proposedAt, status, notes, slotChanges (JSON), reviewedByUid?, reviewedAt? |
 | `/stores/{storeId}/photos/{photoId}` | zoneId, imageUrl, notes, status, submittedByUid, createdAt |
 | `/stores/{storeId}/groups/{groupId}` | name, description, createdByUid, createdAt |
+| `/stores/{storeId}/brandColors/{colorId}` | name, hexValue, updatedAt — seeded with 5 defaults on store creation |
+| `/stores/{storeId}/productTemplates/{templateId}` | id, name, silhouetteType — built-in garment templates |
+| `/stores/{storeId}/mannequins/{mannequinId}` | storeId, zoneId, mannequinType (full_body\|half_body\|torso\|leg_form\|bra_form), mountType (floor\|wall\|platform), platformId?, positionX, positionY, rotation, outfitName?, outfitNotes?, updatedAt |
+| `/stores/{storeId}/mannequins/{mannequinId}/outfitSlots/{slotId}` | mannequinId, bodySlot, productId?, colorId?, colorNotes?, displayNotes?, updatedAt |
+| `/stores/{storeId}/mannequinProposals/{proposalId}` | mannequinId, storeId, proposedByUid, proposedByName, proposedAt, status (pending\|approved\|rejected), slotChanges (JSON), notes?, reviewedByUid?, reviewedAt? |
+| `/stores/{storeId}/platforms/{platformId}` | storeId, zoneId, width, depth, elevation, positionX, positionY, rotation, colorHex?, updatedAt |
+| `/stores/{storeId}/sceneProps/{propId}` | storeId, zoneId, propType (plant\|furniture\|riser\|signage\|other), name, positionX, positionY, rotation, width, depth, updatedAt |
 | `/userStores/{uid}` | activeStoreIds: [storeId, …] — fast lookup of all stores a user belongs to |
 
 ### Active store flow
@@ -109,6 +123,7 @@ All data lives in Firestore. `FirestoreRefs` (`lib/core/services/firestore_refs.
 /home/zones/:zoneId/detail     → ZoneDetailScreen
 /home/zones/:zoneId/builder    → FloorBuilderScreen
 /home/zones/:zoneId/auto       → AutoBuildScreen
+/home/zones/outfit-proposals   → OutfitProposalReviewScreen (coordinator/manager)
 /home/planograms               → PlanogramListScreen
 /home/planograms/:planogramId  → PlanogramDetailScreen
 /home/planograms/:planogramId/proposals → ProposalReviewScreen
@@ -179,14 +194,19 @@ v0.25 delivered the interactive layout experience:
 
 **Schema changes (v2 → v4):** `stores` gained `width_ft`, `depth_ft`, `entrance_json`; `fixtures` gained `planogram_id_back`, `wall_adjacent`, and `zone_id` became nullable. 95 tests passing.
 
-### v0.3 — Plans written, not yet implemented 📋
+### v0.3 — In Progress 🚧 (branch: `feature/v0.3`)
 
 Spec: `docs/superpowers/specs/2026-04-16-v0.3-design.md`
 Plans: `docs/superpowers/plans/2026-04-27-v0.3-*.md`
 
-Adds the VM merchandising layer: brand color palettes, product templates with garment silhouettes, mannequin placement (5 body types, floor/wall/platform mount), and Mannequin Lock (outfit slot assignment per body part). Agent 3 also delivers: undo/redo (command pattern, 20-deep stack), multi-select fixtures (long-press to enter, delete all / move group), and zone overlap validation (SAT polygon check, red warning tint).
-
-**Prerequisite:** v0.2 complete ✅ — ready to start v0.3.
+| Agent | Scope | Status |
+| --- | --- | --- |
+| Agent 1 — Schema + Seed | Mannequin/PlatformElement/SceneProp models, SeedService (5 brand colors + 20 products auto-seeded on store creation), FirestoreRefs extensions, theme deepened (accent #A8472B, surfaceVariant, textHint, divider, errorColor, successColor), typeXs 9→10 | ✅ Complete (2026-04-28) |
+| Agent 2 — Product Catalog | 3-step product form (template picker → color picker → details), ColorPaletteScreen CRUD, ProductTemplateScreen (13 built-in templates + SVG silhouettes), ProductCard with SVG silhouette, catalog_provider Riverpod streams | ✅ Complete (2026-04-28) |
+| Agent 3 — Mannequin Placement | FloorBuilderState mannequins/platforms/sceneProps + Firestore streams, addMannequin/addPlatform/addSceneProp methods, ElementLibraryPanel MANNEQUINS & PROPS section, mannequin type picker sheet, prop type picker sheet, ZoneDetailScreen _MannequinSection (list + DRESS placeholder) | ✅ Complete (2026-04-28) |
+| Agent 4 — Mannequin Dressing | MannequinDressingSheet (DraggableScrollableSheet, SVG silhouette + slot list, role-aware save/propose), MannequinLockCard, OutfitProposalReviewScreen, DRESS button wired, PROPOSALS AppBar action, canvas renders mannequins/platforms/props | ✅ Complete (2026-04-28) |
+| Agent 5 — UI Polish | Stick-figure mannequin canvas, platform shadow, color chip on ProductCard, empty states | 🚧 In progress |
+| Agent 6 — Tests | Integration + widget tests for v0.3 features | 📋 Pending |
 
 ---
 
