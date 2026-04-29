@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import '../../core/models/fixture.dart';
@@ -46,6 +47,10 @@ class BuilderCanvasPainter extends CustomPainter {
   Map<String, Map<String, Rect>> resizeHandleRects = {};
   Map<String, Rect> badgeRects = {};
   Map<String, Rect> badgeBackRects = {};
+  Map<String, Rect> propRects = {};
+  Map<String, Rect> mannequinRects = {};
+  Map<String, Rect> platformRects = {};
+  Map<String, double> fixtureAngles = {};
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -53,6 +58,10 @@ class BuilderCanvasPainter extends CustomPainter {
     resizeHandleRects = {};
     badgeRects = {};
     badgeBackRects = {};
+    propRects = {};
+    mannequinRects = {};
+    platformRects = {};
+    fixtureAngles = {};
     _drawZoneBackground(canvas, size);
     for (final platform in platforms) {
       _drawPlatform(canvas, platform);
@@ -238,6 +247,7 @@ class BuilderCanvasPainter extends CustomPainter {
     }
 
     fixtureRects[fixture.id] = rect;
+    fixtureAngles[fixture.id] = fixture.rotation;
   }
 
   void _drawDashedRect(Canvas canvas, Rect rect, Paint paint, double dashLen, double gap) {
@@ -351,6 +361,7 @@ class BuilderCanvasPainter extends CustomPainter {
     final left = platform.positionX * pixelsPerFt;
     final top = platform.positionY * pixelsPerFt;
     final rect = Rect.fromLTWH(left, top, w, d);
+    platformRects[platform.id] = rect;
     // Subtle drop shadow
     canvas.drawRect(
       rect.translate(2, 2),
@@ -375,6 +386,7 @@ class BuilderCanvasPainter extends CustomPainter {
   void _drawMannequin(Canvas canvas, Mannequin mannequin) {
     final cx = mannequin.positionX * pixelsPerFt;
     final cy = mannequin.positionY * pixelsPerFt;
+    mannequinRects[mannequin.id] = Rect.fromCenter(center: Offset(cx, cy), width: 32, height: 36);
     const accentColor = AppTheme.accent;
 
     final strokePaint = Paint()
@@ -445,6 +457,7 @@ class BuilderCanvasPainter extends CustomPainter {
     final left = prop.positionX * pixelsPerFt;
     final top = prop.positionY * pixelsPerFt;
     final rect = Rect.fromLTWH(left, top, w, d);
+    propRects[prop.id] = rect;
     const propColor = Color(0xFF2D6A4F);
     canvas.drawRRect(
       RRect.fromRectAndRadius(rect, const Radius.circular(4)),
@@ -505,30 +518,45 @@ class BuilderCanvasPainter extends CustomPainter {
   void _drawResizeHandles(Canvas canvas, Fixture fixture) {
     final rect = fixtureRects[fixture.id];
     if (rect == null) return;
+    final angle = fixture.rotation * math.pi / 180;
+    final cx = rect.center.dx;
+    final cy = rect.center.dy;
+
+    // Map a local (pre-rotation) position to its screen-space position.
+    Offset toScreen(Offset local) {
+      final dx = local.dx - cx;
+      final dy = local.dy - cy;
+      return Offset(
+        cx + dx * math.cos(angle) - dy * math.sin(angle),
+        cy + dx * math.sin(angle) + dy * math.cos(angle),
+      );
+    }
+
     final handles = _handlesForType(fixture.fixtureType);
     final handleRects = <String, Rect>{};
     const handleSize = 18.0;
     for (final h in handles) {
-      Offset center;
+      Offset localCenter;
       switch (h) {
         case 'top':
-          center = Offset(rect.center.dx, rect.top);
+          localCenter = Offset(rect.center.dx, rect.top);
         case 'bottom':
-          center = Offset(rect.center.dx, rect.bottom);
+          localCenter = Offset(rect.center.dx, rect.bottom);
         case 'left':
-          center = Offset(rect.left, rect.center.dy);
+          localCenter = Offset(rect.left, rect.center.dy);
         case 'right':
-          center = Offset(rect.right, rect.center.dy);
+          localCenter = Offset(rect.right, rect.center.dy);
         default:
           continue;
       }
-      final hr = Rect.fromCenter(center: center, width: handleSize, height: handleSize);
+      final screenCenter = toScreen(localCenter);
+      final hr = Rect.fromCenter(center: screenCenter, width: handleSize, height: handleSize);
       handleRects[h] = hr;
       canvas.drawRRect(
         RRect.fromRectAndRadius(hr, const Radius.circular(4)),
         Paint()..color = AppTheme.accent..style = PaintingStyle.fill,
       );
-      _drawArrow(canvas, center, h == 'left' || h == 'right');
+      _drawArrow(canvas, screenCenter, h == 'left' || h == 'right');
     }
     resizeHandleRects[fixture.id] = handleRects;
   }

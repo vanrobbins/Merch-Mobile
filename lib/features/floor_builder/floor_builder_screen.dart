@@ -49,7 +49,16 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
   // Fixture drag state
   BuilderCanvasPainter? _painter;
   String? _dragFixtureId;
+  Offset? _dragFixtureBeforePos;
   int? _primaryPointer;
+
+  // Non-fixture drag state
+  String? _dragPropId;
+  Offset? _dragPropBeforePos;
+  String? _dragMannequinId;
+  Offset? _dragMannequinBeforePos;
+  String? _dragPlatformId;
+  Offset? _dragPlatformBeforePos;
 
   // Resize state
   String? _resizingFixtureId;
@@ -73,14 +82,14 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
       builder: (sheetCtx) => ElementLibraryPanel(
         onFixtureSelected: (type) {
           ref.read(floorBuilderNotifierProvider.notifier)
-              .addFixture(type, const Offset(2, 2));
+              .addFixture(type, _viewCenterFt());
         },
         onWallSelected: _enterWallMode,
         onDragStarted: () => Navigator.of(sheetCtx).pop(),
         onMannequinSelected: () => _showMannequinTypePicker(),
         onPlatformSelected: () {
           ref.read(floorBuilderNotifierProvider.notifier)
-              .addPlatform(positionFt: const Offset(3, 3));
+              .addPlatform(positionFt: _viewCenterFt());
         },
         onPropSelected: () => _showPropTypePicker(),
       ),
@@ -96,7 +105,7 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
           ref.read(floorBuilderNotifierProvider.notifier).addMannequin(
             mannequinType: type,
             mountType: mount,
-            positionFt: const Offset(3, 3),
+            positionFt: _viewCenterFt(),
           );
         },
       ),
@@ -111,7 +120,7 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
         onSelect: (type) {
           ref.read(floorBuilderNotifierProvider.notifier).addSceneProp(
             propType: type,
-            positionFt: const Offset(3, 3),
+            positionFt: _viewCenterFt(),
           );
         },
       ),
@@ -200,12 +209,11 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
     if (_painter == null) return;
     final canvas = _toCanvas(details.localPosition);
     final state = ref.read(floorBuilderNotifierProvider);
+
+    // Fixtures → multi-select
     for (final entry in _painter!.fixtureRects.entries) {
-      if (entry.value.contains(canvas)) {
-        final fixture = ref
-            .read(floorBuilderNotifierProvider)
-            .fixtures
-            .firstWhereOrNull((f) => f.id == entry.key);
+      if (_hitFixtureBody(entry.key, entry.value, canvas)) {
+        final fixture = state.fixtures.firstWhereOrNull((f) => f.id == entry.key);
         if (fixture == null) continue;
         if (!state.isMultiSelectMode) {
           ref.read(floorBuilderNotifierProvider.notifier).enterMultiSelect(fixture.id);
@@ -215,6 +223,72 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
         return;
       }
     }
+
+    // Props → delete sheet
+    for (final entry in _painter!.propRects.entries) {
+      if (entry.value.contains(canvas)) {
+        _showPropActionsSheet(entry.key);
+        return;
+      }
+    }
+
+    // Mannequins → delete sheet
+    for (final entry in _painter!.mannequinRects.entries) {
+      if (entry.value.contains(canvas)) {
+        _showMannequinActionsSheet(entry.key);
+        return;
+      }
+    }
+
+    // Platforms → delete sheet
+    for (final entry in _painter!.platformRects.entries) {
+      if (entry.value.contains(canvas)) {
+        _showPlatformActionsSheet(entry.key);
+        return;
+      }
+    }
+  }
+
+  void _showPropActionsSheet(String propId) {
+    final prop = ref.read(floorBuilderNotifierProvider).sceneProps
+        .firstWhereOrNull((p) => p.id == propId);
+    if (prop == null) return;
+    showModalBottomSheet<void>(
+      context: context,
+      builder: (_) => _ElementDeleteSheet(
+        title: prop.propType.toUpperCase(),
+        subtitle: 'SCENE PROP',
+        onDelete: () =>
+            ref.read(floorBuilderNotifierProvider.notifier).deleteSceneProp(propId),
+      ),
+    );
+  }
+
+  void _showMannequinActionsSheet(String mannequinId) {
+    final m = ref.read(floorBuilderNotifierProvider).mannequins
+        .firstWhereOrNull((m) => m.id == mannequinId);
+    if (m == null) return;
+    showModalBottomSheet<void>(
+      context: context,
+      builder: (_) => _ElementDeleteSheet(
+        title: m.mannequinType.toUpperCase().replaceAll('_', ' '),
+        subtitle: 'MANNEQUIN',
+        onDelete: () =>
+            ref.read(floorBuilderNotifierProvider.notifier).deleteMannequin(mannequinId),
+      ),
+    );
+  }
+
+  void _showPlatformActionsSheet(String platformId) {
+    showModalBottomSheet<void>(
+      context: context,
+      builder: (_) => _ElementDeleteSheet(
+        title: 'PLATFORM',
+        subtitle: 'RAISED ELEMENT',
+        onDelete: () =>
+            ref.read(floorBuilderNotifierProvider.notifier).deletePlatform(platformId),
+      ),
+    );
   }
 
   void _onPointerDown(PointerDownEvent event) {
@@ -224,6 +298,13 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
       if (_primaryPointer != null) {
         setState(() {
           _dragFixtureId = null;
+          _dragFixtureBeforePos = null;
+          _dragPropId = null;
+          _dragPropBeforePos = null;
+          _dragMannequinId = null;
+          _dragMannequinBeforePos = null;
+          _dragPlatformId = null;
+          _dragPlatformBeforePos = null;
           _resizingFixtureId = null;
           _resizeHandle = null;
           _resizeStartPos = null;
@@ -282,7 +363,7 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
 
     // 3. Fixture body hit-test
     for (final entry in _painter!.fixtureRects.entries) {
-      if (entry.value.contains(canvas)) {
+      if (_hitFixtureBody(entry.key, entry.value, canvas)) {
         _primaryPointer = event.pointer;
         final currentState = ref.read(floorBuilderNotifierProvider);
         if (currentState.isMultiSelectMode) {
@@ -290,12 +371,58 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
           return;
         }
         ref.read(floorBuilderNotifierProvider.notifier).selectFixture(entry.key);
-        setState(() => _dragFixtureId = entry.key);
+        final f = currentState.fixtures.firstWhereOrNull((f) => f.id == entry.key);
+        setState(() {
+          _dragFixtureId = entry.key;
+          _dragFixtureBeforePos = f != null ? Offset(f.posX, f.posY) : null;
+        });
         return;
       }
     }
 
-    // 4. Empty canvas — deselect + pan
+    // 4. Prop hit-test
+    for (final entry in _painter!.propRects.entries) {
+      if (entry.value.contains(canvas)) {
+        _primaryPointer = event.pointer;
+        final p = ref.read(floorBuilderNotifierProvider).sceneProps
+            .firstWhereOrNull((p) => p.id == entry.key);
+        setState(() {
+          _dragPropId = entry.key;
+          _dragPropBeforePos = p != null ? Offset(p.positionX, p.positionY) : null;
+        });
+        return;
+      }
+    }
+
+    // 5. Mannequin hit-test
+    for (final entry in _painter!.mannequinRects.entries) {
+      if (entry.value.contains(canvas)) {
+        _primaryPointer = event.pointer;
+        final m = ref.read(floorBuilderNotifierProvider).mannequins
+            .firstWhereOrNull((m) => m.id == entry.key);
+        setState(() {
+          _dragMannequinId = entry.key;
+          _dragMannequinBeforePos = m != null ? Offset(m.positionX, m.positionY) : null;
+        });
+        return;
+      }
+    }
+
+    // 6. Platform hit-test
+    for (final entry in _painter!.platformRects.entries) {
+      if (entry.value.contains(canvas)) {
+        _primaryPointer = event.pointer;
+        final p = ref.read(floorBuilderNotifierProvider).platforms
+            .firstWhereOrNull((p) => p.id == entry.key);
+        setState(() {
+          _dragPlatformId = entry.key;
+          _dragPlatformBeforePos = p != null ? Offset(p.positionX, p.positionY) : null;
+        });
+        return;
+      }
+    }
+
+    // 7. Empty canvas — deselect + pan
     final currentState = ref.read(floorBuilderNotifierProvider);
     if (currentState.isMultiSelectMode) {
       ref.read(floorBuilderNotifierProvider.notifier).exitMultiSelect();
@@ -343,8 +470,35 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
 
     // Drag fixture
     if (_dragFixtureId != null) {
-      ref.read(floorBuilderNotifierProvider.notifier).moveFixture(
+      ref.read(floorBuilderNotifierProvider.notifier).moveFixtureLocal(
             _dragFixtureId!,
+            Offset(canvas.dx / _pixelsPerFt, canvas.dy / _pixelsPerFt),
+          );
+      return;
+    }
+
+    // Drag prop
+    if (_dragPropId != null) {
+      ref.read(floorBuilderNotifierProvider.notifier).moveScenePropLocal(
+            _dragPropId!,
+            Offset(canvas.dx / _pixelsPerFt, canvas.dy / _pixelsPerFt),
+          );
+      return;
+    }
+
+    // Drag mannequin
+    if (_dragMannequinId != null) {
+      ref.read(floorBuilderNotifierProvider.notifier).moveMannequinLocal(
+            _dragMannequinId!,
+            Offset(canvas.dx / _pixelsPerFt, canvas.dy / _pixelsPerFt),
+          );
+      return;
+    }
+
+    // Drag platform
+    if (_dragPlatformId != null) {
+      ref.read(floorBuilderNotifierProvider.notifier).movePlatformLocal(
+            _dragPlatformId!,
             Offset(canvas.dx / _pixelsPerFt, canvas.dy / _pixelsPerFt),
           );
       return;
@@ -383,7 +537,34 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
       });
     }
 
-    if (_dragFixtureId != null) setState(() => _dragFixtureId = null);
+    if (_dragFixtureId != null) {
+      if (_dragFixtureBeforePos != null) {
+        ref.read(floorBuilderNotifierProvider.notifier)
+            .commitMoveFixture(_dragFixtureId!, _dragFixtureBeforePos!);
+      }
+      setState(() { _dragFixtureId = null; _dragFixtureBeforePos = null; });
+    }
+    if (_dragPropId != null) {
+      if (_dragPropBeforePos != null) {
+        ref.read(floorBuilderNotifierProvider.notifier)
+            .commitMoveSceneProp(_dragPropId!, _dragPropBeforePos!);
+      }
+      setState(() { _dragPropId = null; _dragPropBeforePos = null; });
+    }
+    if (_dragMannequinId != null) {
+      if (_dragMannequinBeforePos != null) {
+        ref.read(floorBuilderNotifierProvider.notifier)
+            .commitMoveMannequin(_dragMannequinId!, _dragMannequinBeforePos!);
+      }
+      setState(() { _dragMannequinId = null; _dragMannequinBeforePos = null; });
+    }
+    if (_dragPlatformId != null) {
+      if (_dragPlatformBeforePos != null) {
+        ref.read(floorBuilderNotifierProvider.notifier)
+            .commitMovePlatform(_dragPlatformId!, _dragPlatformBeforePos!);
+      }
+      setState(() { _dragPlatformId = null; _dragPlatformBeforePos = null; });
+    }
     if (_isPanning) setState(() { _isPanning = false; _panStartScreen = null; _panStartOffset = null; });
   }
 
@@ -393,6 +574,25 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
 
   Offset _normalizeOffset(Offset pixelOffset) {
     return Offset(pixelOffset.dx / _pixelsPerFt, pixelOffset.dy / _pixelsPerFt);
+  }
+
+  // Returns the canvas-center in feet — used for element placement.
+  Offset _viewCenterFt() {
+    final c = _toCanvas(Offset(_canvasSize.width / 2, _canvasSize.height / 2));
+    return Offset(c.dx / _pixelsPerFt, c.dy / _pixelsPerFt);
+  }
+
+  // Rotation-aware body hit-test for fixtures.
+  bool _hitFixtureBody(String id, Rect rect, Offset canvasPos) {
+    final angle = (_painter?.fixtureAngles[id] ?? 0.0) * pi / 180;
+    if (angle == 0.0) return rect.contains(canvasPos);
+    final cx = rect.center.dx;
+    final cy = rect.center.dy;
+    final dx = canvasPos.dx - cx;
+    final dy = canvasPos.dy - cy;
+    final localX = cx + dx * cos(angle) + dy * sin(angle);
+    final localY = cy - dx * sin(angle) + dy * cos(angle);
+    return rect.contains(Offset(localX, localY));
   }
 
   // Replicates _drawZoneBackground's coordinate math to get the zone's canvas-space bounds.
@@ -1190,4 +1390,63 @@ class _PropTypeDef {
   final String type;
   final IconData icon;
   final String label;
+}
+
+class _ElementDeleteSheet extends StatelessWidget {
+  const _ElementDeleteSheet({
+    required this.title,
+    required this.subtitle,
+    required this.onDelete,
+  });
+  final String title;
+  final String subtitle;
+  final VoidCallback onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).padding.bottom + 16,
+        left: 16, right: 16, top: 16,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              fontWeight: DesignTokens.weightBold,
+              fontSize: DesignTokens.typeMd,
+              letterSpacing: DesignTokens.letterSpacingEyebrow,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            subtitle,
+            style: const TextStyle(
+              fontSize: DesignTokens.typeXs,
+              color: AppTheme.textSecondary,
+              letterSpacing: DesignTokens.letterSpacingEyebrow,
+            ),
+          ),
+          const SizedBox(height: DesignTokens.spaceMd),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.errorColor,
+              foregroundColor: Colors.white,
+              shape: const RoundedRectangleBorder(
+                borderRadius: BorderRadius.all(Radius.circular(AppTheme.borderRadius)),
+              ),
+            ),
+            onPressed: () {
+              Navigator.pop(context);
+              onDelete();
+            },
+            child: const Text('DELETE'),
+          ),
+        ],
+      ),
+    );
+  }
 }

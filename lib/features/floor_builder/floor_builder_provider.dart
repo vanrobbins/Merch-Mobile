@@ -495,6 +495,121 @@ class FloorBuilderNotifier extends _$FloorBuilderNotifier {
     });
   }
 
+  Future<void> _patchDoc(String collection, String id, Map<String, dynamic> fields) async {
+    await _collectionRef(_storeId, collection).doc(id).update({
+      ...fields,
+      'updatedAt': Timestamp.now(),
+    });
+  }
+
+  void moveFixtureLocal(String id, Offset pos) {
+    double x = pos.dx;
+    double y = pos.dy;
+    if (state.snapGridEnabled) {
+      final gs = state.gridSizeFt;
+      x = (x / gs).round() * gs;
+      y = (y / gs).round() * gs;
+    }
+    state = state.copyWith(
+      fixtures: state.fixtures.map((f) => f.id == id ? f.copyWith(posX: x, posY: y) : f).toList(),
+    );
+  }
+
+  Future<void> commitMoveFixture(String id, Offset beforePos) async {
+    final fixture = state.fixtures.firstWhereOrNull((f) => f.id == id);
+    if (fixture == null) return;
+    final before = fixture.copyWith(posX: beforePos.dx, posY: beforePos.dy);
+    _push(UndoEntry(
+      before: [before.toFirestore()],
+      after: [fixture.toFirestore()],
+      ids: [id],
+      collection: 'fixtures',
+      label: 'Move fixture',
+    ));
+    await _patch(id, {'posX': fixture.posX, 'posY': fixture.posY});
+  }
+
+  void moveScenePropLocal(String id, Offset pos) {
+    double x = pos.dx;
+    double y = pos.dy;
+    if (state.snapGridEnabled) {
+      final gs = state.gridSizeFt;
+      x = (x / gs).round() * gs;
+      y = (y / gs).round() * gs;
+    }
+    state = state.copyWith(
+      sceneProps: state.sceneProps.map((p) => p.id == id ? p.copyWith(positionX: x, positionY: y) : p).toList(),
+    );
+  }
+
+  Future<void> commitMoveSceneProp(String id, Offset beforePos) async {
+    final prop = state.sceneProps.firstWhereOrNull((p) => p.id == id);
+    if (prop == null) return;
+    final before = prop.copyWith(positionX: beforePos.dx, positionY: beforePos.dy);
+    _push(UndoEntry(
+      before: [before.toFirestore()],
+      after: [prop.toFirestore()],
+      ids: [id],
+      collection: 'sceneProps',
+      label: 'Move scene prop',
+    ));
+    await _patchDoc('sceneProps', id, {'positionX': prop.positionX, 'positionY': prop.positionY});
+  }
+
+  void moveMannequinLocal(String id, Offset pos) {
+    double x = pos.dx;
+    double y = pos.dy;
+    if (state.snapGridEnabled) {
+      final gs = state.gridSizeFt;
+      x = (x / gs).round() * gs;
+      y = (y / gs).round() * gs;
+    }
+    state = state.copyWith(
+      mannequins: state.mannequins.map((m) => m.id == id ? m.copyWith(positionX: x, positionY: y) : m).toList(),
+    );
+  }
+
+  Future<void> commitMoveMannequin(String id, Offset beforePos) async {
+    final mannequin = state.mannequins.firstWhereOrNull((m) => m.id == id);
+    if (mannequin == null) return;
+    final before = mannequin.copyWith(positionX: beforePos.dx, positionY: beforePos.dy);
+    _push(UndoEntry(
+      before: [before.toFirestore()],
+      after: [mannequin.toFirestore()],
+      ids: [id],
+      collection: 'mannequins',
+      label: 'Move mannequin',
+    ));
+    await _patchDoc('mannequins', id, {'positionX': mannequin.positionX, 'positionY': mannequin.positionY});
+  }
+
+  void movePlatformLocal(String id, Offset pos) {
+    double x = pos.dx;
+    double y = pos.dy;
+    if (state.snapGridEnabled) {
+      final gs = state.gridSizeFt;
+      x = (x / gs).round() * gs;
+      y = (y / gs).round() * gs;
+    }
+    state = state.copyWith(
+      platforms: state.platforms.map((p) => p.id == id ? p.copyWith(positionX: x, positionY: y) : p).toList(),
+    );
+  }
+
+  Future<void> commitMovePlatform(String id, Offset beforePos) async {
+    final platform = state.platforms.firstWhereOrNull((p) => p.id == id);
+    if (platform == null) return;
+    final before = platform.copyWith(positionX: beforePos.dx, positionY: beforePos.dy);
+    _push(UndoEntry(
+      before: [before.toFirestore()],
+      after: [platform.toFirestore()],
+      ids: [id],
+      collection: 'platforms',
+      label: 'Move platform',
+    ));
+    await _patchDoc('platforms', id, {'positionX': platform.positionX, 'positionY': platform.positionY});
+  }
+
   Future<void> addMannequin({
     required String mannequinType,
     required String mountType,
@@ -512,9 +627,14 @@ class FloorBuilderNotifier extends _$FloorBuilderNotifier {
       positionY: positionFt.dy,
       updatedAt: DateTime.now(),
     );
-    await FirestoreRefs.mannequins(storeId)
-        .doc(mannequin.id)
-        .set(mannequin.toFirestore());
+    _push(UndoEntry(
+      before: [null],
+      after: [mannequin.toFirestore()],
+      ids: [mannequin.id],
+      collection: 'mannequins',
+      label: 'Add mannequin',
+    ));
+    await FirestoreRefs.mannequins(storeId).doc(mannequin.id).set(mannequin.toFirestore());
   }
 
   Future<void> addPlatform({required Offset positionFt}) async {
@@ -531,9 +651,14 @@ class FloorBuilderNotifier extends _$FloorBuilderNotifier {
       positionY: positionFt.dy,
       updatedAt: DateTime.now(),
     );
-    await FirestoreRefs.platforms(storeId)
-        .doc(platform.id)
-        .set(platform.toFirestore());
+    _push(UndoEntry(
+      before: [null],
+      after: [platform.toFirestore()],
+      ids: [platform.id],
+      collection: 'platforms',
+      label: 'Add platform',
+    ));
+    await FirestoreRefs.platforms(storeId).doc(platform.id).set(platform.toFirestore());
   }
 
   Future<void> addSceneProp({required String propType, required Offset positionFt}) async {
@@ -551,20 +676,55 @@ class FloorBuilderNotifier extends _$FloorBuilderNotifier {
       depth: 2.0,
       updatedAt: DateTime.now(),
     );
-    await FirestoreRefs.sceneProps(storeId)
-        .doc(prop.id)
-        .set(prop.toFirestore());
+    _push(UndoEntry(
+      before: [null],
+      after: [prop.toFirestore()],
+      ids: [prop.id],
+      collection: 'sceneProps',
+      label: 'Add scene prop',
+    ));
+    await FirestoreRefs.sceneProps(storeId).doc(prop.id).set(prop.toFirestore());
   }
 
   Future<void> deleteMannequin(String id) async {
+    final mannequin = state.mannequins.firstWhereOrNull((m) => m.id == id);
+    if (mannequin != null) {
+      _push(UndoEntry(
+        before: [mannequin.toFirestore()],
+        after: [null],
+        ids: [id],
+        collection: 'mannequins',
+        label: 'Delete mannequin',
+      ));
+    }
     await FirestoreRefs.mannequins(_storeId).doc(id).delete();
   }
 
   Future<void> deletePlatform(String id) async {
+    final platform = state.platforms.firstWhereOrNull((p) => p.id == id);
+    if (platform != null) {
+      _push(UndoEntry(
+        before: [platform.toFirestore()],
+        after: [null],
+        ids: [id],
+        collection: 'platforms',
+        label: 'Delete platform',
+      ));
+    }
     await FirestoreRefs.platforms(_storeId).doc(id).delete();
   }
 
   Future<void> deleteSceneProp(String id) async {
+    final prop = state.sceneProps.firstWhereOrNull((p) => p.id == id);
+    if (prop != null) {
+      _push(UndoEntry(
+        before: [prop.toFirestore()],
+        after: [null],
+        ids: [id],
+        collection: 'sceneProps',
+        label: 'Delete scene prop',
+      ));
+    }
     await FirestoreRefs.sceneProps(_storeId).doc(id).delete();
   }
 }
