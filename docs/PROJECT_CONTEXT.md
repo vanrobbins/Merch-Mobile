@@ -1,6 +1,6 @@
 # Merch Mobile — Project Context for Agents
 
-> **Read this first.** This document is the single source of truth for project state, past decisions, and architecture rules. Check it before exploring the codebase. Last updated: 2026-04-28 (v0.3 — Agents 1–4 complete, Agent 5 in progress).
+> **Read this first.** This document is the single source of truth for project state, past decisions, and architecture rules. Check it before exploring the codebase. Last updated: 2026-04-29 (v0.3 all 6 agents ✅ complete; v0.35 spec + 6 agent plans written).
 
 ---
 
@@ -125,7 +125,8 @@ All data lives in Firestore. `FirestoreRefs` (`lib/core/services/firestore_refs.
 /home/zones/:zoneId/auto       → AutoBuildScreen
 /home/zones/outfit-proposals   → OutfitProposalReviewScreen (coordinator/manager)
 /home/planograms               → PlanogramListScreen
-/home/planograms/:planogramId  → PlanogramDetailScreen
+/home/planograms/:planogramId  → PlanogramDetailScreen (read-only after v0.35 Agent 4)
+/home/planograms/:planogramId/edit      → PlanogramEditorScreen (NEW in v0.35 Agent 4)
 /home/planograms/:planogramId/proposals → ProposalReviewScreen
 /home/catalog                  → CatalogScreen
 /home/photos                   → PhotoListScreen
@@ -205,8 +206,26 @@ Plans: `docs/superpowers/plans/2026-04-27-v0.3-*.md`
 | Agent 2 — Product Catalog | 3-step product form (template picker → color picker → details), ColorPaletteScreen CRUD, ProductTemplateScreen (13 built-in templates + SVG silhouettes), ProductCard with SVG silhouette, catalog_provider Riverpod streams | ✅ Complete (2026-04-28) |
 | Agent 3 — Mannequin Placement | FloorBuilderState mannequins/platforms/sceneProps + Firestore streams, addMannequin/addPlatform/addSceneProp methods, ElementLibraryPanel MANNEQUINS & PROPS section, mannequin type picker sheet, prop type picker sheet, ZoneDetailScreen _MannequinSection (list + DRESS placeholder) | ✅ Complete (2026-04-28) |
 | Agent 4 — Mannequin Dressing | MannequinDressingSheet (DraggableScrollableSheet, SVG silhouette + slot list, role-aware save/propose), MannequinLockCard, OutfitProposalReviewScreen, DRESS button wired, PROPOSALS AppBar action, canvas renders mannequins/platforms/props | ✅ Complete (2026-04-28) |
-| Agent 5 — UI Polish | Stick-figure mannequin canvas, platform shadow, color chip on ProductCard, empty states | 🚧 In progress |
-| Agent 6 — Tests | Integration + widget tests for v0.3 features | 📋 Pending |
+| Agent 5 — UI Polish | Stick-figure mannequin canvas, platform shadow, color chip on ProductCard, empty states | ✅ Complete (2026-04-29) |
+| Agent 6 — Tests | Integration + widget tests for v0.3 features | ✅ Complete (2026-04-29) |
+
+### v0.35 — Planned 📋 (branch: `feature/v0.35`, from `feature/v0.3`)
+
+Spec: `docs/superpowers/specs/2026-04-29-v0.35-design.md`
+Plans: `docs/superpowers/plans/2026-04-29-v0.35-*.md`
+
+Three features: undo/redo delta stack (floor builder + planogram editor), AutoBuild enhancements (style/density/mannequins/Firestore presets), and a full PlanogramEditorScreen.
+
+| Agent | Scope | Status |
+| --- | --- | --- |
+| Agent 1 — Undo/Redo Delta Stack | `UndoEntry` model, `FloorBuilderNotifier` private stacks, all 11 fixture + 6 mannequin/platform/prop methods wrapped, ↩/↪ AppBar buttons | 📋 Planned |
+| Agent 2 — AutoBuild Enhancements | `LayoutStyle`/`LayoutDensity` enums, zone polygon bounds, style/density algorithm, mannequin output, Firestore presets, `PresetsSheet` | 📋 Planned |
+| Agent 3 — Planogram Data Model | `PgRow` model, `Planogram` expansion (planogramType/rows/cols/linearFt/rowsJson/fixtureId nullable), `PgSlot` expansion (row/col/presentationMode/span/rotation/color), updated creation dialog | 📋 Planned |
+| Agent 4 — PlanogramEditorScreen | `PlanogramEditorNotifier` + undo stack, `SlotSilhouetteRenderer`, `SlotCellWidget`, `PlanogramEditorScreen` (bay + grid views), detail screen read-only + EDIT button, route `/home/planograms/:id/edit` | 📋 Planned |
+| Agent 5 — SVG Assets | 13 shoulder-out side-profile SVGs, 13 folded SVGs, pubspec.yaml asset declarations | 📋 Planned |
+| Agent 6 — Tests | Unit tests: undo stack, AutoBuild algorithm, PgSlot/PgRow serialization | 📋 Planned |
+
+**Wave execution order:** Wave 1 = Agents 1+2+3 in parallel → Wave 2 = Agent 4 (after Agent 3) → Wave 3 = Agent 5 (after Agent 4) → Wave 4 = Agent 6 (last).
 
 ---
 
@@ -296,9 +315,9 @@ After any change to `@freezed` models or `@riverpod` providers: run `dart run bu
 ## Pending Work (ordered)
 
 1. **Merge `feature/v0.2` → `main`** — v0.2 is complete at tag v0.29
-2. **v0.3** — VM merchandising layer (plans at `docs/superpowers/plans/2026-04-27-v0.3-*.md`)
-   - Brand color palettes, product templates, mannequin placement, Mannequin Lock
-   - Undo/redo (command pattern), multi-select fixtures, zone overlap validation
+2. **Complete `feature/v0.3`** — v0.3 Agents 1–6 all done; run final `flutter analyze` + `flutter test`, then tag `v0.3` and merge to `main`
+3. **v0.35** — undo/redo, AutoBuild enhancements, PlanogramEditorScreen (spec + 6 agent plans written 2026-04-29, branch `feature/v0.35` from `feature/v0.3`)
+4. **Product gender classification** — add `gender` field (`male` | `female` | `unisex`) to Product model + catalog filter; `PgSlot` may also benefit from filtering by gender in the product picker (noted from user request 2026-04-29, not yet specced)
 
 ---
 
@@ -311,3 +330,6 @@ After any change to `@freezed` models or `@riverpod` providers: run `dart run bu
 | `docs/superpowers/specs/2026-04-16-v0.3-design.md`  | v0.3 VM merchandising spec                       |
 | `docs/superpowers/plans/2026-04-13-v0.2-agent*.md`  | v0.2 implementation plans (Agents 1–7 + manager) |
 | `docs/superpowers/plans/2026-04-27-v0.3-agent*.md`  | v0.3 implementation plans (Agents 1–6 + manager) |
+| `docs/superpowers/specs/2026-04-29-v0.35-design.md` | v0.35 design spec (undo/redo, AutoBuild, planogram editor) |
+| `docs/superpowers/plans/2026-04-29-v0.35-manager.md` | v0.35 wave orchestration plan |
+| `docs/superpowers/plans/2026-04-29-v0.35-agent*.md`  | v0.35 implementation plans (Agents 1–6) |
