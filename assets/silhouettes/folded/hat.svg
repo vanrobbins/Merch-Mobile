@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 48">
+  <!-- Flat crown view from above -->
+  <ellipse cx="40" cy="24" rx="30" ry="14" fill="#1A1917" opacity="0.12" stroke="#1A1917" stroke-width="1.5"/>
+  <ellipse cx="40" cy="24" rx="18" ry="8" fill="none" stroke="#1A1917" stroke-width="1" opacity="0.4"/>
+</svg>

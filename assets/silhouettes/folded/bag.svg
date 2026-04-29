@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 48">
+  <rect x="10" y="10" width="60" height="30" rx="3" fill="#1A1917" opacity="0.15" stroke="#1A1917" stroke-width="1.5"/>
+  <line x1="10" y1="22" x2="70" y2="22" stroke="#1A1917" stroke-width="0.8" opacity="0.3"/>
+  <!-- Handle top -->
+  <path d="M28 10 Q28 4 40 4 Q52 4 52 10" fill="none" stroke="#1A1917" stroke-width="2"/>
+  <!-- Zipper -->
+  <line x1="30" y1="10" x2="50" y2="10" stroke="#1A1917" stroke-width="2" opacity="0.4"/>
+</svg>

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 48">
+  <!-- Shoe sole top-down -->
+  <path d="M8 28 Q8 16 20 14 Q32 12 52 16 Q68 18 70 26 Q70 34 52 36 Q32 38 16 36 Q8 34 8 28 Z" fill="#1A1917" opacity="0.15" stroke="#1A1917" stroke-width="1.5"/>
+  <!-- Toe box outline -->
+  <path d="M52 16 Q68 18 70 26 Q70 34 52 36" fill="none" stroke="#1A1917" stroke-width="0.8" opacity="0.4"/>
+</svg>
