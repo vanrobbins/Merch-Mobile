@@ -12,6 +12,7 @@ import '../../core/router/app_router.dart';
 import '../../core/services/firestore_refs.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/design_tokens.dart';
+import '../../core/services/seed_service.dart';
 import '../../core/utils/invite_code_util.dart';
 
 class CreateStoreScreen extends ConsumerStatefulWidget {
@@ -68,6 +69,7 @@ class _CreateStoreScreenState extends ConsumerState<CreateStoreScreen> {
       );
 
       await ref.read(activeStoreIdProvider.notifier).setStore(storeId);
+      await seedDefaultStoreData(storeId);
       setState(() => _generatedCode = code);
     } finally {
       setState(() => _loading = false);

@@ -1,7 +1,10 @@
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import '../../core/models/fixture.dart';
+import '../../core/models/mannequin.dart';
+import '../../core/models/platform_element.dart';
 import '../../core/models/planogram.dart';
+import '../../core/models/scene_prop.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/design_tokens.dart';
 import 'zone_edge_helper.dart';
@@ -18,6 +21,10 @@ class BuilderCanvasPainter extends CustomPainter {
     this.zoneName,
     this.wallEdges,
     this.planograms = const {},
+    this.mannequins = const [],
+    this.platforms = const [],
+    this.sceneProps = const [],
+    this.selectedFixtureIds = const {},
   });
 
   final List<Fixture> fixtures;
@@ -30,6 +37,10 @@ class BuilderCanvasPainter extends CustomPainter {
   final String? zoneName;
   final List<ZoneEdge>? wallEdges;
   final Map<String, Planogram> planograms;
+  final List<Mannequin> mannequins;
+  final List<PlatformElement> platforms;
+  final List<SceneProp> sceneProps;
+  final Set<String> selectedFixtureIds;
 
   Map<String, Rect> fixtureRects = {};
   Map<String, Map<String, Rect>> resizeHandleRects = {};
@@ -43,8 +54,17 @@ class BuilderCanvasPainter extends CustomPainter {
     badgeRects = {};
     badgeBackRects = {};
     _drawZoneBackground(canvas, size);
+    for (final platform in platforms) {
+      _drawPlatform(canvas, platform);
+    }
     for (final fixture in fixtures) {
       _drawFixture(canvas, fixture);
+    }
+    for (final prop in sceneProps) {
+      _drawSceneProp(canvas, prop);
+    }
+    for (final mannequin in mannequins) {
+      _drawMannequin(canvas, mannequin);
     }
     if (ghostPos != null && ghostType != null) {
       _drawGhost(canvas, ghostPos!, ghostType!);
@@ -206,7 +226,61 @@ class BuilderCanvasPainter extends CustomPainter {
 
     canvas.restore();
 
+    final isMultiSelected = selectedFixtureIds.contains(fixture.id);
+    if (isMultiSelected && !isSelected) {
+      const dashLen = 5.0;
+      const gap = 3.0;
+      final dashPaint = Paint()
+        ..color = AppTheme.accent
+        ..strokeWidth = 2.0
+        ..style = PaintingStyle.stroke;
+      _drawDashedRect(canvas, rect, dashPaint, dashLen, gap);
+    }
+
     fixtureRects[fixture.id] = rect;
+  }
+
+  void _drawDashedRect(Canvas canvas, Rect rect, Paint paint, double dashLen, double gap) {
+    // Top edge
+    double x = rect.left;
+    while (x < rect.right) {
+      canvas.drawLine(
+        Offset(x, rect.top),
+        Offset((x + dashLen).clamp(rect.left, rect.right), rect.top),
+        paint,
+      );
+      x += dashLen + gap;
+    }
+    // Bottom edge
+    x = rect.left;
+    while (x < rect.right) {
+      canvas.drawLine(
+        Offset(x, rect.bottom),
+        Offset((x + dashLen).clamp(rect.left, rect.right), rect.bottom),
+        paint,
+      );
+      x += dashLen + gap;
+    }
+    // Left edge
+    double y = rect.top;
+    while (y < rect.bottom) {
+      canvas.drawLine(
+        Offset(rect.left, y),
+        Offset(rect.left, (y + dashLen).clamp(rect.top, rect.bottom)),
+        paint,
+      );
+      y += dashLen + gap;
+    }
+    // Right edge
+    y = rect.top;
+    while (y < rect.bottom) {
+      canvas.drawLine(
+        Offset(rect.right, y),
+        Offset(rect.right, (y + dashLen).clamp(rect.top, rect.bottom)),
+        paint,
+      );
+      y += dashLen + gap;
+    }
   }
 
   void _drawRack(Canvas canvas, Rect rect, Paint fill, Paint border) {
@@ -268,6 +342,136 @@ class BuilderCanvasPainter extends CustomPainter {
         canvas.drawLine(Offset(x, y), Offset(x, (y + dashLen).clamp(rect.top, rect.bottom - 4)), dashPaint);
         y += dashLen + gap;
       }
+    }
+  }
+
+  void _drawPlatform(Canvas canvas, PlatformElement platform) {
+    final w = platform.width * pixelsPerFt;
+    final d = platform.depth * pixelsPerFt;
+    final left = platform.positionX * pixelsPerFt;
+    final top = platform.positionY * pixelsPerFt;
+    final rect = Rect.fromLTWH(left, top, w, d);
+    // Subtle drop shadow
+    canvas.drawRect(
+      rect.translate(2, 2),
+      Paint()..color = Colors.black.withValues(alpha: 0.12)..style = PaintingStyle.fill,
+    );
+    // Khaki fill
+    canvas.drawRect(rect, Paint()..color = const Color(0xFFC8B89A).withValues(alpha: 0.4)..style = PaintingStyle.fill);
+    // Border
+    canvas.drawRect(rect, Paint()..color = const Color(0xFF9B8B6E)..strokeWidth = 1.5..style = PaintingStyle.stroke);
+    // Elevation label
+    final label = '+${platform.elevation.toStringAsFixed(1)}ft';
+    final tp = TextPainter(
+      text: TextSpan(
+        text: label,
+        style: const TextStyle(fontSize: 8, fontWeight: FontWeight.w700, color: Color(0xFF7A6845)),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout(maxWidth: w - 4);
+    tp.paint(canvas, Offset(left + (w - tp.width) / 2, top + (d - tp.height) / 2));
+  }
+
+  void _drawMannequin(Canvas canvas, Mannequin mannequin) {
+    final cx = mannequin.positionX * pixelsPerFt;
+    final cy = mannequin.positionY * pixelsPerFt;
+    const accentColor = AppTheme.accent;
+
+    final strokePaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.8
+      ..strokeCap = StrokeCap.round
+      ..color = accentColor;
+    final fillPaint = Paint()
+      ..style = PaintingStyle.fill
+      ..color = accentColor;
+
+    if (mannequin.mannequinType == 'leg_form') {
+      // Two vertical parallel lines
+      canvas.drawLine(Offset(cx - 4, cy - 10), Offset(cx - 4, cy + 10), strokePaint);
+      canvas.drawLine(Offset(cx + 4, cy - 10), Offset(cx + 4, cy + 10), strokePaint);
+    } else if (mannequin.mannequinType == 'bra_form') {
+      // Horizontal bar with two small arcs
+      canvas.drawLine(Offset(cx - 8, cy), Offset(cx + 8, cy), strokePaint);
+      final rect1 = Rect.fromCircle(center: Offset(cx - 4, cy), radius: 5);
+      final rect2 = Rect.fromCircle(center: Offset(cx + 4, cy), radius: 5);
+      canvas.drawArc(rect1, -3.14159, 3.14159, false, strokePaint);
+      canvas.drawArc(rect2, -3.14159, 3.14159, false, strokePaint);
+    } else {
+      // Standard figure: head + body lines
+      // Head
+      canvas.drawCircle(Offset(cx, cy - 9), 4, fillPaint);
+      // Body
+      canvas.drawLine(Offset(cx, cy - 5), Offset(cx, cy + 5), strokePaint);
+      if (mannequin.mannequinType == 'full_body') {
+        // Arms
+        canvas.drawLine(Offset(cx - 7, cy - 2), Offset(cx + 7, cy - 2), strokePaint);
+        // Legs
+        canvas.drawLine(Offset(cx, cy + 5), Offset(cx - 5, cy + 13), strokePaint);
+        canvas.drawLine(Offset(cx, cy + 5), Offset(cx + 5, cy + 13), strokePaint);
+      } else if (mannequin.mannequinType == 'half_body') {
+        // Arms only, no legs
+        canvas.drawLine(Offset(cx - 7, cy - 2), Offset(cx + 7, cy - 2), strokePaint);
+      }
+      // torso: just head + body, no arms/legs
+    }
+
+    // Label below figure
+    final label = mannequin.outfitName ?? mannequin.name ?? _mannequinAbbrev(mannequin.mannequinType);
+    final tp = TextPainter(
+      text: TextSpan(
+        text: label.toUpperCase(),
+        style: const TextStyle(fontSize: 7, fontWeight: FontWeight.w700, color: AppTheme.accent),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout(maxWidth: 60);
+    tp.paint(canvas, Offset(cx - tp.width / 2, cy + 15));
+  }
+
+  String _mannequinAbbrev(String type) {
+    switch (type) {
+      case 'full_body': return 'FULL';
+      case 'half_body': return 'HALF';
+      case 'torso': return 'TORSO';
+      case 'leg_form': return 'LEGS';
+      case 'bra_form': return 'BRA';
+      default: return type.toUpperCase();
+    }
+  }
+
+  void _drawSceneProp(Canvas canvas, SceneProp prop) {
+    final w = prop.width * pixelsPerFt;
+    final d = prop.depth * pixelsPerFt;
+    final left = prop.positionX * pixelsPerFt;
+    final top = prop.positionY * pixelsPerFt;
+    final rect = Rect.fromLTWH(left, top, w, d);
+    const propColor = Color(0xFF2D6A4F);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(rect, const Radius.circular(4)),
+      Paint()..color = propColor.withValues(alpha: 0.15)..style = PaintingStyle.fill,
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(rect, const Radius.circular(4)),
+      Paint()..color = propColor..strokeWidth = 1.2..style = PaintingStyle.stroke,
+    );
+    final label = _propAbbrev(prop.propType);
+    final tp = TextPainter(
+      text: TextSpan(
+        text: label,
+        style: const TextStyle(fontSize: 8, fontWeight: FontWeight.w700, color: propColor),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout(maxWidth: w - 4);
+    tp.paint(canvas, Offset(left + (w - tp.width) / 2, top + (d - tp.height) / 2));
+  }
+
+  String _propAbbrev(String type) {
+    switch (type) {
+      case 'plant': return 'PLT';
+      case 'furniture': return 'FURN';
+      case 'riser': return 'RISR';
+      case 'signage': return 'SIGN';
+      default: return 'PROP';
     }
   }
 
@@ -442,5 +646,9 @@ class BuilderCanvasPainter extends CustomPainter {
       old.ghostPos != ghostPos ||
       old.ghostType != ghostType ||
       old.wallEdges != wallEdges ||
-      old.planograms != planograms;
+      old.planograms != planograms ||
+      old.mannequins != mannequins ||
+      old.platforms != platforms ||
+      old.sceneProps != sceneProps ||
+      old.selectedFixtureIds != selectedFixtureIds;
 }

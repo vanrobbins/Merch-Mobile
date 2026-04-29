@@ -6,7 +6,7 @@ part of 'store_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$activeStoreHash() => r'd3e90b133496e431fcd1e7a0c97a4bae00e96c0c';
+String _$activeStoreHash() => r'3d05ea19c1b18f89e60c987a173afff4068d29ce';
 
 /// The full Store record for the active store ID.
 ///
@@ -24,7 +24,7 @@ final activeStoreProvider = AutoDisposeStreamProvider<Store?>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef ActiveStoreRef = AutoDisposeStreamProviderRef<Store?>;
-String _$currentMembershipHash() => r'e06b07a67a365fe650bb891610ea9faf0e24758a';
+String _$currentMembershipHash() => r'aefda81014d1733add7f6d44d51e0fb8deda5508';
 
 /// The current user's active membership in the active store.
 ///
@@ -44,9 +44,12 @@ final currentMembershipProvider =
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef CurrentMembershipRef = AutoDisposeStreamProviderRef<StoreMembership?>;
-String _$myStoresHash() => r'cf55ceedffae2fb4071f707130ad3e362417b928';
+String _$myStoresHash() => r'2576e13c531f9e67c3ef58c07a75e4849b356ebc';
 
 /// All stores where the current user has an active membership.
+/// Primary source: /userStores/{uid} document (fast, no index needed).
+/// Migration path: if that document is empty, falls back to a collection group
+/// query and bootstraps the document so future loads skip it.
 ///
 /// Copied from [myStores].
 @ProviderFor(myStores)

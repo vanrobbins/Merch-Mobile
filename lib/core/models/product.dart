@@ -16,6 +16,9 @@ class Product with _$Product {
     @Default(0) int stockQty,
     String? colorId,
     String? templateId,
+    String? colorNotes,
+    double? price,
+    String? imagePath,
     required DateTime updatedAt,
   }) = _Product;
 
@@ -36,6 +39,9 @@ extension ProductFirestore on Product {
       stockQty: d['stockQty'] as int? ?? 0,
       colorId: d['colorId'] as String?,
       templateId: d['templateId'] as String?,
+      colorNotes: d['colorNotes'] as String?,
+      price: (d['price'] as num?)?.toDouble(),
+      imagePath: d['imagePath'] as String?,
       updatedAt: (d['updatedAt'] as Timestamp).toDate(),
     );
   }
@@ -49,6 +55,9 @@ extension ProductFirestore on Product {
     'stockQty': stockQty,
     if (colorId != null) 'colorId': colorId,
     if (templateId != null) 'templateId': templateId,
+    if (colorNotes != null) 'colorNotes': colorNotes,
+    if (price != null) 'price': price,
+    if (imagePath != null) 'imagePath': imagePath,
     'updatedAt': Timestamp.fromDate(updatedAt),
   };
 }

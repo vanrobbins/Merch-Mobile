@@ -15,7 +15,7 @@ abstract class DesignTokens {
   static const double radiusLg = 8.0;
 
   // Type scale
-  static const double typeXs = 9.0;    // eyebrow labels (ALL CAPS)
+  static const double typeXs = 10.0;   // eyebrow labels (ALL CAPS)
   static const double typeSm = 12.0;
   static const double typeMd = 14.0;
   static const double typeLg = 16.0;

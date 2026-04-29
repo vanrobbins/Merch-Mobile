@@ -978,6 +978,7 @@ class _ZoneCanvasState extends ConsumerState<_ZoneCanvas> {
           snapPreviewPoints: (snapPreview != null && snapPreview != _dragPoints) ? snapPreview : null,
           entranceEditMode: widget.entranceEditMode,
           liveEntrance: _editEntrance,
+          overlappingZoneIds: state.overlappingZoneIds,
         );
         return ClipRect(
           child: Listener(

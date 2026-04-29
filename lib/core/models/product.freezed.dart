@@ -29,6 +29,9 @@ mixin _$Product {
   int get stockQty => throw _privateConstructorUsedError;
   String? get colorId => throw _privateConstructorUsedError;
   String? get templateId => throw _privateConstructorUsedError;
+  String? get colorNotes => throw _privateConstructorUsedError;
+  double? get price => throw _privateConstructorUsedError;
+  String? get imagePath => throw _privateConstructorUsedError;
   DateTime get updatedAt => throw _privateConstructorUsedError;
 
   /// Serializes this Product to a JSON map.
@@ -55,6 +58,9 @@ abstract class $ProductCopyWith<$Res> {
       int stockQty,
       String? colorId,
       String? templateId,
+      String? colorNotes,
+      double? price,
+      String? imagePath,
       DateTime updatedAt});
 }
 
@@ -82,6 +88,9 @@ class _$ProductCopyWithImpl<$Res, $Val extends Product>
     Object? stockQty = null,
     Object? colorId = freezed,
     Object? templateId = freezed,
+    Object? colorNotes = freezed,
+    Object? price = freezed,
+    Object? imagePath = freezed,
     Object? updatedAt = null,
   }) {
     return _then(_value.copyWith(
@@ -121,6 +130,18 @@ class _$ProductCopyWithImpl<$Res, $Val extends Product>
           ? _value.templateId
           : templateId // ignore: cast_nullable_to_non_nullable
               as String?,
+      colorNotes: freezed == colorNotes
+          ? _value.colorNotes
+          : colorNotes // ignore: cast_nullable_to_non_nullable
+              as String?,
+      price: freezed == price
+          ? _value.price
+          : price // ignore: cast_nullable_to_non_nullable
+              as double?,
+      imagePath: freezed == imagePath
+          ? _value.imagePath
+          : imagePath // ignore: cast_nullable_to_non_nullable
+              as String?,
       updatedAt: null == updatedAt
           ? _value.updatedAt
           : updatedAt // ignore: cast_nullable_to_non_nullable
@@ -146,6 +167,9 @@ abstract class _$$ProductImplCopyWith<$Res> implements $ProductCopyWith<$Res> {
       int stockQty,
       String? colorId,
       String? templateId,
+      String? colorNotes,
+      double? price,
+      String? imagePath,
       DateTime updatedAt});
 }
 
@@ -171,6 +195,9 @@ class __$$ProductImplCopyWithImpl<$Res>
     Object? stockQty = null,
     Object? colorId = freezed,
     Object? templateId = freezed,
+    Object? colorNotes = freezed,
+    Object? price = freezed,
+    Object? imagePath = freezed,
     Object? updatedAt = null,
   }) {
     return _then(_$ProductImpl(
@@ -210,6 +237,18 @@ class __$$ProductImplCopyWithImpl<$Res>
           ? _value.templateId
           : templateId // ignore: cast_nullable_to_non_nullable
               as String?,
+      colorNotes: freezed == colorNotes
+          ? _value.colorNotes
+          : colorNotes // ignore: cast_nullable_to_non_nullable
+              as String?,
+      price: freezed == price
+          ? _value.price
+          : price // ignore: cast_nullable_to_non_nullable
+              as double?,
+      imagePath: freezed == imagePath
+          ? _value.imagePath
+          : imagePath // ignore: cast_nullable_to_non_nullable
+              as String?,
       updatedAt: null == updatedAt
           ? _value.updatedAt
           : updatedAt // ignore: cast_nullable_to_non_nullable
@@ -231,6 +270,9 @@ class _$ProductImpl implements _Product {
       this.stockQty = 0,
       this.colorId,
       this.templateId,
+      this.colorNotes,
+      this.price,
+      this.imagePath,
       required this.updatedAt})
       : _sizes = sizes;
 
@@ -265,11 +307,17 @@ class _$ProductImpl implements _Product {
   @override
   final String? templateId;
   @override
+  final String? colorNotes;
+  @override
+  final double? price;
+  @override
+  final String? imagePath;
+  @override
   final DateTime updatedAt;
 
   @override
   String toString() {
-    return 'Product(id: $id, sku: $sku, name: $name, category: $category, imageUrl: $imageUrl, sizes: $sizes, stockQty: $stockQty, colorId: $colorId, templateId: $templateId, updatedAt: $updatedAt)';
+    return 'Product(id: $id, sku: $sku, name: $name, category: $category, imageUrl: $imageUrl, sizes: $sizes, stockQty: $stockQty, colorId: $colorId, templateId: $templateId, colorNotes: $colorNotes, price: $price, imagePath: $imagePath, updatedAt: $updatedAt)';
   }
 
   @override
@@ -290,6 +338,11 @@ class _$ProductImpl implements _Product {
             (identical(other.colorId, colorId) || other.colorId == colorId) &&
             (identical(other.templateId, templateId) ||
                 other.templateId == templateId) &&
+            (identical(other.colorNotes, colorNotes) ||
+                other.colorNotes == colorNotes) &&
+            (identical(other.price, price) || other.price == price) &&
+            (identical(other.imagePath, imagePath) ||
+                other.imagePath == imagePath) &&
             (identical(other.updatedAt, updatedAt) ||
                 other.updatedAt == updatedAt));
   }
@@ -307,6 +360,9 @@ class _$ProductImpl implements _Product {
       stockQty,
       colorId,
       templateId,
+      colorNotes,
+      price,
+      imagePath,
       updatedAt);
 
   /// Create a copy of Product
@@ -336,6 +392,9 @@ abstract class _Product implements Product {
       final int stockQty,
       final String? colorId,
       final String? templateId,
+      final String? colorNotes,
+      final double? price,
+      final String? imagePath,
       required final DateTime updatedAt}) = _$ProductImpl;
 
   factory _Product.fromJson(Map<String, dynamic> json) = _$ProductImpl.fromJson;
@@ -358,6 +417,12 @@ abstract class _Product implements Product {
   String? get colorId;
   @override
   String? get templateId;
+  @override
+  String? get colorNotes;
+  @override
+  double? get price;
+  @override
+  String? get imagePath;
   @override
   DateTime get updatedAt;
 

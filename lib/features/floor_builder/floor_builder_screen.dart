@@ -77,6 +77,43 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
         },
         onWallSelected: _enterWallMode,
         onDragStarted: () => Navigator.of(sheetCtx).pop(),
+        onMannequinSelected: () => _showMannequinTypePicker(),
+        onPlatformSelected: () {
+          ref.read(floorBuilderNotifierProvider.notifier)
+              .addPlatform(positionFt: const Offset(3, 3));
+        },
+        onPropSelected: () => _showPropTypePicker(),
+      ),
+    );
+  }
+
+  void _showMannequinTypePicker() {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _MannequinTypeSheet(
+        onSelect: (type, mount) {
+          ref.read(floorBuilderNotifierProvider.notifier).addMannequin(
+            mannequinType: type,
+            mountType: mount,
+            positionFt: const Offset(3, 3),
+          );
+        },
+      ),
+    );
+  }
+
+  void _showPropTypePicker() {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _PropTypeSheet(
+        onSelect: (type) {
+          ref.read(floorBuilderNotifierProvider.notifier).addSceneProp(
+            propType: type,
+            positionFt: const Offset(3, 3),
+          );
+        },
       ),
     );
   }
@@ -162,6 +199,7 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
   void _handleLongPressInCanvas(LongPressStartDetails details) {
     if (_painter == null) return;
     final canvas = _toCanvas(details.localPosition);
+    final state = ref.read(floorBuilderNotifierProvider);
     for (final entry in _painter!.fixtureRects.entries) {
       if (entry.value.contains(canvas)) {
         final fixture = ref
@@ -169,7 +207,11 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
             .fixtures
             .firstWhereOrNull((f) => f.id == entry.key);
         if (fixture == null) continue;
-        _onFixtureLongPress(fixture.id, fixture.label.isNotEmpty ? fixture.label : fixture.fixtureType.toUpperCase());
+        if (!state.isMultiSelectMode) {
+          ref.read(floorBuilderNotifierProvider.notifier).enterMultiSelect(fixture.id);
+        } else {
+          ref.read(floorBuilderNotifierProvider.notifier).toggleMultiSelectFixture(fixture.id);
+        }
         return;
       }
     }
@@ -242,6 +284,11 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
     for (final entry in _painter!.fixtureRects.entries) {
       if (entry.value.contains(canvas)) {
         _primaryPointer = event.pointer;
+        final currentState = ref.read(floorBuilderNotifierProvider);
+        if (currentState.isMultiSelectMode) {
+          ref.read(floorBuilderNotifierProvider.notifier).toggleMultiSelectFixture(entry.key);
+          return;
+        }
         ref.read(floorBuilderNotifierProvider.notifier).selectFixture(entry.key);
         setState(() => _dragFixtureId = entry.key);
         return;
@@ -249,6 +296,12 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
     }
 
     // 4. Empty canvas — deselect + pan
+    final currentState = ref.read(floorBuilderNotifierProvider);
+    if (currentState.isMultiSelectMode) {
+      ref.read(floorBuilderNotifierProvider.notifier).exitMultiSelect();
+      _primaryPointer = event.pointer;
+      return;
+    }
     ref.read(floorBuilderNotifierProvider.notifier).selectFixture(null);
     _primaryPointer = event.pointer;
     _isPanning = true;
@@ -437,11 +490,17 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
     return FixtureMiniPanel(
       fixture: fixture,
       planogram: planogram,
-      onDismiss: () => ref.read(floorBuilderNotifierProvider.notifier).selectFixture(null),
+      onDismiss: () =>
+          ref.read(floorBuilderNotifierProvider.notifier).selectFixture(null),
+      onRotate: () =>
+          ref.read(floorBuilderNotifierProvider.notifier).rotateFixture(fixture.id),
       onEdit: () => _onFixtureLongPress(
         fixture.id,
         fixture.label.isNotEmpty ? fixture.label : fixture.fixtureType.toUpperCase(),
       ),
+      onDelete: () {
+        ref.read(floorBuilderNotifierProvider.notifier).deleteFixture(fixture.id);
+      },
     );
   }
 
@@ -456,6 +515,16 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
       appBar: AppBar(
         title: const Text('FLOOR BUILDER'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.fit_screen_outlined),
+            tooltip: 'Fit to view',
+            onPressed: () {
+              final zoneAsync = ref.read(zoneByIdProvider(widget.zoneId));
+              final z = zoneAsync.valueOrNull;
+              final pts = z != null ? ZoneShape.decode(z.shapePoints) : null;
+              _fitFixtures(state.fixtures, zonePts: pts != null && pts.length >= 3 ? pts : null);
+            },
+          ),
           IconButton(
             icon: Icon(
               state.snapGridEnabled ? Icons.grid_on : Icons.grid_off,
@@ -520,6 +589,10 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
                       zoneName: zone?.name,
                       wallEdges: _wallEdges,
                       planograms: state.planograms,
+                      mannequins: state.mannequins,
+                      platforms: state.platforms,
+                      sceneProps: state.sceneProps,
+                      selectedFixtureIds: state.selectedFixtureIds,
                     );
                     return ClipRect(
                       child: Stack(
@@ -559,12 +632,61 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
                           ),
                           if (state.selectedFixtureId != null &&
                               _dragFixtureId == null &&
-                              _resizingFixtureId == null)
+                              _resizingFixtureId == null &&
+                              !state.isMultiSelectMode)
                             Positioned(
                               left: 0,
                               right: 0,
                               bottom: 0,
                               child: _buildMiniPanel(state),
+                            ),
+                          if (state.isMultiSelectMode)
+                            Positioned(
+                              left: 0,
+                              right: 0,
+                              bottom: 0,
+                              child: Container(
+                                color: AppTheme.primary,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: DesignTokens.spaceMd,
+                                  vertical: DesignTokens.spaceMd,
+                                ),
+                                child: Row(
+                                  children: [
+                                    Text(
+                                      '${state.selectedFixtureIds.length} SELECTED',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: DesignTokens.weightBold,
+                                        fontSize: DesignTokens.typeSm,
+                                        letterSpacing: DesignTokens.letterSpacingEyebrow,
+                                      ),
+                                    ),
+                                    const Spacer(),
+                                    ElevatedButton.icon(
+                                      icon: const Icon(Icons.delete_outline, size: 16),
+                                      label: const Text('DELETE ALL'),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: AppTheme.errorColor,
+                                        foregroundColor: Colors.white,
+                                      ),
+                                      onPressed: () => ref
+                                          .read(floorBuilderNotifierProvider.notifier)
+                                          .deleteSelectedFixtures(),
+                                    ),
+                                    const SizedBox(width: DesignTokens.spaceSm),
+                                    TextButton(
+                                      onPressed: () => ref
+                                          .read(floorBuilderNotifierProvider.notifier)
+                                          .exitMultiSelect(),
+                                      child: const Text(
+                                        'CANCEL',
+                                        style: TextStyle(color: Colors.white70),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
                             ),
                         ],
                       ),
@@ -573,28 +695,16 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
                 );
               },
             ),
-      floatingActionButton: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          FloatingActionButton(
-            heroTag: 'rotate',
-            mini: true,
-            onPressed: state.selectedFixtureId != null
-                ? () => ref.read(floorBuilderNotifierProvider.notifier).rotateFixture(state.selectedFixtureId!)
-                : null,
-            backgroundColor: state.selectedFixtureId != null ? AppTheme.primary : Colors.grey,
-            child: const Icon(Icons.rotate_right),
-          ),
-          const SizedBox(height: DesignTokens.spaceSm),
-          FloatingActionButton.extended(
-            heroTag: 'library',
-            onPressed: _showElementLibrary,
-            label: const Text('ELEMENT LIBRARY'),
-            icon: const Icon(Icons.add),
-            backgroundColor: AppTheme.accent,
-          ),
-        ],
-      ),
+      floatingActionButton: state.isMultiSelectMode
+          ? null
+          : FloatingActionButton(
+              heroTag: 'add',
+              onPressed: _showElementLibrary,
+              backgroundColor: AppTheme.accent,
+              foregroundColor: Colors.white,
+              tooltip: 'Add element',
+              child: const Icon(Icons.add),
+            ),
     );
   }
 }
@@ -644,7 +754,7 @@ class _WallPlacementSheetState extends State<_WallPlacementSheet> {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.grey.shade300,
+                color: AppTheme.divider,
                 borderRadius: BorderRadius.circular(AppTheme.borderRadius),
               ),
             ),
@@ -895,7 +1005,7 @@ class _FixtureActionsSheetState extends State<_FixtureActionsSheet> {
               Expanded(
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red.shade600,
+                    backgroundColor: AppTheme.errorColor,
                     foregroundColor: Colors.white,
                     shape: const RoundedRectangleBorder(
                       borderRadius: BorderRadius.all(
@@ -915,4 +1025,155 @@ class _FixtureActionsSheetState extends State<_FixtureActionsSheet> {
       ),
     );
   }
+}
+
+class _MannequinTypeSheet extends StatelessWidget {
+  const _MannequinTypeSheet({required this.onSelect});
+  final void Function(String type, String mountType) onSelect;
+
+  static const _types = [
+    _MannequinTypeDef('full_body', Icons.accessibility_new_outlined, 'FULL BODY', 'floor'),
+    _MannequinTypeDef('half_body', Icons.person_outline, 'HALF BODY', 'floor'),
+    _MannequinTypeDef('torso', Icons.radio_button_unchecked, 'TORSO', 'floor'),
+    _MannequinTypeDef('leg_form', Icons.vertical_align_bottom_outlined, 'LEG FORM', 'floor'),
+    _MannequinTypeDef('bra_form', Icons.radio_button_checked, 'BRA FORM', 'floor'),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: AppTheme.cardSurface,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(DesignTokens.radiusLg)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Center(
+            child: Container(
+              margin: const EdgeInsets.only(top: DesignTokens.spaceSm),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppTheme.divider,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          const Padding(
+            padding: EdgeInsets.all(DesignTokens.spaceMd),
+            child: Text(
+              'MANNEQUIN TYPE',
+              style: TextStyle(
+                fontSize: DesignTokens.typeLg,
+                fontWeight: DesignTokens.weightBold,
+                letterSpacing: DesignTokens.letterSpacingEyebrow,
+              ),
+            ),
+          ),
+          ..._types.map((t) => ListTile(
+                leading: Icon(t.icon, color: AppTheme.accent),
+                title: Text(
+                  t.label,
+                  style: const TextStyle(
+                    fontWeight: DesignTokens.weightBold,
+                    fontSize: DesignTokens.typeMd,
+                    letterSpacing: DesignTokens.letterSpacingEyebrow,
+                  ),
+                ),
+                trailing: const Icon(Icons.chevron_right, color: AppTheme.textSecondary),
+                onTap: () {
+                  Navigator.pop(context);
+                  onSelect(t.type, t.mountType);
+                },
+              )),
+          SizedBox(height: MediaQuery.of(context).padding.bottom + DesignTokens.spaceSm),
+        ],
+      ),
+    );
+  }
+}
+
+class _MannequinTypeDef {
+  const _MannequinTypeDef(this.type, this.icon, this.label, this.mountType);
+  final String type;
+  final IconData icon;
+  final String label;
+  final String mountType;
+}
+
+class _PropTypeSheet extends StatelessWidget {
+  const _PropTypeSheet({required this.onSelect});
+  final void Function(String type) onSelect;
+
+  static const _types = [
+    _PropTypeDef('plant', Icons.park_outlined, 'PLANT'),
+    _PropTypeDef('furniture', Icons.chair_outlined, 'FURNITURE'),
+    _PropTypeDef('riser', Icons.layers_outlined, 'RISER'),
+    _PropTypeDef('signage', Icons.campaign_outlined, 'SIGNAGE'),
+    _PropTypeDef('other', Icons.category_outlined, 'OTHER'),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: AppTheme.cardSurface,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(DesignTokens.radiusLg)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Center(
+            child: Container(
+              margin: const EdgeInsets.only(top: DesignTokens.spaceSm),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppTheme.divider,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          const Padding(
+            padding: EdgeInsets.all(DesignTokens.spaceMd),
+            child: Text(
+              'PROP TYPE',
+              style: TextStyle(
+                fontSize: DesignTokens.typeLg,
+                fontWeight: DesignTokens.weightBold,
+                letterSpacing: DesignTokens.letterSpacingEyebrow,
+              ),
+            ),
+          ),
+          ..._types.map((t) => ListTile(
+                leading: Icon(t.icon, color: AppTheme.primary),
+                title: Text(
+                  t.label,
+                  style: const TextStyle(
+                    fontWeight: DesignTokens.weightBold,
+                    fontSize: DesignTokens.typeMd,
+                    letterSpacing: DesignTokens.letterSpacingEyebrow,
+                  ),
+                ),
+                trailing: const Icon(Icons.chevron_right, color: AppTheme.textSecondary),
+                onTap: () {
+                  Navigator.pop(context);
+                  onSelect(t.type);
+                },
+              )),
+          SizedBox(height: MediaQuery.of(context).padding.bottom + DesignTokens.spaceSm),
+        ],
+      ),
+    );
+  }
+}
+
+class _PropTypeDef {
+  const _PropTypeDef(this.type, this.icon, this.label);
+  final String type;
+  final IconData icon;
+  final String label;
 }
