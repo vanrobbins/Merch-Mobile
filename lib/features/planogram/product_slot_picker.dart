@@ -7,37 +7,61 @@ import '../../core/theme/design_tokens.dart';
 import '../product_catalog/catalog_provider.dart';
 import 'planogram_provider.dart';
 
-/// Modal bottom sheet that lets a coordinator or manager pick a product
-/// to drop into a specific planogram slot. Writes the assignment through
-/// [PlanogramEditor] and persists via `save()`.
+/// Signature for the editor callback: productId, name, sku, optional colorHex.
+typedef SlotAssignCallback = void Function(
+  String productId,
+  String name,
+  String sku, {
+  String? colorHex,
+});
+
 class ProductSlotPicker extends ConsumerStatefulWidget {
   const ProductSlotPicker({
     super.key,
-    required this.planogramId,
-    required this.slotId,
-  });
+    this.planogramId,
+    this.slotId,
+    this.onAssign,
+  }) : assert(
+            (planogramId != null && slotId != null) || onAssign != null,
+            'Provide either planogramId+slotId or onAssign callback');
 
-  final String planogramId;
-  final String slotId;
+  final String? planogramId;
+  final String? slotId;
+  final SlotAssignCallback? onAssign;
 
-  static Future<void> show(
+  /// Legacy detail-screen usage.
+  static Future<void> showLegacy(
     BuildContext context,
     String planogramId,
     String slotId,
-  ) {
-    return showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => ProductSlotPicker(
-        planogramId: planogramId,
-        slotId: slotId,
-      ),
-    );
-  }
+  ) =>
+      showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (_) => ProductSlotPicker(
+          planogramId: planogramId,
+          slotId: slotId,
+        ),
+      );
+
+  /// Editor usage — result delivered via callback.
+  static Future<void> show(
+    BuildContext context, {
+    required String planogramId,
+    required SlotAssignCallback onAssign,
+  }) =>
+      showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (_) =>
+            ProductSlotPicker(planogramId: planogramId, onAssign: onAssign),
+      );
 
   @override
-  ConsumerState<ProductSlotPicker> createState() => _ProductSlotPickerState();
+  ConsumerState<ProductSlotPicker> createState() =>
+      _ProductSlotPickerState();
 }
 
 class _ProductSlotPickerState extends ConsumerState<ProductSlotPicker> {
@@ -60,15 +84,13 @@ class _ProductSlotPickerState extends ConsumerState<ProductSlotPicker> {
         ),
         child: Column(
           children: [
-            // Drag handle
             Container(
               margin: const EdgeInsets.only(top: DesignTokens.spaceSm),
               width: 40,
               height: 4,
               decoration: BoxDecoration(
                 color: Colors.grey.shade300,
-                borderRadius:
-                    BorderRadius.circular(AppTheme.borderRadius),
+                borderRadius: BorderRadius.circular(AppTheme.borderRadius),
               ),
             ),
             Padding(
@@ -98,30 +120,25 @@ class _ProductSlotPickerState extends ConsumerState<ProductSlotPicker> {
                           .toList();
                   if (filtered.isEmpty) {
                     return const Center(
-                      child: Text(
-                        'No matching products',
-                        style: TextStyle(color: AppTheme.textSecondary),
-                      ),
-                    );
+                      child: Text('No matching products',
+                          style:
+                              TextStyle(color: AppTheme.textSecondary)));
                   }
                   return ListView.separated(
                     controller: scrollCtrl,
                     itemCount: filtered.length,
-                    separatorBuilder: (_, __) => const Divider(height: 1),
+                    separatorBuilder: (_, __) =>
+                        const Divider(height: 1),
                     itemBuilder: (_, i) {
                       final p = filtered[i];
                       return ListTile(
-                        title: Text(
-                          p.name,
-                          style: const TextStyle(
-                              fontWeight: DesignTokens.weightMedium),
-                        ),
-                        subtitle: Text(
-                          'SKU: ${p.sku}',
-                          style: const TextStyle(
-                              fontSize: DesignTokens.typeXs,
-                              color: AppTheme.textSecondary),
-                        ),
+                        title: Text(p.name,
+                            style: const TextStyle(
+                                fontWeight: DesignTokens.weightMedium)),
+                        subtitle: Text('SKU: ${p.sku}',
+                            style: const TextStyle(
+                                fontSize: DesignTokens.typeXs,
+                                color: AppTheme.textSecondary)),
                         trailing: ElevatedButton(
                           onPressed: () => _assign(p),
                           style: ElevatedButton.styleFrom(
@@ -150,16 +167,18 @@ class _ProductSlotPickerState extends ConsumerState<ProductSlotPicker> {
   }
 
   Future<void> _assign(Product product) async {
-    final editor =
-        ref.read(planogramEditorProvider(widget.planogramId).notifier);
+    if (widget.onAssign != null) {
+      // Editor callback path
+      widget.onAssign!(product.id, product.name, product.sku);
+      if (mounted) Navigator.pop(context);
+      return;
+    }
+    // Legacy path
+    final editor = ref.read(
+        planogramEditorProvider(widget.planogramId!).notifier);
     editor.assignProduct(
-      widget.slotId,
-      product.id,
-      product.name,
-      product.sku,
-    );
-    // Auto-save after each assignment so the list view stays accurate.
-    await editor.save(widget.planogramId);
+        widget.slotId!, product.id, product.name, product.sku);
+    await editor.save(widget.planogramId!);
     if (mounted) Navigator.pop(context);
   }
 }
