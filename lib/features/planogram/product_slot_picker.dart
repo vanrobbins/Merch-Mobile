@@ -66,6 +66,7 @@ class ProductSlotPicker extends ConsumerStatefulWidget {
 
 class _ProductSlotPickerState extends ConsumerState<ProductSlotPicker> {
   String _query = '';
+  String? _selectedGender; // null = All
 
   @override
   Widget build(BuildContext context) {
@@ -93,6 +94,57 @@ class _ProductSlotPickerState extends ConsumerState<ProductSlotPicker> {
                 borderRadius: BorderRadius.circular(AppTheme.borderRadius),
               ),
             ),
+            // Gender filter chips
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                  DesignTokens.spaceMd, DesignTokens.spaceSm, DesignTokens.spaceMd, 0),
+              child: Row(
+                children: [
+                  const Text(
+                    'GENDER:',
+                    style: TextStyle(
+                      fontSize: DesignTokens.typeXs,
+                      fontWeight: DesignTokens.weightBold,
+                      letterSpacing: DesignTokens.letterSpacingEyebrow,
+                      color: AppTheme.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(width: DesignTokens.spaceSm),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: [
+                          _GenderChip(
+                            label: 'All',
+                            selected: _selectedGender == null,
+                            onTap: () => setState(() => _selectedGender = null),
+                          ),
+                          const SizedBox(width: 4),
+                          _GenderChip(
+                            label: 'Men',
+                            selected: _selectedGender == 'male',
+                            onTap: () => setState(() => _selectedGender = 'male'),
+                          ),
+                          const SizedBox(width: 4),
+                          _GenderChip(
+                            label: 'Women',
+                            selected: _selectedGender == 'female',
+                            onTap: () => setState(() => _selectedGender = 'female'),
+                          ),
+                          const SizedBox(width: 4),
+                          _GenderChip(
+                            label: 'Unisex',
+                            selected: _selectedGender == 'unisex',
+                            onTap: () => setState(() => _selectedGender = 'unisex'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
             Padding(
               padding: const EdgeInsets.all(DesignTokens.spaceMd),
               child: TextField(
@@ -111,13 +163,18 @@ class _ProductSlotPickerState extends ConsumerState<ProductSlotPicker> {
               child: productsAsync.when(
                 data: (products) {
                   final q = _query.trim().toLowerCase();
-                  final filtered = q.isEmpty
+                  var filtered = q.isEmpty
                       ? products
                       : products
                           .where((p) =>
                               p.name.toLowerCase().contains(q) ||
                               p.sku.toLowerCase().contains(q))
                           .toList();
+                  if (_selectedGender != null) {
+                    filtered = filtered
+                        .where((p) => p.gender == _selectedGender)
+                        .toList();
+                  }
                   if (filtered.isEmpty) {
                     return const Center(
                       child: Text('No matching products',
@@ -180,5 +237,40 @@ class _ProductSlotPickerState extends ConsumerState<ProductSlotPicker> {
         widget.slotId!, product.id, product.name, product.sku);
     await editor.save(widget.planogramId!);
     if (mounted) Navigator.pop(context);
+  }
+}
+
+class _GenderChip extends StatelessWidget {
+  const _GenderChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+        decoration: BoxDecoration(
+          color: selected ? AppTheme.accent : AppTheme.surfaceVariant,
+          borderRadius: BorderRadius.circular(DesignTokens.radiusSm),
+        ),
+        child: Text(
+          label.toUpperCase(),
+          style: TextStyle(
+            fontSize: DesignTokens.typeXs,
+            fontWeight: DesignTokens.weightBold,
+            letterSpacing: DesignTokens.letterSpacingEyebrow,
+            color: selected ? Colors.white : AppTheme.textSecondary,
+          ),
+        ),
+      ),
+    );
   }
 }
