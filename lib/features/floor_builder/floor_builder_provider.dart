@@ -242,9 +242,14 @@ class FloorBuilderNotifier extends _$FloorBuilderNotifier {
       label: type.toUpperCase(),
       updatedAt: DateTime.now(),
     );
-    await FirestoreRefs.fixtures(_storeId)
-        .doc(fixture.id)
-        .set(fixture.toFirestore());
+    _push(UndoEntry(
+      before: [null],
+      after: [fixture.toFirestore()],
+      ids: [fixture.id],
+      collection: 'fixtures',
+      label: 'Add fixture',
+    ));
+    await FirestoreRefs.fixtures(_storeId).doc(fixture.id).set(fixture.toFirestore());
   }
 
   Future<void> addWallFixture({
@@ -266,9 +271,14 @@ class FloorBuilderNotifier extends _$FloorBuilderNotifier {
       label: 'WALL',
       updatedAt: DateTime.now(),
     );
-    await FirestoreRefs.fixtures(_storeId)
-        .doc(fixture.id)
-        .set(fixture.toFirestore());
+    _push(UndoEntry(
+      before: [null],
+      after: [fixture.toFirestore()],
+      ids: [fixture.id],
+      collection: 'fixtures',
+      label: 'Add wall fixture',
+    ));
+    await FirestoreRefs.fixtures(_storeId).doc(fixture.id).set(fixture.toFirestore());
   }
 
   Future<void> moveFixture(String id, Offset pos) {
@@ -279,19 +289,58 @@ class FloorBuilderNotifier extends _$FloorBuilderNotifier {
       x = (x / gs).round() * gs;
       y = (y / gs).round() * gs;
     }
+    final fixture = state.fixtures.firstWhereOrNull((f) => f.id == id);
+    if (fixture != null) {
+      _push(UndoEntry(
+        before: [fixture.toFirestore()],
+        after: [{...fixture.toFirestore(), 'posX': x, 'posY': y}],
+        ids: [id],
+        collection: 'fixtures',
+        label: 'Move fixture',
+      ));
+    }
     return _patch(id, {'posX': x, 'posY': y});
   }
 
   Future<void> rotateFixture(String id) {
     final fixture = state.fixtures.firstWhereOrNull((f) => f.id == id);
     if (fixture == null) return Future.value();
-    return _patch(id, {'rotation': (fixture.rotation + 90) % 360});
+    final newRot = (fixture.rotation + 90) % 360;
+    _push(UndoEntry(
+      before: [fixture.toFirestore()],
+      after: [{...fixture.toFirestore(), 'rotation': newRot}],
+      ids: [id],
+      collection: 'fixtures',
+      label: 'Rotate fixture',
+    ));
+    return _patch(id, {'rotation': newRot});
   }
 
-  Future<void> renameFixture(String id, String label) =>
-      _patch(id, {'label': label});
+  Future<void> renameFixture(String id, String label) {
+    final fixture = state.fixtures.firstWhereOrNull((f) => f.id == id);
+    if (fixture != null) {
+      _push(UndoEntry(
+        before: [fixture.toFirestore()],
+        after: [{...fixture.toFirestore(), 'label': label}],
+        ids: [id],
+        collection: 'fixtures',
+        label: 'Rename fixture',
+      ));
+    }
+    return _patch(id, {'label': label});
+  }
 
   Future<void> deleteFixture(String id) async {
+    final fixture = state.fixtures.firstWhereOrNull((f) => f.id == id);
+    if (fixture != null) {
+      _push(UndoEntry(
+        before: [fixture.toFirestore()],
+        after: [null],
+        ids: [id],
+        collection: 'fixtures',
+        label: 'Delete fixture',
+      ));
+    }
     await FirestoreRefs.fixtures(_storeId).doc(id).delete();
     if (state.selectedFixtureId == id) {
       state = state.copyWith(selectedFixtureId: null);
@@ -330,6 +379,16 @@ class FloorBuilderNotifier extends _$FloorBuilderNotifier {
 
   Future<void> deleteSelectedFixtures() async {
     final ids = state.selectedFixtureIds.toList();
+    final beforeMaps = ids
+        .map((id) => state.fixtures.firstWhereOrNull((f) => f.id == id)?.toFirestore())
+        .toList();
+    _push(UndoEntry(
+      before: beforeMaps,
+      after: List.filled(ids.length, null),
+      ids: ids,
+      collection: 'fixtures',
+      label: 'Delete ${ids.length} fixture${ids.length == 1 ? '' : 's'}',
+    ));
     final storeId = _storeId;
     for (final id in ids) {
       await FirestoreRefs.fixtures(storeId).doc(id).delete();
@@ -361,23 +420,64 @@ class FloorBuilderNotifier extends _$FloorBuilderNotifier {
     final fixture = state.fixtures.firstWhereOrNull((f) => f.id == id);
     if (fixture == null) return Future.value();
     final updated = _resizedFixture(fixture, widthFt, depthFt);
+    _push(UndoEntry(
+      before: [fixture.toFirestore()],
+      after: [updated.toFirestore()],
+      ids: [id],
+      collection: 'fixtures',
+      label: 'Resize fixture',
+    ));
     return _patch(id, {'widthFt': updated.widthFt, 'depthFt': updated.depthFt});
   }
 
-  Future<void> assignPlanogram(String fixtureId, String? planogramId) =>
-      _patch(fixtureId, {
-        'planogramId': planogramId ?? FieldValue.delete(),
-      });
+  Future<void> assignPlanogram(String fixtureId, String? planogramId) {
+    final fixture = state.fixtures.firstWhereOrNull((f) => f.id == fixtureId);
+    if (fixture != null) {
+      final after = fixture.copyWith(planogramId: planogramId).toFirestore();
+      _push(UndoEntry(
+        before: [fixture.toFirestore()],
+        after: [after],
+        ids: [fixtureId],
+        collection: 'fixtures',
+        label: planogramId != null ? 'Assign planogram' : 'Clear planogram',
+      ));
+    }
+    return _patch(fixtureId, {
+      'planogramId': planogramId ?? FieldValue.delete(),
+    });
+  }
 
-  Future<void> assignPlanogramBack(String fixtureId, String? planogramId) =>
-      _patch(fixtureId, {
-        'planogramIdBack': planogramId ?? FieldValue.delete(),
-      });
+  Future<void> assignPlanogramBack(String fixtureId, String? planogramId) {
+    final fixture = state.fixtures.firstWhereOrNull((f) => f.id == fixtureId);
+    if (fixture != null) {
+      final after = fixture.copyWith(planogramIdBack: planogramId).toFirestore();
+      _push(UndoEntry(
+        before: [fixture.toFirestore()],
+        after: [after],
+        ids: [fixtureId],
+        collection: 'fixtures',
+        label: planogramId != null ? 'Assign back planogram' : 'Clear back planogram',
+      ));
+    }
+    return _patch(fixtureId, {
+      'planogramIdBack': planogramId ?? FieldValue.delete(),
+    });
+  }
 
   Future<void> toggleWallAdjacent(String fixtureId) {
     final fixture = state.fixtures.firstWhereOrNull((f) => f.id == fixtureId);
     if (fixture == null) return Future.value();
     final newValue = !fixture.wallAdjacent;
+    final updated = newValue
+        ? fixture.copyWith(wallAdjacent: true, planogramIdBack: null)
+        : fixture.copyWith(wallAdjacent: false);
+    _push(UndoEntry(
+      before: [fixture.toFirestore()],
+      after: [updated.toFirestore()],
+      ids: [fixtureId],
+      collection: 'fixtures',
+      label: 'Toggle wall adjacent',
+    ));
     return _patch(fixtureId, {
       'wallAdjacent': newValue,
       if (newValue) 'planogramIdBack': FieldValue.delete(),
