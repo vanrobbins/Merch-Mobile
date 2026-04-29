@@ -73,6 +73,8 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
   double? _resizeStartWidth;
   double? _resizeStartDepth;
   double? _resizeStartAngle;
+  double? _resizeStartPosX;
+  double? _resizeStartPosY;
 
   // Drag offset — prevents jump-to-cursor on pointer-down
   Offset? _dragPointerOffsetFt;
@@ -327,6 +329,8 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
           _resizeStartPos = null;
           _resizeStartAngle = null;
           _dragPointerOffsetFt = null;
+          _resizeStartPosX = null;
+          _resizeStartPosY = null;
           _isPanning = false;
           _panStartScreen = null;
         });
@@ -359,6 +363,8 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
             _resizeStartWidth = fixture.widthFt;
             _resizeStartDepth = fixture.depthFt;
             _resizeStartAngle = fixture.rotation * pi / 180;
+            _resizeStartPosX = fixture.posX;
+            _resizeStartPosY = fixture.posY;
           });
           return;
         }
@@ -491,18 +497,23 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
       final localD = (-delta.dx * sin(angle) + delta.dy * cos(angle)) / _pixelsPerFt;
       double? newWidth;
       double? newDepth;
+      double? newPosX;
+      double? newPosY;
       switch (_resizeHandle!) {
         case 'right':
           newWidth = (_resizeStartWidth! + localW).clamp(0.5, double.infinity);
         case 'left':
           newWidth = (_resizeStartWidth! - localW).clamp(0.5, double.infinity);
+          newPosX = _resizeStartPosX! + (_resizeStartWidth! - newWidth);
         case 'bottom':
           newDepth = (_resizeStartDepth! + localD).clamp(0.5, double.infinity);
         case 'top':
           newDepth = (_resizeStartDepth! - localD).clamp(0.5, double.infinity);
+          newPosY = _resizeStartPosY! + (_resizeStartDepth! - newDepth);
       }
       ref.read(floorBuilderNotifierProvider.notifier).resizeFixtureLocal(
-            _resizingFixtureId!, newWidth, newDepth);
+            _resizingFixtureId!, newWidth, newDepth,
+            posX: newPosX, posY: newPosY);
       return;
     }
 
@@ -577,6 +588,8 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
         _resizeStartWidth = null;
         _resizeStartDepth = null;
         _resizeStartAngle = null;
+        _resizeStartPosX = null;
+        _resizeStartPosY = null;
       });
     }
 
@@ -845,6 +858,7 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
                       ghostPos: _ghostPos,
                       ghostType: _ghostType,
                       pixelsPerFt: _pixelsPerFt,
+                      viewScale: _viewScale,
                       zoneNormalizedPts: hasZonePts ? zonePts : null,
                       zoneOriginNorm: zone != null ? Offset(zone.posX, zone.posY) : null,
                       storeWidthFt: store?.widthFt,

@@ -406,18 +406,24 @@ class FloorBuilderNotifier extends _$FloorBuilderNotifier {
     );
   }
 
-  Fixture _resizedFixture(Fixture f, double? widthFt, double? depthFt) {
+  Fixture _resizedFixture(Fixture f, double? widthFt, double? depthFt,
+      {double? posX, double? posY}) {
     final maxDepth = f.fixtureType == 'partition' ? 1.0 : double.infinity;
     return f.copyWith(
       widthFt: (widthFt ?? f.widthFt).clamp(0.5, double.infinity),
       depthFt: (depthFt ?? f.depthFt).clamp(0.5, maxDepth),
+      posX: posX ?? f.posX,
+      posY: posY ?? f.posY,
     );
   }
 
-  void resizeFixtureLocal(String id, double? widthFt, double? depthFt) {
+  void resizeFixtureLocal(String id, double? widthFt, double? depthFt,
+      {double? posX, double? posY}) {
     state = state.copyWith(
       fixtures: state.fixtures
-          .map((f) => f.id == id ? _resizedFixture(f, widthFt, depthFt) : f)
+          .map((f) => f.id == id
+              ? _resizedFixture(f, widthFt, depthFt, posX: posX, posY: posY)
+              : f)
           .toList(),
     );
   }
@@ -433,7 +439,12 @@ class FloorBuilderNotifier extends _$FloorBuilderNotifier {
       collection: 'fixtures',
       label: 'Resize fixture',
     ));
-    return _patch(id, {'widthFt': updated.widthFt, 'depthFt': updated.depthFt});
+    return _patch(id, {
+      'widthFt': updated.widthFt,
+      'depthFt': updated.depthFt,
+      'posX': updated.posX,
+      'posY': updated.posY,
+    });
   }
 
   Future<void> assignPlanogram(String fixtureId, String? planogramId) {

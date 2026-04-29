@@ -17,6 +17,7 @@ class BuilderCanvasPainter extends CustomPainter {
     this.ghostPos,
     this.ghostType,
     this.pixelsPerFt = 20.0,
+    this.viewScale = 1.0,
     this.zoneNormalizedPts,
     this.zoneOriginNorm,
     this.storeWidthFt,
@@ -36,6 +37,7 @@ class BuilderCanvasPainter extends CustomPainter {
   final Offset? ghostPos;
   final String? ghostType;
   final double pixelsPerFt;
+  final double viewScale;
   final List<Offset>? zoneNormalizedPts;
   /// Zone top-left in store-normalized (0–1) space — (zone.posX, zone.posY).
   final Offset? zoneOriginNorm;
@@ -533,7 +535,11 @@ class BuilderCanvasPainter extends CustomPainter {
     final cx = rect.center.dx;
     final cy = rect.center.dy;
 
-    // Map a local (pre-rotation) position to its screen-space position.
+    // Handle size and offset scaled to appear constant on screen regardless of zoom.
+    final hs = (20.0 / viewScale).clamp(14.0, 60.0);
+    // Offset from fixture edge so handles sit fully outside the body.
+    final ho = hs / 2 + (3.0 / viewScale).clamp(2.0, 8.0);
+
     Offset toScreen(Offset local) {
       final dx = local.dx - cx;
       final dy = local.dy - cy;
@@ -545,29 +551,34 @@ class BuilderCanvasPainter extends CustomPainter {
 
     final handles = _handlesForType(fixture.fixtureType);
     final handleRects = <String, Rect>{};
-    const handleSize = 18.0;
     for (final h in handles) {
       Offset localCenter;
       switch (h) {
         case 'top':
-          localCenter = Offset(rect.center.dx, rect.top);
+          localCenter = Offset(rect.center.dx, rect.top - ho);
         case 'bottom':
-          localCenter = Offset(rect.center.dx, rect.bottom);
+          localCenter = Offset(rect.center.dx, rect.bottom + ho);
         case 'left':
-          localCenter = Offset(rect.left, rect.center.dy);
+          localCenter = Offset(rect.left - ho, rect.center.dy);
         case 'right':
-          localCenter = Offset(rect.right, rect.center.dy);
+          localCenter = Offset(rect.right + ho, rect.center.dy);
         default:
           continue;
       }
       final screenCenter = toScreen(localCenter);
-      final hr = Rect.fromCenter(center: screenCenter, width: handleSize, height: handleSize);
+      final hr = Rect.fromCenter(center: screenCenter, width: hs, height: hs);
       handleRects[h] = hr;
       canvas.drawRRect(
         RRect.fromRectAndRadius(hr, const Radius.circular(4)),
         Paint()..color = AppTheme.accent..style = PaintingStyle.fill,
       );
-      _drawArrow(canvas, screenCenter, h == 'left' || h == 'right');
+      final double dirAngle;
+      switch (h) {
+        case 'left' || 'right': dirAngle = angle;
+        case 'top' || 'bottom': dirAngle = angle + math.pi / 2;
+        default: dirAngle = angle;
+      }
+      _drawArrow(canvas, screenCenter, dirAngle);
     }
     resizeHandleRects[fixture.id] = handleRects;
   }
@@ -585,54 +596,77 @@ class BuilderCanvasPainter extends CustomPainter {
     }
   }
 
-  void _drawArrow(Canvas canvas, Offset center, bool horizontal) {
+  // Rotates [pt] around [center] by [angle] radians.
+  static Offset _rotateAround(Offset pt, Offset center, double angle) {
+    final dx = pt.dx - center.dx;
+    final dy = pt.dy - center.dy;
+    return Offset(
+      center.dx + dx * math.cos(angle) - dy * math.sin(angle),
+      center.dy + dx * math.sin(angle) + dy * math.cos(angle),
+    );
+  }
+
+  // Draws a double-headed arrow centred at [center] along direction [dirAngle] (radians).
+  void _drawArrow(Canvas canvas, Offset center, double dirAngle) {
     final paint = Paint()
       ..color = Colors.white
       ..strokeWidth = 1.5
       ..strokeCap = StrokeCap.round;
     const arm = 4.0;
-    // `axis` runs along the arrow shaft; `cross` is the perpendicular barb width.
-    final axis = horizontal ? const Offset(arm, 0) : const Offset(0, arm);
-    final cross = horizontal ? const Offset(0, 2) : const Offset(2, 0);
-    final inward = axis * (2 / arm); // 2-pixel step from each tip toward center
-    final tip1 = center - axis;
-    final tip2 = center + axis;
+    const barb = 2.0;
+    final cosA = math.cos(dirAngle);
+    final sinA = math.sin(dirAngle);
+    final tip1 = Offset(center.dx - cosA * arm, center.dy - sinA * arm);
+    final tip2 = Offset(center.dx + cosA * arm, center.dy + sinA * arm);
     canvas.drawLine(tip1, tip2, paint);
-    canvas.drawLine(tip1, tip1 + inward - cross, paint);
-    canvas.drawLine(tip1, tip1 + inward + cross, paint);
-    canvas.drawLine(tip2, tip2 - inward - cross, paint);
-    canvas.drawLine(tip2, tip2 - inward + cross, paint);
+    // Barbs at tip1 (toward tip2)
+    final b1x = tip1.dx + cosA * 2; final b1y = tip1.dy + sinA * 2;
+    canvas.drawLine(tip1, Offset(b1x + sinA * barb, b1y - cosA * barb), paint);
+    canvas.drawLine(tip1, Offset(b1x - sinA * barb, b1y + cosA * barb), paint);
+    // Barbs at tip2 (toward tip1)
+    final b2x = tip2.dx - cosA * 2; final b2y = tip2.dy - sinA * 2;
+    canvas.drawLine(tip2, Offset(b2x + sinA * barb, b2y - cosA * barb), paint);
+    canvas.drawLine(tip2, Offset(b2x - sinA * barb, b2y + cosA * barb), paint);
   }
 
   void _drawPlanogramBadges(Canvas canvas, Fixture fixture) {
+    if (fixture.fixtureType == 'wall') return; // structural — no planogram
     final rect = fixtureRects[fixture.id];
     if (rect == null) return;
+    final angle = fixture.rotation * math.pi / 180;
+    Offset rotated(Offset local) => _rotateAround(local, rect.center, angle);
     if (fixture.fixtureType == 'partition') {
-      _drawPartitionBadges(canvas, fixture, rect);
+      _drawPartitionBadges(canvas, fixture, rect, rotated);
     } else {
-      final badgeRect = _badgeRect(Offset(rect.right - 2, rect.bottom - 2), anchor: 'bottomRight');
+      final anchor = rotated(Offset(rect.right - 2, rect.bottom - 2));
+      final badgeRect = _badgeRect(anchor, anchor: 'bottomRight');
       badgeRects[fixture.id] = badgeRect;
       _paintBadge(canvas, badgeRect, fixture.planogramId, planograms[fixture.planogramId]?.title);
     }
   }
 
-  void _drawPartitionBadges(Canvas canvas, Fixture fixture, Rect rect) {
+  void _drawPartitionBadges(Canvas canvas, Fixture fixture, Rect rect,
+      Offset Function(Offset) rotated) {
     final isWide = rect.width >= rect.height;
     if (isWide) {
-      final frontRect = _badgeRect(Offset(rect.center.dx, rect.bottom - 2), anchor: 'bottomCenter');
+      final frontRect = _badgeRect(
+          rotated(Offset(rect.center.dx, rect.bottom - 2)), anchor: 'bottomCenter');
       badgeRects[fixture.id] = frontRect;
       _paintBadge(canvas, frontRect, fixture.planogramId, planograms[fixture.planogramId]?.title);
       if (!fixture.wallAdjacent) {
-        final backRect = _badgeRect(Offset(rect.center.dx, rect.top + 2), anchor: 'topCenter');
+        final backRect = _badgeRect(
+            rotated(Offset(rect.center.dx, rect.top + 2)), anchor: 'topCenter');
         badgeBackRects[fixture.id] = backRect;
         _paintBadge(canvas, backRect, fixture.planogramIdBack, planograms[fixture.planogramIdBack]?.title);
       }
     } else {
-      final frontRect = _badgeRect(Offset(rect.right - 2, rect.center.dy), anchor: 'rightCenter');
+      final frontRect = _badgeRect(
+          rotated(Offset(rect.right - 2, rect.center.dy)), anchor: 'rightCenter');
       badgeRects[fixture.id] = frontRect;
       _paintBadge(canvas, frontRect, fixture.planogramId, planograms[fixture.planogramId]?.title);
       if (!fixture.wallAdjacent) {
-        final backRect = _badgeRect(Offset(rect.left + 2, rect.center.dy), anchor: 'leftCenter');
+        final backRect = _badgeRect(
+            rotated(Offset(rect.left + 2, rect.center.dy)), anchor: 'leftCenter');
         badgeBackRects[fixture.id] = backRect;
         _paintBadge(canvas, backRect, fixture.planogramIdBack, planograms[fixture.planogramIdBack]?.title);
       }
@@ -684,6 +718,7 @@ class BuilderCanvasPainter extends CustomPainter {
       old.selectedFixtureId != selectedFixtureId ||
       old.ghostPos != ghostPos ||
       old.ghostType != ghostType ||
+      old.viewScale != viewScale ||
       old.wallEdges != wallEdges ||
       old.planograms != planograms ||
       old.mannequins != mannequins ||
