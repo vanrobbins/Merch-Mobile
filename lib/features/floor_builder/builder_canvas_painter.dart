@@ -24,6 +24,7 @@ class BuilderCanvasPainter extends CustomPainter {
     this.mannequins = const [],
     this.platforms = const [],
     this.sceneProps = const [],
+    this.selectedFixtureIds = const {},
   });
 
   final List<Fixture> fixtures;
@@ -39,6 +40,7 @@ class BuilderCanvasPainter extends CustomPainter {
   final List<Mannequin> mannequins;
   final List<PlatformElement> platforms;
   final List<SceneProp> sceneProps;
+  final Set<String> selectedFixtureIds;
 
   Map<String, Rect> fixtureRects = {};
   Map<String, Map<String, Rect>> resizeHandleRects = {};
@@ -224,7 +226,61 @@ class BuilderCanvasPainter extends CustomPainter {
 
     canvas.restore();
 
+    final isMultiSelected = selectedFixtureIds.contains(fixture.id);
+    if (isMultiSelected && !isSelected) {
+      const dashLen = 5.0;
+      const gap = 3.0;
+      final dashPaint = Paint()
+        ..color = AppTheme.accent
+        ..strokeWidth = 2.0
+        ..style = PaintingStyle.stroke;
+      _drawDashedRect(canvas, rect, dashPaint, dashLen, gap);
+    }
+
     fixtureRects[fixture.id] = rect;
+  }
+
+  void _drawDashedRect(Canvas canvas, Rect rect, Paint paint, double dashLen, double gap) {
+    // Top edge
+    double x = rect.left;
+    while (x < rect.right) {
+      canvas.drawLine(
+        Offset(x, rect.top),
+        Offset((x + dashLen).clamp(rect.left, rect.right), rect.top),
+        paint,
+      );
+      x += dashLen + gap;
+    }
+    // Bottom edge
+    x = rect.left;
+    while (x < rect.right) {
+      canvas.drawLine(
+        Offset(x, rect.bottom),
+        Offset((x + dashLen).clamp(rect.left, rect.right), rect.bottom),
+        paint,
+      );
+      x += dashLen + gap;
+    }
+    // Left edge
+    double y = rect.top;
+    while (y < rect.bottom) {
+      canvas.drawLine(
+        Offset(rect.left, y),
+        Offset(rect.left, (y + dashLen).clamp(rect.top, rect.bottom)),
+        paint,
+      );
+      y += dashLen + gap;
+    }
+    // Right edge
+    y = rect.top;
+    while (y < rect.bottom) {
+      canvas.drawLine(
+        Offset(rect.right, y),
+        Offset(rect.right, (y + dashLen).clamp(rect.top, rect.bottom)),
+        paint,
+      );
+      y += dashLen + gap;
+    }
   }
 
   void _drawRack(Canvas canvas, Rect rect, Paint fill, Paint border) {
@@ -593,5 +649,6 @@ class BuilderCanvasPainter extends CustomPainter {
       old.planograms != planograms ||
       old.mannequins != mannequins ||
       old.platforms != platforms ||
-      old.sceneProps != sceneProps;
+      old.sceneProps != sceneProps ||
+      old.selectedFixtureIds != selectedFixtureIds;
 }

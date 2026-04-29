@@ -30,6 +30,8 @@ class FloorBuilderState {
   final List<Mannequin> mannequins;
   final List<PlatformElement> platforms;
   final List<SceneProp> sceneProps;
+  final bool isMultiSelectMode;
+  final Set<String> selectedFixtureIds;
 
   const FloorBuilderState({
     this.fixtures = const [],
@@ -42,6 +44,8 @@ class FloorBuilderState {
     this.mannequins = const [],
     this.platforms = const [],
     this.sceneProps = const [],
+    this.isMultiSelectMode = false,
+    this.selectedFixtureIds = const {},
   });
 
   FloorBuilderState copyWith({
@@ -55,6 +59,8 @@ class FloorBuilderState {
     List<Mannequin>? mannequins,
     List<PlatformElement>? platforms,
     List<SceneProp>? sceneProps,
+    bool? isMultiSelectMode,
+    Set<String>? selectedFixtureIds,
   }) {
     return FloorBuilderState(
       fixtures: fixtures ?? this.fixtures,
@@ -69,6 +75,8 @@ class FloorBuilderState {
       mannequins: mannequins ?? this.mannequins,
       platforms: platforms ?? this.platforms,
       sceneProps: sceneProps ?? this.sceneProps,
+      isMultiSelectMode: isMultiSelectMode ?? this.isMultiSelectMode,
+      selectedFixtureIds: selectedFixtureIds ?? this.selectedFixtureIds,
     );
   }
 }
@@ -207,6 +215,47 @@ class FloorBuilderNotifier extends _$FloorBuilderNotifier {
   }
 
   void selectFixture(String? id) => state = state.copyWith(selectedFixtureId: id);
+
+  void enterMultiSelect(String fixtureId) {
+    state = state.copyWith(
+      isMultiSelectMode: true,
+      selectedFixtureIds: {fixtureId},
+      selectedFixtureId: null,
+    );
+  }
+
+  void toggleMultiSelectFixture(String fixtureId) {
+    final ids = Set<String>.from(state.selectedFixtureIds);
+    if (ids.contains(fixtureId)) {
+      ids.remove(fixtureId);
+    } else {
+      ids.add(fixtureId);
+    }
+    state = state.copyWith(
+      isMultiSelectMode: ids.isNotEmpty,
+      selectedFixtureIds: ids,
+    );
+  }
+
+  void exitMultiSelect() {
+    state = state.copyWith(
+      isMultiSelectMode: false,
+      selectedFixtureIds: const {},
+    );
+  }
+
+  Future<void> deleteSelectedFixtures() async {
+    final ids = state.selectedFixtureIds.toList();
+    final storeId = _storeId;
+    for (final id in ids) {
+      await FirestoreRefs.fixtures(storeId).doc(id).delete();
+    }
+    state = state.copyWith(
+      isMultiSelectMode: false,
+      selectedFixtureIds: const {},
+      selectedFixtureId: null,
+    );
+  }
 
   Fixture _resizedFixture(Fixture f, double? widthFt, double? depthFt) {
     final maxDepth = f.fixtureType == 'partition' ? 1.0 : double.infinity;

@@ -17,6 +17,7 @@ class ZoneMapPainter extends CustomPainter {
     this.snapPreviewPoints,
     this.entranceEditMode = false,
     this.liveEntrance,
+    this.overlappingZoneIds = const {},
   });
 
   final List<StoreZone> zones;
@@ -29,6 +30,7 @@ class ZoneMapPainter extends CustomPainter {
   final List<Offset>? snapPreviewPoints;
   final bool entranceEditMode;
   final StoreEntrance? liveEntrance;
+  final Set<String> overlappingZoneIds;
 
   final Map<String, Path> _zonePaths = {};
 
@@ -157,6 +159,23 @@ class ZoneMapPainter extends CustomPainter {
       } else {
         _drawDashedPath(canvas, path, strokePaint);
       }
+    }
+
+    // Overlap warning tint
+    if (overlappingZoneIds.contains(zone.id)) {
+      canvas.drawPath(
+        path,
+        Paint()
+          ..color = Colors.red.withValues(alpha: 0.20)
+          ..style = PaintingStyle.fill,
+      );
+      canvas.drawPath(
+        path,
+        Paint()
+          ..color = Colors.red.withValues(alpha: 0.60)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2.0,
+      );
     }
 
     // Label
@@ -412,5 +431,6 @@ class ZoneMapPainter extends CustomPainter {
       old.activeVertexIdx != activeVertexIdx ||
       old.snapPreviewPoints != snapPreviewPoints ||
       old.entranceEditMode != entranceEditMode ||
-      old.liveEntrance != liveEntrance;
+      old.liveEntrance != liveEntrance ||
+      old.overlappingZoneIds != overlappingZoneIds;
 }

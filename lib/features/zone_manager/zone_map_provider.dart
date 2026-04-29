@@ -19,12 +19,14 @@ class ZoneMapState {
   final String? selectedZoneId;
   final bool isLoading;
   final Store? storeData;
+  final Set<String> overlappingZoneIds;
 
   const ZoneMapState({
     required this.zones,
     this.selectedZoneId,
     this.isLoading = false,
     this.storeData,
+    this.overlappingZoneIds = const {},
   });
 
   ZoneMapState copyWith({
@@ -32,6 +34,7 @@ class ZoneMapState {
     Object? selectedZoneId = _sentinel,
     bool? isLoading,
     Object? storeData = _sentinel,
+    Set<String>? overlappingZoneIds,
   }) {
     return ZoneMapState(
       zones: zones ?? this.zones,
@@ -42,8 +45,61 @@ class ZoneMapState {
       storeData: storeData == _sentinel
           ? this.storeData
           : storeData as Store?,
+      overlappingZoneIds: overlappingZoneIds ?? this.overlappingZoneIds,
     );
   }
+}
+
+// --- SAT (Separating Axis Theorem) helpers ---
+
+(double, double) _project(List<Offset> poly, Offset axis) {
+  double min = double.infinity, max = double.negativeInfinity;
+  for (final p in poly) {
+    final d = p.dx * axis.dx + p.dy * axis.dy;
+    if (d < min) min = d;
+    if (d > max) max = d;
+  }
+  return (min, max);
+}
+
+List<Offset> _getAxes(List<Offset> poly) {
+  final axes = <Offset>[];
+  for (int i = 0; i < poly.length; i++) {
+    final edge = poly[(i + 1) % poly.length] - poly[i];
+    final normal = Offset(-edge.dy, edge.dx);
+    final len = normal.distance;
+    if (len > 0) axes.add(normal / len);
+  }
+  return axes;
+}
+
+bool _polygonsOverlap(List<Offset> a, List<Offset> b) {
+  final axes = [..._getAxes(a), ..._getAxes(b)];
+  for (final axis in axes) {
+    final (minA, maxA) = _project(a, axis);
+    final (minB, maxB) = _project(b, axis);
+    if (maxA <= minB || maxB <= minA) return false;
+  }
+  return true;
+}
+
+Set<String> _computeOverlaps(List<StoreZone> zones) {
+  final overlapping = <String>{};
+  final polys = <String, List<Offset>>{};
+  for (final z in zones) {
+    final pts = ZoneShape.decode(z.shapePoints);
+    if (pts.length >= 3) polys[z.id] = pts;
+  }
+  final ids = polys.keys.toList();
+  for (int i = 0; i < ids.length; i++) {
+    for (int j = i + 1; j < ids.length; j++) {
+      if (_polygonsOverlap(polys[ids[i]]!, polys[ids[j]]!)) {
+        overlapping.add(ids[i]);
+        overlapping.add(ids[j]);
+      }
+    }
+  }
+  return overlapping;
 }
 
 @riverpod
@@ -166,6 +222,8 @@ class ZoneMapNotifier extends _$ZoneMapNotifier {
         else
           z,
     ]);
+    final overlaps = _computeOverlaps(state.zones);
+    state = state.copyWith(overlappingZoneIds: overlaps);
   }
 
   Future<void> moveZone(String id, Offset normDelta) =>

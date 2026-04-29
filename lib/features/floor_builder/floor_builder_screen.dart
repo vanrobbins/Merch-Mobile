@@ -199,6 +199,7 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
   void _handleLongPressInCanvas(LongPressStartDetails details) {
     if (_painter == null) return;
     final canvas = _toCanvas(details.localPosition);
+    final state = ref.read(floorBuilderNotifierProvider);
     for (final entry in _painter!.fixtureRects.entries) {
       if (entry.value.contains(canvas)) {
         final fixture = ref
@@ -206,7 +207,11 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
             .fixtures
             .firstWhereOrNull((f) => f.id == entry.key);
         if (fixture == null) continue;
-        _onFixtureLongPress(fixture.id, fixture.label.isNotEmpty ? fixture.label : fixture.fixtureType.toUpperCase());
+        if (!state.isMultiSelectMode) {
+          ref.read(floorBuilderNotifierProvider.notifier).enterMultiSelect(fixture.id);
+        } else {
+          ref.read(floorBuilderNotifierProvider.notifier).toggleMultiSelectFixture(fixture.id);
+        }
         return;
       }
     }
@@ -279,6 +284,11 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
     for (final entry in _painter!.fixtureRects.entries) {
       if (entry.value.contains(canvas)) {
         _primaryPointer = event.pointer;
+        final currentState = ref.read(floorBuilderNotifierProvider);
+        if (currentState.isMultiSelectMode) {
+          ref.read(floorBuilderNotifierProvider.notifier).toggleMultiSelectFixture(entry.key);
+          return;
+        }
         ref.read(floorBuilderNotifierProvider.notifier).selectFixture(entry.key);
         setState(() => _dragFixtureId = entry.key);
         return;
@@ -286,6 +296,12 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
     }
 
     // 4. Empty canvas — deselect + pan
+    final currentState = ref.read(floorBuilderNotifierProvider);
+    if (currentState.isMultiSelectMode) {
+      ref.read(floorBuilderNotifierProvider.notifier).exitMultiSelect();
+      _primaryPointer = event.pointer;
+      return;
+    }
     ref.read(floorBuilderNotifierProvider.notifier).selectFixture(null);
     _primaryPointer = event.pointer;
     _isPanning = true;
@@ -576,6 +592,7 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
                       mannequins: state.mannequins,
                       platforms: state.platforms,
                       sceneProps: state.sceneProps,
+                      selectedFixtureIds: state.selectedFixtureIds,
                     );
                     return ClipRect(
                       child: Stack(
@@ -615,12 +632,61 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
                           ),
                           if (state.selectedFixtureId != null &&
                               _dragFixtureId == null &&
-                              _resizingFixtureId == null)
+                              _resizingFixtureId == null &&
+                              !state.isMultiSelectMode)
                             Positioned(
                               left: 0,
                               right: 0,
                               bottom: 0,
                               child: _buildMiniPanel(state),
+                            ),
+                          if (state.isMultiSelectMode)
+                            Positioned(
+                              left: 0,
+                              right: 0,
+                              bottom: 0,
+                              child: Container(
+                                color: AppTheme.primary,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: DesignTokens.spaceMd,
+                                  vertical: DesignTokens.spaceMd,
+                                ),
+                                child: Row(
+                                  children: [
+                                    Text(
+                                      '${state.selectedFixtureIds.length} SELECTED',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: DesignTokens.weightBold,
+                                        fontSize: DesignTokens.typeSm,
+                                        letterSpacing: DesignTokens.letterSpacingEyebrow,
+                                      ),
+                                    ),
+                                    const Spacer(),
+                                    ElevatedButton.icon(
+                                      icon: const Icon(Icons.delete_outline, size: 16),
+                                      label: const Text('DELETE ALL'),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: AppTheme.errorColor,
+                                        foregroundColor: Colors.white,
+                                      ),
+                                      onPressed: () => ref
+                                          .read(floorBuilderNotifierProvider.notifier)
+                                          .deleteSelectedFixtures(),
+                                    ),
+                                    const SizedBox(width: DesignTokens.spaceSm),
+                                    TextButton(
+                                      onPressed: () => ref
+                                          .read(floorBuilderNotifierProvider.notifier)
+                                          .exitMultiSelect(),
+                                      child: const Text(
+                                        'CANCEL',
+                                        style: TextStyle(color: Colors.white70),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
                             ),
                         ],
                       ),
@@ -629,14 +695,16 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
                 );
               },
             ),
-      floatingActionButton: FloatingActionButton(
-        heroTag: 'add',
-        onPressed: _showElementLibrary,
-        backgroundColor: AppTheme.accent,
-        foregroundColor: Colors.white,
-        tooltip: 'Add element',
-        child: const Icon(Icons.add),
-      ),
+      floatingActionButton: state.isMultiSelectMode
+          ? null
+          : FloatingActionButton(
+              heroTag: 'add',
+              onPressed: _showElementLibrary,
+              backgroundColor: AppTheme.accent,
+              foregroundColor: Colors.white,
+              tooltip: 'Add element',
+              child: const Icon(Icons.add),
+            ),
     );
   }
 }

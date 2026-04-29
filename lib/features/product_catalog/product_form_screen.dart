@@ -56,6 +56,61 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
     _TemplateDef('builtin_other',    'Other',        'Other',       'other'),
   ];
 
+  static const _silhouetteCodes = {
+    'shirt_ss': 'SS',
+    'shirt_ls': 'LS',
+    'tank_top': 'TNK',
+    'pant': 'PNT',
+    'short': 'SHT',
+    'jacket': 'JKT',
+    'dress': 'DRS',
+    'skirt': 'SKT',
+    'bag': 'BAG',
+    'hat': 'HAT',
+    'bra': 'BRA',
+    'shoe': 'SHO',
+    'other': 'OTH',
+  };
+
+  void _autoFillDetails() {
+    // Only auto-fill if no existing product is being edited
+    if (_existing != null) return;
+
+    final tmpl = _templates
+        .where((t) => t.id == _selectedTemplateId)
+        .firstOrNull;
+    if (tmpl == null) return;
+
+    final templateCode = _silhouetteCodes[tmpl.silhouette] ?? 'OTH';
+
+    // Auto-fill name if empty
+    if (_nameCtrl.text.isEmpty) {
+      if (_selectedColorName != null) {
+        _nameCtrl.text = '${tmpl.name} - $_selectedColorName';
+      } else {
+        _nameCtrl.text = tmpl.name;
+      }
+    }
+
+    // Auto-fill category if empty
+    if (_categoryCtrl.text.isEmpty) {
+      _categoryCtrl.text = tmpl.category;
+    }
+
+    // Auto-fill SKU if empty
+    if (_skuCtrl.text.isEmpty) {
+      if (_selectedColorName != null) {
+        final stripped = _selectedColorName!.replaceAll(' ', '');
+        final colorCode = stripped
+            .substring(0, stripped.length.clamp(0, 3))
+            .toUpperCase();
+        _skuCtrl.text = '$templateCode-$colorCode';
+      } else {
+        _skuCtrl.text = templateCode;
+      }
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -207,8 +262,12 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
               _selectedColorHex = hex;
               _selectedColorName = name;
               _step = 2;
+              _autoFillDetails();
             }),
-            onSkip: () => setState(() => _step = 2),
+            onSkip: () => setState(() {
+              _step = 2;
+              _autoFillDetails();
+            }),
           ),
           _DetailsStep(
             nameCtrl: _nameCtrl,
