@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/models/product.dart';
 import '../../core/providers/connectivity_provider.dart';
+import '../../core/providers/store_provider.dart';
+import '../../core/services/seed_service.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/design_tokens.dart';
 import '../../core/widgets/mm_banner.dart';
@@ -90,6 +92,7 @@ class _CatalogBody extends ConsumerStatefulWidget {
 
 class _CatalogBodyState extends ConsumerState<_CatalogBody> {
   String? _selectedCategory;
+  bool _autoSeeded = false;
 
   List<Product> get _categoryFiltered {
     if (_selectedCategory == null) return widget.filtered;
@@ -103,6 +106,18 @@ class _CatalogBodyState extends ConsumerState<_CatalogBody> {
     final displayProducts = _categoryFiltered;
     final colorsAsync = ref.watch(brandColorsProvider);
     final colors = colorsAsync.valueOrNull ?? [];
+
+    // Seed defaults once per store — guarded by `defaultsSeeded` flag on the store doc.
+    // Users can delete seeded colors freely; the flag prevents re-seeding.
+    if (!_autoSeeded && colorsAsync.hasValue) {
+      _autoSeeded = true;
+      final storeId = ref.read(activeStoreIdProvider).value;
+      if (storeId != null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          maybeSeedDefaultStoreData(storeId);
+        });
+      }
+    }
 
     return CustomScrollView(
       slivers: [

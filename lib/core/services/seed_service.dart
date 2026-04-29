@@ -6,6 +6,19 @@ import 'firestore_refs.dart';
 
 const _uuid = Uuid();
 
+/// Seeds defaults only if the store's `defaultsSeeded` flag is not yet set.
+/// Once seeded, the flag is written to the store doc so deleting colors won't re-trigger.
+Future<void> maybeSeedDefaultStoreData(String storeId) async {
+  final storeDoc = await FirestoreRefs.store(storeId).get();
+  final alreadySeeded = (storeDoc.data()?['defaultsSeeded'] as bool?) ?? false;
+  if (alreadySeeded) return;
+  await seedDefaultStoreData(storeId);
+  await FirestoreRefs.store(storeId).set(
+    {'defaultsSeeded': true},
+    SetOptions(merge: true),
+  );
+}
+
 /// Seeds 5 default brand colors + 20 default products for a new store.
 /// Safe to call on every store creation — uses set with merge: false (first time only).
 Future<void> seedDefaultStoreData(String storeId) async {
