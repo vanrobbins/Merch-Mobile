@@ -67,4 +67,8 @@ class FirestoreRefs {
 
   static CollectionReference<Map<String, dynamic>> sceneProps(String storeId) =>
       store(storeId).collection('sceneProps');
+
+  static CollectionReference<Map<String, dynamic>> autoBuildPresets(
+          String storeId) =>
+      store(storeId).collection('autoBuildPresets');
 }
