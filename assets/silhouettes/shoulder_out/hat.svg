@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 80">
+  <!-- Hat from side — brim + crown profile -->
+  <ellipse cx="20" cy="38" rx="14" ry="3" fill="#1A1917" opacity="0.2" stroke="#1A1917" stroke-width="1.2"/>
+  <path d="M14 38 Q14 20 20 18 Q26 20 26 38" fill="#1A1917" opacity="0.15" stroke="#1A1917" stroke-width="1.2"/>
+</svg>

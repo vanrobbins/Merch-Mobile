@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 80">
+  <!-- Shoe side profile -->
+  <path d="M8 46 Q8 32 16 28 Q20 26 22 28 L30 28 Q34 28 34 34 L34 40 Q34 46 30 46 Z" fill="#1A1917" opacity="0.15" stroke="#1A1917" stroke-width="1.5"/>
+  <line x1="8" y1="46" x2="34" y2="46" stroke="#1A1917" stroke-width="2"/>
+</svg>

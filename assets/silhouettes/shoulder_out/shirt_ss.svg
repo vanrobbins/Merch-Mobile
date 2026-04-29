@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 80">
+  <!-- Side hanger hook -->
+  <path d="M20 2 Q20 0 22 0 Q24 0 24 2 Q24 4 20 6" fill="none" stroke="#1A1917" stroke-width="2"/>
+  <!-- Narrow side profile: shirt short sleeve -->
+  <path d="M20 6 L14 14 L10 14 L10 18 L14 16 L14 55 L26 55 L26 16 L28 18 L28 14 L20 14 Z" fill="#1A1917" opacity="0.15" stroke="#1A1917" stroke-width="1.2"/>
+</svg>
