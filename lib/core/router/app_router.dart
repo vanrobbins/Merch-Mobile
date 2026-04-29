@@ -26,6 +26,7 @@ import '../../features/store/join_store_screen.dart';
 import '../../features/store/pending_approval_screen.dart';
 import '../../features/store/members_screen.dart';
 import '../../features/store/group_management_screen.dart';
+import '../../features/zone_manager/outfit_proposal_review_screen.dart';
 
 part 'app_router.g.dart';
 
@@ -69,6 +70,7 @@ class AppRoutes {
   static const groupManagement = 'groupManagement';
   static const zoneDetail = 'zoneDetail';
   static const proposalReview = 'proposalReview';
+  static const outfitProposalReview = 'outfitProposalReview';
 }
 
 class AppPaths {
@@ -92,6 +94,7 @@ class AppPaths {
   static const groupManagement = '/home/groups';
   static const zoneDetail = '/home/zones/:zoneId/detail';
   static const proposalReview = '/home/planograms/:planogramId/proposals';
+  static const outfitProposalReview = '/home/zones/outfit-proposals';
 }
 
 
@@ -186,6 +189,11 @@ GoRouter appRouter(AppRouterRef ref) {
             path: AppPaths.zoneMap,
             builder: (context, state) => const ZoneMapScreen(),
             routes: [
+              GoRoute(
+                name: AppRoutes.outfitProposalReview,
+                path: 'outfit-proposals',
+                builder: (_, __) => const OutfitProposalReviewScreen(),
+              ),
               GoRoute(
                 name: AppRoutes.floorBuilder,
                 path: ':zoneId/builder',
