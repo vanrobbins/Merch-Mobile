@@ -9,8 +9,10 @@ import '../../core/widgets/mm_empty_state.dart';
 import '../../core/widgets/mm_search_bar.dart';
 import '../../core/widgets/role_guard.dart';
 import 'catalog_provider.dart';
+import 'color_palette_screen.dart';
 import 'product_card.dart';
 import 'product_form_screen.dart';
+import 'product_template_screen.dart';
 
 class CatalogScreen extends ConsumerWidget {
   const CatalogScreen({super.key});
@@ -107,6 +109,32 @@ class _CatalogBodyState extends ConsumerState<_CatalogBody> {
           expandedHeight: 120,
           backgroundColor: AppTheme.primary,
           title: const Text('CATALOG'),
+          actions: [
+            PopupMenuButton<String>(
+              icon: const Icon(Icons.settings_outlined, color: Colors.white),
+              onSelected: (value) {
+                if (value == 'colors') {
+                  Navigator.push<void>(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const ColorPaletteScreen(),
+                    ),
+                  );
+                } else if (value == 'templates') {
+                  Navigator.push<void>(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const ProductTemplateScreen(),
+                    ),
+                  );
+                }
+              },
+              itemBuilder: (_) => const [
+                PopupMenuItem(value: 'colors', child: Text('Color Palette')),
+                PopupMenuItem(value: 'templates', child: Text('Product Templates')),
+              ],
+            ),
+          ],
           bottom: PreferredSize(
             preferredSize: const Size.fromHeight(52),
             child: Padding(
@@ -226,7 +254,7 @@ class _CategoryChip extends StatelessWidget {
           vertical: DesignTokens.spaceXs,
         ),
         decoration: BoxDecoration(
-          color: selected ? AppTheme.accent : Colors.grey.shade200,
+          color: selected ? AppTheme.accent : AppTheme.surfaceVariant,
           borderRadius: BorderRadius.circular(DesignTokens.radiusSm),
         ),
         child: Text(

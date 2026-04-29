@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import '../../core/models/product.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/design_tokens.dart';
@@ -11,6 +12,8 @@ class ProductCard extends ConsumerWidget {
 
   final Product product;
   final VoidCallback? onTap;
+
+  String? get _silhouette => product.templateId?.replaceFirst('builtin_', '');
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -24,7 +27,6 @@ class ProductCard extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Image placeholder
               Expanded(
                 child: Stack(
                   fit: StackFit.expand,
@@ -35,17 +37,27 @@ class ProductCard extends ConsumerWidget {
                         topRight: Radius.circular(DesignTokens.radiusSm),
                       ),
                       child: Container(
-                        color: Colors.grey.shade200,
-                        child: const Center(
-                          child: Icon(
-                            Icons.image_not_supported_outlined,
-                            color: Colors.grey,
-                            size: DesignTokens.iconMd,
-                          ),
-                        ),
+                        color: AppTheme.surfaceVariant,
+                        child: _silhouette != null
+                            ? Padding(
+                                padding: const EdgeInsets.all(16),
+                                child: SvgPicture.asset(
+                                  'assets/silhouettes/$_silhouette.svg',
+                                  colorFilter: const ColorFilter.mode(
+                                    AppTheme.textHint,
+                                    BlendMode.srcIn,
+                                  ),
+                                ),
+                              )
+                            : const Center(
+                                child: Icon(
+                                  Icons.inventory_2_outlined,
+                                  color: AppTheme.textHint,
+                                  size: DesignTokens.iconMd,
+                                ),
+                              ),
                       ),
                     ),
-                    // Stock badge (coordinator/manager only)
                     RoleGuard(
                       allowedRoles: const ['coordinator', 'manager'],
                       child: Positioned(
@@ -57,7 +69,6 @@ class ProductCard extends ConsumerWidget {
                   ],
                 ),
               ),
-              // Bottom info
               Padding(
                 padding: const EdgeInsets.all(DesignTokens.spaceXs),
                 child: Column(
@@ -84,6 +95,16 @@ class ProductCard extends ConsumerWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
+                    if (product.price != null) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        '\$${product.price!.toStringAsFixed(2)}',
+                        style: const TextStyle(
+                          fontSize: DesignTokens.typeXs,
+                          color: AppTheme.textHint,
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -97,24 +118,16 @@ class ProductCard extends ConsumerWidget {
 
 class _StockDot extends StatelessWidget {
   const _StockDot({required this.inStock});
-
   final bool inStock;
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 8,
-      height: 8,
-      decoration: BoxDecoration(
-        color: inStock ? Colors.green.shade600 : Colors.red.shade600,
-        shape: BoxShape.circle,
-        boxShadow: const [
-          BoxShadow(
-            color: Colors.black26,
-            blurRadius: 2,
-          ),
-        ],
-      ),
-    );
-  }
+  Widget build(BuildContext context) => Container(
+        width: 8,
+        height: 8,
+        decoration: BoxDecoration(
+          color: inStock ? AppTheme.successColor : AppTheme.errorColor,
+          shape: BoxShape.circle,
+          boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 2)],
+        ),
+      );
 }
