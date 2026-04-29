@@ -8,10 +8,16 @@ class ElementLibraryPanel extends StatelessWidget {
     required this.onFixtureSelected,
     required this.onWallSelected,
     this.onDragStarted,
+    this.onMannequinSelected,
+    this.onPlatformSelected,
+    this.onPropSelected,
   });
   final void Function(String fixtureType) onFixtureSelected;
   final VoidCallback onWallSelected;
   final VoidCallback? onDragStarted;
+  final VoidCallback? onMannequinSelected;
+  final VoidCallback? onPlatformSelected;
+  final VoidCallback? onPropSelected;
 
   static const _types = [
     _FixtureTile('rack', Icons.view_column_outlined, 'RACK'),
@@ -25,9 +31,8 @@ class ElementLibraryPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(
-            top: Radius.circular(DesignTokens.radiusLg)),
+        color: AppTheme.cardSurface,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(DesignTokens.radiusLg)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -39,7 +44,7 @@ class ElementLibraryPanel extends StatelessWidget {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.grey.shade300,
+                color: AppTheme.divider,
                 borderRadius:
                     BorderRadius.circular(AppTheme.borderRadius),
               ),
@@ -71,6 +76,56 @@ class ElementLibraryPanel extends StatelessWidget {
                 },
                 onDragStarted: (t.type == 'wall') ? null : onDragStarted,
               )).toList(),
+            ),
+          ),
+          const Divider(height: 1, color: AppTheme.divider),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+                DesignTokens.spaceMd, DesignTokens.spaceSm, DesignTokens.spaceMd, DesignTokens.spaceSm),
+            child: const Text(
+              'MANNEQUINS & PROPS',
+              style: TextStyle(
+                fontSize: DesignTokens.typeXs,
+                fontWeight: DesignTokens.weightBold,
+                letterSpacing: DesignTokens.letterSpacingEyebrow,
+                color: AppTheme.textSecondary,
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+                DesignTokens.spaceMd, 0, DesignTokens.spaceMd, DesignTokens.spaceMd),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                if (onMannequinSelected != null)
+                  _SimpleTile(
+                    icon: Icons.accessibility_new_outlined,
+                    label: 'MANNEQUIN',
+                    onTap: () {
+                      Navigator.pop(context);
+                      onMannequinSelected!();
+                    },
+                  ),
+                if (onPlatformSelected != null)
+                  _SimpleTile(
+                    icon: Icons.crop_square_outlined,
+                    label: 'PLATFORM',
+                    onTap: () {
+                      Navigator.pop(context);
+                      onPlatformSelected!();
+                    },
+                  ),
+                if (onPropSelected != null)
+                  _SimpleTile(
+                    icon: Icons.park_outlined,
+                    label: 'PROP',
+                    onTap: () {
+                      Navigator.pop(context);
+                      onPropSelected!();
+                    },
+                  ),
+              ],
             ),
           ),
           SizedBox(height: MediaQuery.of(context).padding.bottom),
@@ -154,4 +209,43 @@ class _FixtureTile {
   final String type;
   final IconData icon;
   final String label;
+}
+
+class _SimpleTile extends StatelessWidget {
+  const _SimpleTile({required this.icon, required this.label, required this.onTap});
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 64,
+            height: 64,
+            decoration: BoxDecoration(
+              color: AppTheme.accent.withValues(alpha: 0.08),
+              border: Border.all(color: AppTheme.accent.withValues(alpha: 0.3)),
+              borderRadius: BorderRadius.circular(AppTheme.borderRadius),
+            ),
+            child: Icon(icon, size: 32, color: AppTheme.accent),
+          ),
+          const SizedBox(height: DesignTokens.spaceXs),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: DesignTokens.typeXs,
+              fontWeight: DesignTokens.weightBold,
+              letterSpacing: DesignTokens.letterSpacingEyebrow,
+              color: AppTheme.accent,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }

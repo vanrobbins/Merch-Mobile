@@ -6,7 +6,10 @@ import 'package:riverpod/riverpod.dart' show Ref;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:uuid/uuid.dart';
 import '../../core/models/fixture.dart';
+import '../../core/models/mannequin.dart';
+import '../../core/models/platform_element.dart';
 import '../../core/models/planogram.dart';
+import '../../core/models/scene_prop.dart';
 import '../../core/models/store_zone.dart';
 import '../../core/providers/store_provider.dart';
 import '../../core/services/firestore_refs.dart';
@@ -24,6 +27,9 @@ class FloorBuilderState {
   final bool isDragging;
   final bool isLoading;
   final Map<String, Planogram> planograms;
+  final List<Mannequin> mannequins;
+  final List<PlatformElement> platforms;
+  final List<SceneProp> sceneProps;
 
   const FloorBuilderState({
     this.fixtures = const [],
@@ -33,6 +39,9 @@ class FloorBuilderState {
     this.isDragging = false,
     this.isLoading = false,
     this.planograms = const {},
+    this.mannequins = const [],
+    this.platforms = const [],
+    this.sceneProps = const [],
   });
 
   FloorBuilderState copyWith({
@@ -43,6 +52,9 @@ class FloorBuilderState {
     bool? isDragging,
     bool? isLoading,
     Map<String, Planogram>? planograms,
+    List<Mannequin>? mannequins,
+    List<PlatformElement>? platforms,
+    List<SceneProp>? sceneProps,
   }) {
     return FloorBuilderState(
       fixtures: fixtures ?? this.fixtures,
@@ -54,6 +66,9 @@ class FloorBuilderState {
       isDragging: isDragging ?? this.isDragging,
       isLoading: isLoading ?? this.isLoading,
       planograms: planograms ?? this.planograms,
+      mannequins: mannequins ?? this.mannequins,
+      platforms: platforms ?? this.platforms,
+      sceneProps: sceneProps ?? this.sceneProps,
     );
   }
 }
@@ -62,6 +77,9 @@ class FloorBuilderState {
 class FloorBuilderNotifier extends _$FloorBuilderNotifier {
   StreamSubscription<List<Fixture>>? _sub;
   StreamSubscription<List<Planogram>>? _planogramSub;
+  StreamSubscription<List<Mannequin>>? _mannequinSub;
+  StreamSubscription<List<PlatformElement>>? _platformSub;
+  StreamSubscription<List<SceneProp>>? _propSub;
   String? _zoneId;
 
   @override
@@ -69,6 +87,9 @@ class FloorBuilderNotifier extends _$FloorBuilderNotifier {
     ref.onDispose(() {
       _sub?.cancel();
       _planogramSub?.cancel();
+      _mannequinSub?.cancel();
+      _platformSub?.cancel();
+      _propSub?.cancel();
     });
     return const FloorBuilderState(isLoading: true);
   }
@@ -95,6 +116,27 @@ class FloorBuilderNotifier extends _$FloorBuilderNotifier {
         .listen((rows) {
       state = state.copyWith(planograms: {for (final p in rows) p.id: p});
     });
+
+    _mannequinSub?.cancel();
+    _mannequinSub = FirestoreRefs.mannequins(storeId)
+        .where('zoneId', isEqualTo: zoneId)
+        .snapshots()
+        .map((s) => s.docs.map(Mannequin.fromDoc).toList())
+        .listen((rows) => state = state.copyWith(mannequins: rows));
+
+    _platformSub?.cancel();
+    _platformSub = FirestoreRefs.platforms(storeId)
+        .where('zoneId', isEqualTo: zoneId)
+        .snapshots()
+        .map((s) => s.docs.map(PlatformElement.fromDoc).toList())
+        .listen((rows) => state = state.copyWith(platforms: rows));
+
+    _propSub?.cancel();
+    _propSub = FirestoreRefs.sceneProps(storeId)
+        .where('zoneId', isEqualTo: zoneId)
+        .snapshots()
+        .map((s) => s.docs.map(SceneProp.fromDoc).toList())
+        .listen((rows) => state = state.copyWith(sceneProps: rows));
   }
 
   Future<void> addFixture(String type, Offset normalizedPos) async {
@@ -218,6 +260,79 @@ class FloorBuilderNotifier extends _$FloorBuilderNotifier {
       ...fields,
       'updatedAt': Timestamp.now(),
     });
+  }
+
+  Future<void> addMannequin({
+    required String mannequinType,
+    required String mountType,
+    required Offset positionFt,
+  }) async {
+    if (_zoneId == null) return;
+    final storeId = _storeId;
+    final mannequin = Mannequin(
+      id: _uuid.v4(),
+      storeId: storeId,
+      zoneId: _zoneId!,
+      mannequinType: mannequinType,
+      mountType: mountType,
+      positionX: positionFt.dx,
+      positionY: positionFt.dy,
+      updatedAt: DateTime.now(),
+    );
+    await FirestoreRefs.mannequins(storeId)
+        .doc(mannequin.id)
+        .set(mannequin.toFirestore());
+  }
+
+  Future<void> addPlatform({required Offset positionFt}) async {
+    if (_zoneId == null) return;
+    final storeId = _storeId;
+    final platform = PlatformElement(
+      id: _uuid.v4(),
+      storeId: storeId,
+      zoneId: _zoneId!,
+      width: 4.0,
+      depth: 4.0,
+      elevation: 0.5,
+      positionX: positionFt.dx,
+      positionY: positionFt.dy,
+      updatedAt: DateTime.now(),
+    );
+    await FirestoreRefs.platforms(storeId)
+        .doc(platform.id)
+        .set(platform.toFirestore());
+  }
+
+  Future<void> addSceneProp({required String propType, required Offset positionFt}) async {
+    if (_zoneId == null) return;
+    final storeId = _storeId;
+    final prop = SceneProp(
+      id: _uuid.v4(),
+      storeId: storeId,
+      zoneId: _zoneId!,
+      propType: propType,
+      name: propType.toUpperCase(),
+      positionX: positionFt.dx,
+      positionY: positionFt.dy,
+      width: 2.0,
+      depth: 2.0,
+      updatedAt: DateTime.now(),
+    );
+    await FirestoreRefs.sceneProps(storeId)
+        .doc(prop.id)
+        .set(prop.toFirestore());
+  }
+
+  Future<void> deleteMannequin(String id) async {
+    await FirestoreRefs.mannequins(_storeId).doc(id).delete();
+  }
+
+  Future<void> deletePlatform(String id) async {
+    await FirestoreRefs.platforms(_storeId).doc(id).delete();
+  }
+
+  Future<void> deleteSceneProp(String id) async {
+    await FirestoreRefs.sceneProps(_storeId).doc(id).delete();
   }
 }
 
