@@ -45,12 +45,12 @@ void main() {
   testWidgets('shows fixture label and dimensions', (tester) async {
     await tester.pumpWidget(buildPanel(fixture: baseFixture));
     expect(find.text('WOMEN RACK'), findsOneWidget);
-    expect(find.text('4.0 \u00d7 2.0 ft'), findsOneWidget);
+    expect(find.text('4.0 \u00d7 2.0 ft  \u00b7  rack'), findsOneWidget);
   });
 
   testWidgets('shows No planogram when unassigned', (tester) async {
     await tester.pumpWidget(buildPanel(fixture: baseFixture));
-    expect(find.text('No planogram'), findsOneWidget);
+    expect(find.text('No planogram assigned'), findsOneWidget);
     expect(find.text('VIEW \u2192'), findsNothing);
   });
 
