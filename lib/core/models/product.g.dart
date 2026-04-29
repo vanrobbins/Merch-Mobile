@@ -19,6 +19,9 @@ _$ProductImpl _$$ProductImplFromJson(Map<String, dynamic> json) =>
       stockQty: (json['stockQty'] as num?)?.toInt() ?? 0,
       colorId: json['colorId'] as String?,
       templateId: json['templateId'] as String?,
+      colorNotes: json['colorNotes'] as String?,
+      price: (json['price'] as num?)?.toDouble(),
+      imagePath: json['imagePath'] as String?,
       updatedAt: DateTime.parse(json['updatedAt'] as String),
     );
 
@@ -33,5 +36,8 @@ Map<String, dynamic> _$$ProductImplToJson(_$ProductImpl instance) =>
       'stockQty': instance.stockQty,
       'colorId': instance.colorId,
       'templateId': instance.templateId,
+      'colorNotes': instance.colorNotes,
+      'price': instance.price,
+      'imagePath': instance.imagePath,
       'updatedAt': instance.updatedAt.toIso8601String(),
     };

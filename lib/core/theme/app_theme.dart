@@ -2,11 +2,17 @@ import 'package:flutter/material.dart';
 
 class AppTheme {
   static const Color primary = Color(0xFF1A1917);
-  static const Color accent = Color(0xFFBF5534);
+  // Deeper terracotta — warmer, more premium than the previous orange-red
+  static const Color accent = Color(0xFFA8472B);
   static const Color canvasBg = Color(0xFFF2EFE8);
+  static const Color surfaceVariant = Color(0xFFEAE7E0);
   static const Color textPrimary = Color(0xFF1A1917);
   static const Color textSecondary = Color(0xFF6B6762);
+  static const Color textHint = Color(0xFF9E9890);
   static const Color cardSurface = Color(0xFFFFFFFF);
+  static const Color divider = Color(0xFFD5D2CB);
+  static const Color errorColor = Color(0xFFA8291A);
+  static const Color successColor = Color(0xFF2D6A4F);
   static const double borderRadius = 2.0;
   static const BoxShadow cardShadow = BoxShadow(
     color: Color(0x1A1A1917),

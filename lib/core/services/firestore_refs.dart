@@ -41,6 +41,30 @@ class FirestoreRefs {
   static CollectionReference<Map<String, dynamic>> productTemplates(String storeId) =>
       store(storeId).collection('productTemplates');
 
+  static CollectionReference<Map<String, dynamic>> outfitSlots(
+          String storeId, String fixtureId) =>
+      fixtures(storeId).doc(fixtureId).collection('outfitSlots');
+
+  static CollectionReference<Map<String, dynamic>> mannequinProposals(
+          String storeId) =>
+      store(storeId).collection('mannequinProposals');
+
   static DocumentReference<Map<String, dynamic>> userStores(String userId) =>
       _db.collection('userStores').doc(userId);
+
+  static CollectionReference<Map<String, dynamic>> mannequins(String storeId) =>
+      store(storeId).collection('mannequins');
+
+  static DocumentReference<Map<String, dynamic>> mannequin(String storeId, String mannequinId) =>
+      mannequins(storeId).doc(mannequinId);
+
+  static CollectionReference<Map<String, dynamic>> mannequinOutfitSlots(
+          String storeId, String mannequinId) =>
+      mannequin(storeId, mannequinId).collection('outfitSlots');
+
+  static CollectionReference<Map<String, dynamic>> platforms(String storeId) =>
+      store(storeId).collection('platforms');
+
+  static CollectionReference<Map<String, dynamic>> sceneProps(String storeId) =>
+      store(storeId).collection('sceneProps');
 }
