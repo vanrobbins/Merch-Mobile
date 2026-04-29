@@ -2,6 +2,7 @@ import 'dart:math';
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/providers/store_provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/design_tokens.dart';
 import '../zone_manager/zone_shape.dart';
@@ -132,8 +133,15 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
     if (zone == null) return;
     final zonePts = ZoneShape.decode(zone.shapePoints);
     if (zonePts.length < 3) return;
-    final canvasSize = _canvasSize;
-    final edges = ZoneEdge.compute(zonePts, canvasSize, _pixelsPerFt);
+    final store = ref.read(activeStoreProvider).valueOrNull;
+    final edges = ZoneEdge.compute(
+      zonePts,
+      _canvasSize,
+      _pixelsPerFt,
+      zoneOriginNorm: Offset(zone.posX, zone.posY),
+      storeWidthFt: store?.widthFt,
+      storeDepthFt: store?.depthFt,
+    );
     if (edges.isEmpty) return;
     setState(() => _wallEdges = edges);
     _showWallPlacementSheet(edges);
@@ -595,35 +603,14 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
     return rect.contains(Offset(localX, localY));
   }
 
-  // Replicates _drawZoneBackground's coordinate math to get the zone's canvas-space bounds.
-  Rect? _computeZoneBoundsOnCanvas(List<Offset> zonePts) {
-    if (zonePts.length < 3 || _canvasSize == Size.zero) return null;
-    final minX = zonePts.map((p) => p.dx).reduce(min);
-    final maxX = zonePts.map((p) => p.dx).reduce(max);
-    final minY = zonePts.map((p) => p.dy).reduce(min);
-    final maxY = zonePts.map((p) => p.dy).reduce(max);
-    final rangeX = (maxX - minX).clamp(0.01, 1.0);
-    final rangeY = (maxY - minY).clamp(0.01, 1.0);
-    const padding = 40.0;
-    final usableW = _canvasSize.width - padding * 2;
-    final usableH = _canvasSize.height - padding * 2;
-    final scale = (usableW / rangeX).clamp(0.0, usableH / rangeY);
-    final scaledW = rangeX * scale;
-    final scaledH = rangeY * scale;
-    final offsetX = padding + (usableW - scaledW) / 2;
-    final offsetY = padding + (usableH - scaledH) / 2;
-    return Rect.fromLTWH(offsetX, offsetY, scaledW, scaledH);
-  }
-
-  void _fitFixtures(List<dynamic> fixtures, {List<Offset>? zonePts}) {
+  void _fitFixtures(List<dynamic> fixtures, {Rect? zoneBoundsPx}) {
     if (_canvasSize == Size.zero) return;
     double minX = double.infinity, maxX = double.negativeInfinity;
     double minY = double.infinity, maxY = double.negativeInfinity;
 
-    final zoneBounds = zonePts != null ? _computeZoneBoundsOnCanvas(zonePts) : null;
-    if (zoneBounds != null) {
-      minX = min(minX, zoneBounds.left);   maxX = max(maxX, zoneBounds.right);
-      minY = min(minY, zoneBounds.top);    maxY = max(maxY, zoneBounds.bottom);
+    if (zoneBoundsPx != null) {
+      minX = min(minX, zoneBoundsPx.left);   maxX = max(maxX, zoneBoundsPx.right);
+      minY = min(minY, zoneBoundsPx.top);    maxY = max(maxY, zoneBoundsPx.bottom);
     }
 
     for (final f in fixtures) {
@@ -710,6 +697,7 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
     final zoneAsync = ref.watch(zoneByIdProvider(widget.zoneId));
     final zone = zoneAsync.valueOrNull;
     final zonePts = zone != null ? ZoneShape.decode(zone.shapePoints) : null;
+    final store = ref.watch(activeStoreProvider).valueOrNull;
 
     return Scaffold(
       appBar: AppBar(
@@ -733,10 +721,15 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
             icon: const Icon(Icons.fit_screen_outlined),
             tooltip: 'Fit to view',
             onPressed: () {
-              final zoneAsync = ref.read(zoneByIdProvider(widget.zoneId));
-              final z = zoneAsync.valueOrNull;
-              final pts = z != null ? ZoneShape.decode(z.shapePoints) : null;
-              _fitFixtures(state.fixtures, zonePts: pts != null && pts.length >= 3 ? pts : null);
+              final z = ref.read(zoneByIdProvider(widget.zoneId)).valueOrNull;
+              final s = ref.read(activeStoreProvider).valueOrNull;
+              Rect? bounds;
+              if (z != null && s?.widthFt != null && s?.depthFt != null) {
+                bounds = Rect.fromLTWH(0, 0,
+                  z.width * s!.widthFt! * _pixelsPerFt,
+                  z.height * s.depthFt! * _pixelsPerFt);
+              }
+              _fitFixtures(state.fixtures, zoneBoundsPx: bounds);
             },
           ),
           IconButton(
@@ -785,11 +778,19 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
                     _canvasSize = constraints.biggest;
                     _pixelsPerFt = constraints.maxWidth / 20;
                     final hasZonePts = zonePts != null && zonePts.length >= 3;
+                    final zoneBoundsPx = (hasZonePts && zone != null &&
+                            store?.widthFt != null && store?.depthFt != null)
+                        ? Rect.fromLTWH(
+                            0, 0,
+                            zone.width * store!.widthFt! * _pixelsPerFt,
+                            zone.height * store.depthFt! * _pixelsPerFt,
+                          )
+                        : null;
                     if (!_hasFitView && _canvasSize != Size.zero &&
                         (state.fixtures.isNotEmpty || hasZonePts)) {
                       _hasFitView = true;
                       WidgetsBinding.instance.addPostFrameCallback((_) {
-                        if (mounted) _fitFixtures(state.fixtures, zonePts: hasZonePts ? zonePts : null);
+                        if (mounted) _fitFixtures(state.fixtures, zoneBoundsPx: zoneBoundsPx);
                       });
                     }
                     _painter = BuilderCanvasPainter(
@@ -798,7 +799,10 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
                       ghostPos: _ghostPos,
                       ghostType: _ghostType,
                       pixelsPerFt: _pixelsPerFt,
-                      zoneNormalizedPts: (zonePts != null && zonePts.length >= 3) ? zonePts : null,
+                      zoneNormalizedPts: hasZonePts ? zonePts : null,
+                      zoneOriginNorm: zone != null ? Offset(zone.posX, zone.posY) : null,
+                      storeWidthFt: store?.widthFt,
+                      storeDepthFt: store?.depthFt,
                       zoneColor: zone != null ? Color(zone.colorValue) : null,
                       zoneName: zone?.name,
                       wallEdges: _wallEdges,

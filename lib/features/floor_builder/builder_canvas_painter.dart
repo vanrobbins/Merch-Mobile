@@ -18,6 +18,9 @@ class BuilderCanvasPainter extends CustomPainter {
     this.ghostType,
     this.pixelsPerFt = 20.0,
     this.zoneNormalizedPts,
+    this.zoneOriginNorm,
+    this.storeWidthFt,
+    this.storeDepthFt,
     this.zoneColor,
     this.zoneName,
     this.wallEdges,
@@ -34,6 +37,10 @@ class BuilderCanvasPainter extends CustomPainter {
   final String? ghostType;
   final double pixelsPerFt;
   final List<Offset>? zoneNormalizedPts;
+  /// Zone top-left in store-normalized (0–1) space — (zone.posX, zone.posY).
+  final Offset? zoneOriginNorm;
+  final double? storeWidthFt;
+  final double? storeDepthFt;
   final Color? zoneColor;
   final String? zoneName;
   final List<ZoneEdge>? wallEdges;
@@ -128,33 +135,35 @@ class BuilderCanvasPainter extends CustomPainter {
     final pts = zoneNormalizedPts;
     if (pts == null || pts.length < 3) return;
 
-    // Find bounding box of normalized points so we can scale to fill the canvas
-    double minX = pts.map((p) => p.dx).reduce((a, b) => a < b ? a : b);
-    double maxX = pts.map((p) => p.dx).reduce((a, b) => a > b ? a : b);
-    double minY = pts.map((p) => p.dy).reduce((a, b) => a < b ? a : b);
-    double maxY = pts.map((p) => p.dy).reduce((a, b) => a > b ? a : b);
+    final List<Offset> screenPts;
 
-    final rangeX = (maxX - minX).clamp(0.01, 1.0);
-    final rangeY = (maxY - minY).clamp(0.01, 1.0);
-    const padding = 40.0;
-    final usableW = size.width - padding * 2;
-    final usableH = size.height - padding * 2;
-
-    // Uniform scale to fit within usable area
-    final scale = (usableW / rangeX).clamp(0.0, usableH / rangeY);
-
-    // Center the shape
-    final scaledW = rangeX * scale;
-    final scaledH = rangeY * scale;
-    final offsetX = padding + (usableW - scaledW) / 2;
-    final offsetY = padding + (usableH - scaledH) / 2;
-
-    Offset toCanvas(Offset p) => Offset(
-          offsetX + (p.dx - minX) / rangeX * scaledW,
-          offsetY + (p.dy - minY) / rangeY * scaledH,
-        );
-
-    final screenPts = pts.map(toCanvas).toList();
+    if (zoneOriginNorm != null && storeWidthFt != null && storeDepthFt != null) {
+      // Feet-based: aligns with fixture coordinate space (posX/posY in ft from zone top-left)
+      screenPts = pts.map((p) => Offset(
+        (p.dx - zoneOriginNorm!.dx) * storeWidthFt! * pixelsPerFt,
+        (p.dy - zoneOriginNorm!.dy) * storeDepthFt! * pixelsPerFt,
+      )).toList();
+    } else {
+      // Fallback: scale to fill canvas (disconnected from fixture space)
+      double minX = pts.map((p) => p.dx).reduce((a, b) => a < b ? a : b);
+      double maxX = pts.map((p) => p.dx).reduce((a, b) => a > b ? a : b);
+      double minY = pts.map((p) => p.dy).reduce((a, b) => a < b ? a : b);
+      double maxY = pts.map((p) => p.dy).reduce((a, b) => a > b ? a : b);
+      final rangeX = (maxX - minX).clamp(0.01, 1.0);
+      final rangeY = (maxY - minY).clamp(0.01, 1.0);
+      const padding = 40.0;
+      final usableW = size.width - padding * 2;
+      final usableH = size.height - padding * 2;
+      final scale = (usableW / rangeX).clamp(0.0, usableH / rangeY);
+      final scaledW = rangeX * scale;
+      final scaledH = rangeY * scale;
+      final offsetX = padding + (usableW - scaledW) / 2;
+      final offsetY = padding + (usableH - scaledH) / 2;
+      screenPts = pts.map((p) => Offset(
+        offsetX + (p.dx - minX) / rangeX * scaledW,
+        offsetY + (p.dy - minY) / rangeY * scaledH,
+      )).toList();
+    }
     final path = Path()..addPolygon(screenPts, true);
     final color = zoneColor ?? AppTheme.primary;
 

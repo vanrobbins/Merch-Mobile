@@ -22,32 +22,43 @@ class ZoneEdge {
 
   static const _padding = 40.0;
 
-  /// Replicates the bounding-box scale transform from [BuilderCanvasPainter]
-  /// to produce canvas-pixel edge coordinates from normalized 0..1 zone points.
+  /// Converts normalized zone points to canvas-pixel edge coordinates.
+  ///
+  /// When [zoneOriginNorm], [storeWidthFt], [storeDepthFt] are all provided,
+  /// uses the feet-based transform that matches [BuilderCanvasPainter]'s
+  /// zone background rendering (so edges align with fixtures).
   static List<ZoneEdge> compute(
     List<Offset> normalizedPts,
     Size canvasSize,
-    double pixelsPerFt,
-  ) {
+    double pixelsPerFt, {
+    Offset? zoneOriginNorm,
+    double? storeWidthFt,
+    double? storeDepthFt,
+  }) {
     if (normalizedPts.length < 3) return [];
 
-    final minX = normalizedPts.map((p) => p.dx).reduce(math.min);
-    final maxX = normalizedPts.map((p) => p.dx).reduce(math.max);
-    final minY = normalizedPts.map((p) => p.dy).reduce(math.min);
-    final maxY = normalizedPts.map((p) => p.dy).reduce(math.max);
-
-    final rangeX = (maxX - minX).clamp(0.01, 1.0);
-    final rangeY = (maxY - minY).clamp(0.01, 1.0);
-    final usableW = canvasSize.width - _padding * 2;
-    final usableH = canvasSize.height - _padding * 2;
-    final scale = (usableW / rangeX).clamp(0.0, usableH / rangeY);
-    final scaledW = rangeX * scale;
-    final scaledH = rangeY * scale;
-    final ox = _padding + (usableW - scaledW) / 2;
-    final oy = _padding + (usableH - scaledH) / 2;
-
-    Offset toCanvas(Offset p) =>
-        Offset(ox + (p.dx - minX) * scale, oy + (p.dy - minY) * scale);
+    final Offset Function(Offset) toCanvas;
+    if (zoneOriginNorm != null && storeWidthFt != null && storeDepthFt != null) {
+      toCanvas = (p) => Offset(
+        (p.dx - zoneOriginNorm.dx) * storeWidthFt * pixelsPerFt,
+        (p.dy - zoneOriginNorm.dy) * storeDepthFt * pixelsPerFt,
+      );
+    } else {
+      final minX = normalizedPts.map((p) => p.dx).reduce(math.min);
+      final maxX = normalizedPts.map((p) => p.dx).reduce(math.max);
+      final minY = normalizedPts.map((p) => p.dy).reduce(math.min);
+      final maxY = normalizedPts.map((p) => p.dy).reduce(math.max);
+      final rangeX = (maxX - minX).clamp(0.01, 1.0);
+      final rangeY = (maxY - minY).clamp(0.01, 1.0);
+      final usableW = canvasSize.width - _padding * 2;
+      final usableH = canvasSize.height - _padding * 2;
+      final scale = (usableW / rangeX).clamp(0.0, usableH / rangeY);
+      final scaledW = rangeX * scale;
+      final scaledH = rangeY * scale;
+      final ox = _padding + (usableW - scaledW) / 2;
+      final oy = _padding + (usableH - scaledH) / 2;
+      toCanvas = (p) => Offset(ox + (p.dx - minX) * scale, oy + (p.dy - minY) * scale);
+    }
 
     final canvasPts = normalizedPts.map(toCanvas).toList();
     final n = canvasPts.length;

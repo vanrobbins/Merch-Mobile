@@ -67,10 +67,14 @@ class _ZoneDetailScreenState extends ConsumerState<ZoneDetailScreen> {
 
   Offset _toCanvas(Offset screen) => (screen - _viewOffset) / _viewScale;
 
-  void _fitFixtures(List<dynamic> fixtures) {
-    if (_canvasSize == Size.zero || fixtures.isEmpty) return;
+  void _fitFixtures(List<dynamic> fixtures, {Rect? zoneBoundsPx}) {
+    if (_canvasSize == Size.zero) return;
     double minX = double.infinity, maxX = double.negativeInfinity;
     double minY = double.infinity, maxY = double.negativeInfinity;
+    if (zoneBoundsPx != null) {
+      minX = min(minX, zoneBoundsPx.left);   maxX = max(maxX, zoneBoundsPx.right);
+      minY = min(minY, zoneBoundsPx.top);    maxY = max(maxY, zoneBoundsPx.bottom);
+    }
     for (final f in fixtures) {
       final l = f.posX * _pixelsPerFt;
       final t = f.posY * _pixelsPerFt;
@@ -79,6 +83,7 @@ class _ZoneDetailScreenState extends ConsumerState<ZoneDetailScreen> {
       minX = min(minX, l); maxX = max(maxX, r);
       minY = min(minY, t); maxY = max(maxY, b);
     }
+    if (minX == double.infinity) return;
     const pad = 60.0;
     minX -= pad; maxX += pad; minY -= pad; maxY += pad;
     final contentW = maxX - minX;
@@ -229,6 +234,26 @@ class _ZoneDetailScreenState extends ConsumerState<ZoneDetailScreen> {
     );
   }
 
+  void _showMannequinListSheet(
+      BuildContext context, String storeId, List<Mannequin> mannequins) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => DraggableScrollableSheet(
+        initialChildSize: 0.5,
+        minChildSize: 0.3,
+        maxChildSize: 0.9,
+        expand: false,
+        builder: (_, ctrl) => _MannequinSection(
+          storeId: storeId,
+          zoneId: widget.zoneId,
+          mannequins: mannequins,
+          scrollController: ctrl,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final storeId = ref.watch(activeStoreIdProvider).value ?? '';
@@ -237,6 +262,7 @@ class _ZoneDetailScreenState extends ConsumerState<ZoneDetailScreen> {
     final zoneAsync = ref.watch(zoneByIdProvider(widget.zoneId));
     final zoneRow = zoneAsync.valueOrNull;
     final zonePts = zoneRow != null ? ZoneShape.decode(zoneRow.shapePoints) : null;
+    final store = ref.watch(activeStoreProvider).valueOrNull;
 
     final builderState = ref.watch(floorBuilderNotifierProvider);
     final selectedId = builderState.selectedFixtureId;
@@ -246,6 +272,7 @@ class _ZoneDetailScreenState extends ConsumerState<ZoneDetailScreen> {
     final selectedPlanogram = selectedFixture?.planogramId != null
         ? builderState.planograms[selectedFixture!.planogramId!]
         : null;
+    final mannequinCount = builderState.mannequins.length;
 
     return Scaffold(
       appBar: AppBar(
@@ -273,89 +300,113 @@ class _ZoneDetailScreenState extends ConsumerState<ZoneDetailScreen> {
       ),
       body: builderState.isLoading
           ? const Center(child: CircularProgressIndicator())
-          : Column(
+          : Stack(
               children: [
-                SizedBox(
-                  height: MediaQuery.of(context).size.height * 0.5,
-                  child: Stack(
-                    children: [
-                      LayoutBuilder(
-                        builder: (context, constraints) {
-                          _canvasSize = constraints.biggest;
-                          _pixelsPerFt = constraints.maxWidth / 20;
-                          if (!_hasFitView && builderState.fixtures.isNotEmpty && _canvasSize != Size.zero) {
-                            _hasFitView = true;
-                            WidgetsBinding.instance.addPostFrameCallback((_) { if (mounted) _fitFixtures(builderState.fixtures); });
-                          }
-                          _painter = BuilderCanvasPainter(
-                            fixtures: builderState.fixtures,
-                            selectedFixtureId: selectedId,
-                            ghostPos: null,
-                            ghostType: null,
-                            pixelsPerFt: _pixelsPerFt,
-                            zoneNormalizedPts: (zonePts != null && zonePts.length >= 3) ? zonePts : null,
-                            zoneColor: zoneRow != null ? Color(zoneRow.colorValue) : null,
-                            zoneName: zoneRow?.name,
-                            wallEdges: null,
-                            planograms: builderState.planograms,
-                            mannequins: builderState.mannequins,
-                            platforms: builderState.platforms,
-                            sceneProps: builderState.sceneProps,
-                          );
-                          return ClipRect(
-                            child: Listener(
-                              onPointerDown: _onPointerDown,
-                              onPointerMove: _onPointerMove,
-                              onPointerUp: _onPointerUp,
-                              child: SizedBox.expand(
-                                child: Transform(
-                                  transform: Matrix4.identity()
-                                    ..translate(_viewOffset.dx, _viewOffset.dy)
-                                    ..scale(_viewScale),
-                                  alignment: Alignment.topLeft,
-                                  child: CustomPaint(painter: _painter, size: _canvasSize),
-                                ),
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                      if (selectedFixture != null)
-                        Positioned(
-                          left: 0,
-                          right: 0,
-                          bottom: 0,
-                          child: FixtureMiniPanel(
-                            fixture: selectedFixture,
-                            planogram: selectedPlanogram,
-                            onDismiss: () => ref
-                                .read(floorBuilderNotifierProvider.notifier)
-                                .selectFixture(null),
-                            onRotate: () => ref
-                                .read(floorBuilderNotifierProvider.notifier)
-                                .rotateFixture(selectedFixture.id),
-                            onEdit: () => _showFixtureEdit(
-                              selectedFixture.id,
-                              selectedFixture.label.isNotEmpty
-                                  ? selectedFixture.label
-                                  : selectedFixture.fixtureType.toUpperCase(),
-                              selectedFixture.fixtureType,
-                              selectedFixture.wallAdjacent,
-                            ),
-                            onDelete: () => ref
-                                .read(floorBuilderNotifierProvider.notifier)
-                                .deleteFixture(selectedFixture.id),
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    _canvasSize = constraints.biggest;
+                    _pixelsPerFt = constraints.maxWidth / 20;
+                    final hasZonePts = zonePts != null && zonePts.length >= 3;
+                    final zoneBoundsPx = (hasZonePts && zoneRow != null &&
+                            store?.widthFt != null && store?.depthFt != null)
+                        ? Rect.fromLTWH(
+                            0, 0,
+                            zoneRow.width * store!.widthFt! * _pixelsPerFt,
+                            zoneRow.height * store.depthFt! * _pixelsPerFt,
+                          )
+                        : null;
+                    if (!_hasFitView && _canvasSize != Size.zero &&
+                        (builderState.fixtures.isNotEmpty || hasZonePts)) {
+                      _hasFitView = true;
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        if (mounted) _fitFixtures(builderState.fixtures, zoneBoundsPx: zoneBoundsPx);
+                      });
+                    }
+                    _painter = BuilderCanvasPainter(
+                      fixtures: builderState.fixtures,
+                      selectedFixtureId: selectedId,
+                      ghostPos: null,
+                      ghostType: null,
+                      pixelsPerFt: _pixelsPerFt,
+                      zoneNormalizedPts: hasZonePts ? zonePts : null,
+                      zoneOriginNorm: zoneRow != null ? Offset(zoneRow.posX, zoneRow.posY) : null,
+                      storeWidthFt: store?.widthFt,
+                      storeDepthFt: store?.depthFt,
+                      zoneColor: zoneRow != null ? Color(zoneRow.colorValue) : null,
+                      zoneName: zoneRow?.name,
+                      wallEdges: null,
+                      planograms: builderState.planograms,
+                      mannequins: builderState.mannequins,
+                      platforms: builderState.platforms,
+                      sceneProps: builderState.sceneProps,
+                    );
+                    return ClipRect(
+                      child: Listener(
+                        onPointerDown: _onPointerDown,
+                        onPointerMove: _onPointerMove,
+                        onPointerUp: _onPointerUp,
+                        child: SizedBox.expand(
+                          child: Transform(
+                            transform: Matrix4.identity()
+                              ..translate(_viewOffset.dx, _viewOffset.dy)
+                              ..scale(_viewScale),
+                            alignment: Alignment.topLeft,
+                            child: CustomPaint(painter: _painter, size: _canvasSize),
                           ),
                         ),
-                    ],
+                      ),
+                    );
+                  },
+                ),
+                if (selectedFixture != null)
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    child: FixtureMiniPanel(
+                      fixture: selectedFixture,
+                      planogram: selectedPlanogram,
+                      onDismiss: () => ref
+                          .read(floorBuilderNotifierProvider.notifier)
+                          .selectFixture(null),
+                      onRotate: () => ref
+                          .read(floorBuilderNotifierProvider.notifier)
+                          .rotateFixture(selectedFixture.id),
+                      onEdit: () => _showFixtureEdit(
+                        selectedFixture.id,
+                        selectedFixture.label.isNotEmpty
+                            ? selectedFixture.label
+                            : selectedFixture.fixtureType.toUpperCase(),
+                        selectedFixture.fixtureType,
+                        selectedFixture.wallAdjacent,
+                      ),
+                      onDelete: () => ref
+                          .read(floorBuilderNotifierProvider.notifier)
+                          .deleteFixture(selectedFixture.id),
+                    ),
                   ),
-                ),
-                const Divider(height: 1),
-                _MannequinSection(
-                  storeId: storeId,
-                  zoneId: widget.zoneId,
-                  mannequins: builderState.mannequins,
-                ),
+                if (selectedFixture == null)
+                  Positioned(
+                    right: 16,
+                    bottom: 16,
+                    child: FloatingActionButton.extended(
+                      onPressed: () => _showMannequinListSheet(
+                          context, storeId, builderState.mannequins),
+                      backgroundColor: AppTheme.primary,
+                      foregroundColor: Colors.white,
+                      icon: const Icon(Icons.accessibility_new_outlined),
+                      label: Text(
+                        mannequinCount == 0
+                            ? 'MANNEQUINS'
+                            : 'MANNEQUINS ($mannequinCount)',
+                        style: const TextStyle(
+                          fontSize: DesignTokens.typeXs,
+                          fontWeight: DesignTokens.weightBold,
+                          letterSpacing: DesignTokens.letterSpacingEyebrow,
+                        ),
+                      ),
+                    ),
+                  ),
               ],
             ),
     );
@@ -485,11 +536,13 @@ class _MannequinSection extends StatelessWidget {
     required this.storeId,
     required this.zoneId,
     required this.mannequins,
+    this.scrollController,
   });
 
   final String storeId;
   final String zoneId;
   final List<Mannequin> mannequins;
+  final ScrollController? scrollController;
 
   String _formatType(String type) {
     return type.replaceAll('_', ' ').toUpperCase();
@@ -497,38 +550,32 @@ class _MannequinSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (mannequins.isEmpty) {
-      return const Expanded(
-        child: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.accessibility_new_outlined, size: 40, color: AppTheme.textHint),
-              SizedBox(height: DesignTokens.spaceSm),
-              Text(
-                'No mannequins in this zone',
-                style: TextStyle(color: AppTheme.textSecondary, fontSize: DesignTokens.typeMd),
-              ),
-              SizedBox(height: DesignTokens.spaceXs),
-              Text(
-                'Add mannequins in the Floor Builder.',
-                style: TextStyle(color: AppTheme.textHint, fontSize: DesignTokens.typeSm),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    return Expanded(
+    return Material(
+      color: Theme.of(context).scaffoldBackgroundColor,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          // Drag handle
+          Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: DesignTokens.spaceSm),
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+          ),
           Padding(
             padding: const EdgeInsets.fromLTRB(
-                DesignTokens.spaceMd, DesignTokens.spaceSm, DesignTokens.spaceMd, 0),
+                DesignTokens.spaceMd, 0, DesignTokens.spaceMd, DesignTokens.spaceSm),
             child: Text(
-              'MANNEQUINS (${mannequins.length})',
+              mannequins.isEmpty
+                  ? 'MANNEQUINS'
+                  : 'MANNEQUINS (${mannequins.length})',
               style: const TextStyle(
                 fontSize: DesignTokens.typeXs,
                 fontWeight: DesignTokens.weightBold,
@@ -537,75 +584,98 @@ class _MannequinSection extends StatelessWidget {
               ),
             ),
           ),
-          Expanded(
-            child: ListView.separated(
-              padding: const EdgeInsets.symmetric(vertical: DesignTokens.spaceSm),
-              itemCount: mannequins.length,
-              separatorBuilder: (_, __) =>
-                  const Divider(height: 1, indent: DesignTokens.spaceMd),
-              itemBuilder: (context, i) {
-                final m = mannequins[i];
-                final displayName = m.name?.isNotEmpty == true
-                    ? m.name!
-                    : _formatType(m.mannequinType);
-                return ListTile(
-                  leading: const Icon(Icons.accessibility_new_outlined,
-                      color: AppTheme.textSecondary),
-                  title: Text(
-                    displayName,
-                    style: const TextStyle(
-                      fontSize: DesignTokens.typeMd,
-                      fontWeight: DesignTokens.weightBold,
+          if (mannequins.isEmpty)
+            const Expanded(
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.accessibility_new_outlined, size: 40, color: AppTheme.textHint),
+                    SizedBox(height: DesignTokens.spaceSm),
+                    Text(
+                      'No mannequins in this zone.',
+                      style: TextStyle(color: AppTheme.textSecondary, fontSize: DesignTokens.typeMd),
                     ),
-                  ),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '${_formatType(m.mannequinType)}  ·  ${_formatType(m.mountType)}',
-                        style: const TextStyle(
-                          fontSize: DesignTokens.typeSm,
-                          color: AppTheme.textSecondary,
-                        ),
+                    SizedBox(height: DesignTokens.spaceXs),
+                    Text(
+                      'Add mannequins in the Floor Builder.',
+                      style: TextStyle(color: AppTheme.textHint, fontSize: DesignTokens.typeSm),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          else
+            Expanded(
+              child: ListView.separated(
+                controller: scrollController,
+                padding: const EdgeInsets.only(bottom: DesignTokens.spaceLg),
+                itemCount: mannequins.length,
+                separatorBuilder: (_, __) =>
+                    const Divider(height: 1, indent: DesignTokens.spaceMd),
+                itemBuilder: (context, i) {
+                  final m = mannequins[i];
+                  final displayName = m.name?.isNotEmpty == true
+                      ? m.name!
+                      : _formatType(m.mannequinType);
+                  return ListTile(
+                    leading: const Icon(Icons.accessibility_new_outlined,
+                        color: AppTheme.textSecondary),
+                    title: Text(
+                      displayName,
+                      style: const TextStyle(
+                        fontSize: DesignTokens.typeMd,
+                        fontWeight: DesignTokens.weightBold,
                       ),
-                      if (m.outfitName != null && m.outfitName!.isNotEmpty)
+                    ),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
                         Text(
-                          m.outfitName!,
+                          '${_formatType(m.mannequinType)}  ·  ${_formatType(m.mountType)}',
                           style: const TextStyle(
-                            fontSize: DesignTokens.typeXs,
-                            color: AppTheme.accent,
-                            fontWeight: DesignTokens.weightBold,
-                            letterSpacing: 0.5,
+                            fontSize: DesignTokens.typeSm,
+                            color: AppTheme.textSecondary,
                           ),
                         ),
-                    ],
-                  ),
-                  trailing: OutlinedButton(
-                    onPressed: () =>
-                        showMannequinDressingSheet(context, m, storeId),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppTheme.accent,
-                      side: const BorderSide(color: AppTheme.accent),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: DesignTokens.spaceSm),
-                      shape: const RoundedRectangleBorder(
-                        borderRadius:
-                            BorderRadius.all(Radius.circular(AppTheme.borderRadius)),
+                        if (m.outfitName != null && m.outfitName!.isNotEmpty)
+                          Text(
+                            m.outfitName!,
+                            style: const TextStyle(
+                              fontSize: DesignTokens.typeXs,
+                              color: AppTheme.accent,
+                              fontWeight: DesignTokens.weightBold,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                      ],
+                    ),
+                    trailing: OutlinedButton(
+                      onPressed: () =>
+                          showMannequinDressingSheet(context, m, storeId),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppTheme.accent,
+                        side: const BorderSide(color: AppTheme.accent),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: DesignTokens.spaceSm),
+                        shape: const RoundedRectangleBorder(
+                          borderRadius:
+                              BorderRadius.all(Radius.circular(AppTheme.borderRadius)),
+                        ),
+                      ),
+                      child: const Text(
+                        'DRESS',
+                        style: TextStyle(
+                          fontSize: DesignTokens.typeXs,
+                          fontWeight: DesignTokens.weightBold,
+                          letterSpacing: 1.0,
+                        ),
                       ),
                     ),
-                    child: const Text(
-                      'DRESS',
-                      style: TextStyle(
-                        fontSize: DesignTokens.typeXs,
-                        fontWeight: DesignTokens.weightBold,
-                        letterSpacing: 1.0,
-                      ),
-                    ),
-                  ),
-                );
-              },
+                  );
+                },
+              ),
             ),
-          ),
         ],
       ),
     );
