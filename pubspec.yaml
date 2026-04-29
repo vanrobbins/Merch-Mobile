@@ -41,8 +41,13 @@ dev_dependencies:
   json_serializable: ^6.8.0
   flutter_lints: ^4.0.0
   fake_cloud_firestore: ^3.0.3
+  patrol: ^4.5.0
+  integration_test:
+    sdk: flutter
 
 flutter:
   uses-material-design: true
   assets:
     - assets/silhouettes/
+    - assets/silhouettes/shoulder_out/
+    - assets/silhouettes/folded/
