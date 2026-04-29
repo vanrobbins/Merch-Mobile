@@ -6,7 +6,7 @@ part of 'auto_build_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$autoBuildNotifierHash() => r'e0e7634ed8f643171deb9b351038bf64f6b9e54f';
+String _$autoBuildNotifierHash() => r'5f3cd6816746519f29ada745d97bf580d61917dc';
 
 /// See also [AutoBuildNotifier].
 @ProviderFor(AutoBuildNotifier)
