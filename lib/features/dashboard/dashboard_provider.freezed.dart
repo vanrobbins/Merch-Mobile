@@ -19,6 +19,7 @@ mixin _$DashboardStats {
   int get zoneCount => throw _privateConstructorUsedError;
   int get fixtureCount => throw _privateConstructorUsedError;
   int get productCount => throw _privateConstructorUsedError;
+  int get mannequinCount => throw _privateConstructorUsedError;
   int get pendingJoinRequests => throw _privateConstructorUsedError;
   int get pendingProposals => throw _privateConstructorUsedError;
   int get myPhotoCount => throw _privateConstructorUsedError;
@@ -41,6 +42,7 @@ abstract class $DashboardStatsCopyWith<$Res> {
       {int zoneCount,
       int fixtureCount,
       int productCount,
+      int mannequinCount,
       int pendingJoinRequests,
       int pendingProposals,
       int myPhotoCount,
@@ -65,6 +67,7 @@ class _$DashboardStatsCopyWithImpl<$Res, $Val extends DashboardStats>
     Object? zoneCount = null,
     Object? fixtureCount = null,
     Object? productCount = null,
+    Object? mannequinCount = null,
     Object? pendingJoinRequests = null,
     Object? pendingProposals = null,
     Object? myPhotoCount = null,
@@ -82,6 +85,10 @@ class _$DashboardStatsCopyWithImpl<$Res, $Val extends DashboardStats>
       productCount: null == productCount
           ? _value.productCount
           : productCount // ignore: cast_nullable_to_non_nullable
+              as int,
+      mannequinCount: null == mannequinCount
+          ? _value.mannequinCount
+          : mannequinCount // ignore: cast_nullable_to_non_nullable
               as int,
       pendingJoinRequests: null == pendingJoinRequests
           ? _value.pendingJoinRequests
@@ -115,6 +122,7 @@ abstract class _$$DashboardStatsImplCopyWith<$Res>
       {int zoneCount,
       int fixtureCount,
       int productCount,
+      int mannequinCount,
       int pendingJoinRequests,
       int pendingProposals,
       int myPhotoCount,
@@ -137,6 +145,7 @@ class __$$DashboardStatsImplCopyWithImpl<$Res>
     Object? zoneCount = null,
     Object? fixtureCount = null,
     Object? productCount = null,
+    Object? mannequinCount = null,
     Object? pendingJoinRequests = null,
     Object? pendingProposals = null,
     Object? myPhotoCount = null,
@@ -154,6 +163,10 @@ class __$$DashboardStatsImplCopyWithImpl<$Res>
       productCount: null == productCount
           ? _value.productCount
           : productCount // ignore: cast_nullable_to_non_nullable
+              as int,
+      mannequinCount: null == mannequinCount
+          ? _value.mannequinCount
+          : mannequinCount // ignore: cast_nullable_to_non_nullable
               as int,
       pendingJoinRequests: null == pendingJoinRequests
           ? _value.pendingJoinRequests
@@ -182,6 +195,7 @@ class _$DashboardStatsImpl implements _DashboardStats {
       {this.zoneCount = 0,
       this.fixtureCount = 0,
       this.productCount = 0,
+      this.mannequinCount = 0,
       this.pendingJoinRequests = 0,
       this.pendingProposals = 0,
       this.myPhotoCount = 0,
@@ -198,6 +212,9 @@ class _$DashboardStatsImpl implements _DashboardStats {
   final int productCount;
   @override
   @JsonKey()
+  final int mannequinCount;
+  @override
+  @JsonKey()
   final int pendingJoinRequests;
   @override
   @JsonKey()
@@ -211,7 +228,7 @@ class _$DashboardStatsImpl implements _DashboardStats {
 
   @override
   String toString() {
-    return 'DashboardStats(zoneCount: $zoneCount, fixtureCount: $fixtureCount, productCount: $productCount, pendingJoinRequests: $pendingJoinRequests, pendingProposals: $pendingProposals, myPhotoCount: $myPhotoCount, myProposalCount: $myProposalCount)';
+    return 'DashboardStats(zoneCount: $zoneCount, fixtureCount: $fixtureCount, productCount: $productCount, mannequinCount: $mannequinCount, pendingJoinRequests: $pendingJoinRequests, pendingProposals: $pendingProposals, myPhotoCount: $myPhotoCount, myProposalCount: $myProposalCount)';
   }
 
   @override
@@ -225,6 +242,8 @@ class _$DashboardStatsImpl implements _DashboardStats {
                 other.fixtureCount == fixtureCount) &&
             (identical(other.productCount, productCount) ||
                 other.productCount == productCount) &&
+            (identical(other.mannequinCount, mannequinCount) ||
+                other.mannequinCount == mannequinCount) &&
             (identical(other.pendingJoinRequests, pendingJoinRequests) ||
                 other.pendingJoinRequests == pendingJoinRequests) &&
             (identical(other.pendingProposals, pendingProposals) ||
@@ -241,6 +260,7 @@ class _$DashboardStatsImpl implements _DashboardStats {
       zoneCount,
       fixtureCount,
       productCount,
+      mannequinCount,
       pendingJoinRequests,
       pendingProposals,
       myPhotoCount,
@@ -261,6 +281,7 @@ abstract class _DashboardStats implements DashboardStats {
       {final int zoneCount,
       final int fixtureCount,
       final int productCount,
+      final int mannequinCount,
       final int pendingJoinRequests,
       final int pendingProposals,
       final int myPhotoCount,
@@ -272,6 +293,8 @@ abstract class _DashboardStats implements DashboardStats {
   int get fixtureCount;
   @override
   int get productCount;
+  @override
+  int get mannequinCount;
   @override
   int get pendingJoinRequests;
   @override

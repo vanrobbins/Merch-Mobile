@@ -130,6 +130,12 @@ class DashboardScreen extends ConsumerWidget {
                   () => context.goNamed(AppRoutes.catalog),
                 ),
                 _StatItem(
+                  'Mannequins',
+                  stats.mannequinCount,
+                  Icons.accessibility_new_outlined,
+                  () => context.goNamed(AppRoutes.zoneMap),
+                ),
+                _StatItem(
                   'Join Requests',
                   stats.pendingJoinRequests,
                   Icons.person_add_outlined,

@@ -13,6 +13,7 @@ class DashboardStats with _$DashboardStats {
     @Default(0) int zoneCount,
     @Default(0) int fixtureCount,
     @Default(0) int productCount,
+    @Default(0) int mannequinCount,
     @Default(0) int pendingJoinRequests,
     @Default(0) int pendingProposals,
     @Default(0) int myPhotoCount,
@@ -37,6 +38,7 @@ Stream<DashboardStats> dashboardStats(DashboardStatsRef ref) {
     try {
       final fixturesSnap = await FirestoreRefs.fixtures(storeId).get();
       final productsSnap = await FirestoreRefs.products(storeId).get();
+      final mannequinsSnap = await FirestoreRefs.mannequins(storeId).get();
       final pendingMembersSnap = await FirestoreRefs.memberships(storeId)
           .where('status', isEqualTo: 'pending')
           .get();
@@ -57,6 +59,7 @@ Stream<DashboardStats> dashboardStats(DashboardStatsRef ref) {
         zoneCount: zonesSnap.size,
         fixtureCount: fixturesSnap.size,
         productCount: productsSnap.size,
+        mannequinCount: mannequinsSnap.size,
         pendingJoinRequests: pendingMembersSnap.size,
         pendingProposals: pendingProposalsSnap.size,
         myPhotoCount: photosSnap.size,
