@@ -1,5 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-
 /// A single reversible floor-builder operation.
 ///
 /// [before] and [after] are parallel lists of Firestore doc maps (same length

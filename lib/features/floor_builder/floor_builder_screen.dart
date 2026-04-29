@@ -516,6 +516,20 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
         title: const Text('FLOOR BUILDER'),
         actions: [
           IconButton(
+            icon: const Icon(Icons.undo),
+            tooltip: 'Undo',
+            onPressed: state.canUndo
+                ? () => ref.read(floorBuilderNotifierProvider.notifier).undo()
+                : null,
+          ),
+          IconButton(
+            icon: const Icon(Icons.redo),
+            tooltip: 'Redo',
+            onPressed: state.canRedo
+                ? () => ref.read(floorBuilderNotifierProvider.notifier).redo()
+                : null,
+          ),
+          IconButton(
             icon: const Icon(Icons.fit_screen_outlined),
             tooltip: 'Fit to view',
             onPressed: () {
