@@ -1,6 +1,6 @@
 # Merch Mobile — Project Context for Agents
 
-> **Read this first.** This document is the single source of truth for project state, past decisions, and architecture rules. Check it before exploring the codebase. Last updated: 2026-04-29 (v0.3 all 6 agents ✅ complete; v0.35 all 7 agents ✅ complete on feature/v0.3).
+> **Read this first.** This document is the single source of truth for project state, past decisions, and architecture rules. Check it before exploring the codebase. Last updated: 2026-04-29 (v0.3 all 6 agents ✅ complete; v0.35 all 7 agents ✅ complete; v0.39 refactor ✅ complete — all on feature/v0.3).
 
 ---
 
@@ -47,9 +47,12 @@ lib/
     │                          # PendingApprovalScreen, MembersScreen, GroupManagementScreen,
     │                          # StoreSwitcherSheet
     ├── dashboard/             # DashboardScreen, dashboard_provider.dart
-    ├── zone_manager/          # ZoneMapScreen, ZoneDetailScreen, zone_map_provider.dart
+    ├── zone_manager/          # ZoneMapScreen, ZoneDetailScreen, zone_map_provider.dart,
+    │                          # ZoneActionsSheet, StoreDimensionsDialog
     ├── floor_builder/         # FloorBuilderScreen, BuilderCanvasPainter,
-    │                          # FloorBuilderProvider
+    │                          # FloorBuilderProvider, WallPlacementSheet,
+    │                          # FixtureActionsSheet, MannequinTypeSheet,
+    │                          # PropTypeSheet, ElementDeleteSheet
     ├── auto_build/            # AutoBuildScreen (stub)
     ├── planogram/             # PlanogramListScreen, PlanogramDetailScreen,
     │                          # ProposalReviewScreen
@@ -318,6 +321,7 @@ After any change to `@freezed` models or `@riverpod` providers: run `dart run bu
 1. **Merge `feature/v0.2` → `main`** — v0.2 is complete at tag v0.29
 2. **Complete `feature/v0.3`** — v0.3 Agents 1–6 all done; run final `flutter analyze` + `flutter test`, then tag `v0.3` and merge to `main`
 3. **v0.35** — undo/redo, AutoBuild enhancements, PlanogramEditorScreen, product gender classification (all 7 agents ✅ complete 2026-04-29, on `feature/v0.3`, pending emulator testing + PR)
+4. **v0.39 refactor** ✅ complete 2026-04-29 — 7 widget classes extracted from floor_builder_screen.dart and zone_map_screen.dart; `_snap` helper and `_patch` one-liner in provider; all 102 tests pass
 
 ---
 
