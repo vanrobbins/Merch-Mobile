@@ -66,4 +66,22 @@ void main() {
       expect(toggled.label, 'Mid');
     });
   });
+
+  group('PgRow.heightIn', () {
+    test('defaults to 24.0 when absent from JSON', () {
+      final row = PgRow.fromJson({'index': 0, 'rowType': 'bar'});
+      expect(row.heightIn, 24.0);
+    });
+
+    test('survives JSON round-trip', () {
+      final row = PgRow(index: 1, rowType: 'shelf', heightIn: 36.0);
+      final restored = PgRow.fromJson(row.toJson());
+      expect(restored.heightIn, 36.0);
+    });
+
+    test('copyWith updates heightIn', () {
+      const row = PgRow(index: 0);
+      expect(row.copyWith(heightIn: 30.0).heightIn, 30.0);
+    });
+  });
 }
