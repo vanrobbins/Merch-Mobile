@@ -3,231 +3,380 @@ import 'package:flutter/material.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/design_tokens.dart';
 import 'planogram_slot.dart';
-import 'slot_silhouette_renderer.dart';
 
-/// A single cell in the planogram editor grid.
+/// Renders a single fixture cell in the bay view.
 ///
-/// [isActive] — long-press-activated; shows drag handles.
-/// [isBlocked] — occupied by a spanning neighbour; shows lock icon.
-/// [cellWidth]/[cellHeight] — base cell dimensions.
-///
-/// Drag handles appear on the right edge (spanCols) and bottom edge (spanRows).
-/// The top-right corner handle cycles rotation.
+/// Height = [quarterHeight] × [slot.spanQuarters] + gap adjustments.
+/// [isActive] highlights the cell with an accent border.
+/// [onPress] is called when the user taps the cell (opens product sheet).
 class SlotCellWidget extends StatelessWidget {
   const SlotCellWidget({
     super.key,
     required this.slot,
-    required this.isActive,
-    required this.isBlocked,
     required this.cellWidth,
-    required this.cellHeight,
-    required this.productType,
-    this.onTap,
-    this.onLongPress,
-    this.onSpanColsDrag, // new spanCols value
-    this.onSpanRowsDrag, // new spanRows value
-    this.onRotate,
+    required this.quarterHeight,
+    this.isActive = false,
+    this.onPress,
   });
 
   final PgSlot slot;
-  final bool isActive;
-  final bool isBlocked;
   final double cellWidth;
-  final double cellHeight;
-  final String? productType;
-  final VoidCallback? onTap;
-  final VoidCallback? onLongPress;
-  final ValueChanged<int>? onSpanColsDrag;
-  final ValueChanged<int>? onSpanRowsDrag;
-  final VoidCallback? onRotate;
+  final double quarterHeight;
+  final bool isActive;
+  final VoidCallback? onPress;
+
+  static const _stripeColor = {
+    'shoulder': Color(0x38393735),
+    'faceout': Color(0xFF2E6DA4),
+    'ubar': AppTheme.accent,
+    'shelf': Color(0xFF6B6660),
+  };
+  static const _pillBg = {
+    'shoulder': Color(0x103A3735),
+    'faceout': Color(0x1A2E6DA4),
+    'ubar': Color(0x1ABF5534),
+    'shelf': Color(0x1A6B6660),
+  };
+  static const _pillFg = {
+    'shoulder': AppTheme.textSecondary,
+    'faceout': Color(0xFF2E6DA4),
+    'ubar': AppTheme.accent,
+    'shelf': Color(0xFF6B6660),
+  };
+  static const _pillLabel = {
+    'shoulder': 'SHOULDER',
+    'faceout': 'FACE-OUT',
+    'ubar': 'U-BAR',
+    'shelf': 'SHELF',
+  };
 
   @override
   Widget build(BuildContext context) {
-    // The actual displayed width accounts for span
+    final h = quarterHeight * slot.spanQuarters +
+        (slot.spanQuarters - 1) * 2.0;
     final w = cellWidth * slot.spanCols + (slot.spanCols - 1) * 4.0;
-    final h = cellHeight * slot.spanRows + (slot.spanRows - 1) * 4.0;
-
-    if (isBlocked) {
-      return SizedBox(
-        width: cellWidth,
-        height: cellHeight,
-        child: Container(
-          decoration: BoxDecoration(
-            color: Colors.grey.shade200,
-            border: Border.all(color: Colors.grey.shade300),
-            borderRadius: BorderRadius.circular(2),
-          ),
-          child: const Center(
-            child: Icon(Icons.lock_outline, size: 14, color: Colors.grey),
-          ),
-        ),
-      );
-    }
-
-    final hasProduct = slot.productId != null;
-
-    Widget content = _buildCellContent(hasProduct, w, h);
-
-    if (isActive) {
-      content = Stack(
-        clipBehavior: Clip.none,
-        children: [
-          content,
-          // Right edge — spanCols drag handle
-          Positioned(
-            right: -10,
-            top: 0,
-            bottom: 0,
-            child: GestureDetector(
-              onHorizontalDragUpdate: (d) {
-                if (onSpanColsDrag == null) return;
-                final newSpan =
-                    (slot.spanCols + (d.delta.dx / cellWidth).round())
-                        .clamp(1, 4);
-                onSpanColsDrag!(newSpan);
-              },
-              child: Container(
-                width: 20,
-                decoration: BoxDecoration(
-                  // ignore: deprecated_member_use
-                  color: AppTheme.accent.withOpacity(0.8),
-                  borderRadius: BorderRadius.circular(2),
-                ),
-                child: const Icon(Icons.chevron_right,
-                    size: 14, color: Colors.white),
-              ),
-            ),
-          ),
-          // Bottom edge — spanRows drag handle
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: -10,
-            child: GestureDetector(
-              onVerticalDragUpdate: (d) {
-                if (onSpanRowsDrag == null) return;
-                final newSpan =
-                    (slot.spanRows + (d.delta.dy / cellHeight).round())
-                        .clamp(1, 6);
-                onSpanRowsDrag!(newSpan);
-              },
-              child: Container(
-                height: 20,
-                decoration: BoxDecoration(
-                  // ignore: deprecated_member_use
-                  color: AppTheme.accent.withOpacity(0.8),
-                  borderRadius: BorderRadius.circular(2),
-                ),
-                child: const Icon(Icons.expand_more,
-                    size: 14, color: Colors.white),
-              ),
-            ),
-          ),
-          // Top-right corner — rotation
-          Positioned(
-            right: -8,
-            top: -8,
-            child: GestureDetector(
-              onTap: onRotate,
-              child: Container(
-                width: 22,
-                height: 22,
-                decoration: const BoxDecoration(
-                  color: AppTheme.primary,
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.rotate_90_degrees_cw,
-                    size: 12, color: Colors.white),
-              ),
-            ),
-          ),
-        ],
-      );
-    }
 
     return GestureDetector(
-      onTap: onTap,
-      onLongPress: onLongPress,
-      child: SizedBox(width: w, height: h, child: content),
-    );
-  }
-
-  Widget _buildCellContent(bool hasProduct, double w, double h) {
-    if (!hasProduct) {
-      // Empty cell — dashed border + plus icon
-      return CustomPaint(
-        painter: _DashedBorderPainter(
-            color: Colors.grey.shade400, radius: 2),
+      onTap: onPress,
+      child: SizedBox(
+        width: w,
+        height: h,
         child: Container(
           decoration: BoxDecoration(
-            color: Colors.grey.shade100,
-            borderRadius: BorderRadius.circular(2),
+            color: AppTheme.canvasBg,
+            border: Border.all(
+              color: isActive ? AppTheme.accent : const Color(0x21393735),
+              width: isActive ? 1.5 : 1,
+            ),
+            borderRadius: BorderRadius.circular(AppTheme.borderRadius),
           ),
-          child: const Center(
-            child: Icon(Icons.add, size: 20, color: Colors.grey),
+          clipBehavior: Clip.hardEdge,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Container(
+                height: 2,
+                color: _stripeColor[slot.nodeType] ?? AppTheme.primary,
+              ),
+              Expanded(
+                child: Stack(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.all(6),
+                      child: slot.items.isEmpty
+                          ? _EmptyFixtureContent(nodeType: slot.nodeType)
+                          : _buildFilledContent(h),
+                    ),
+                    Positioned(
+                      top: 3,
+                      right: 3,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 3, vertical: 1),
+                        decoration: BoxDecoration(
+                          color: _pillBg[slot.nodeType],
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                        child: Text(
+                          _pillLabel[slot.nodeType] ??
+                              slot.nodeType.toUpperCase(),
+                          style: TextStyle(
+                            fontSize: 5.5,
+                            fontWeight: DesignTokens.weightBold,
+                            letterSpacing: 0.5,
+                            color: _pillFg[slot.nodeType] ??
+                                AppTheme.textSecondary,
+                          ),
+                        ),
+                      ),
+                    ),
+                    if (slot.items.isNotEmpty)
+                      const Positioned(
+                        bottom: 2,
+                        right: 4,
+                        child: Text(
+                          '2 CU FT',
+                          style: TextStyle(
+                            fontSize: 5.5,
+                            fontWeight: DesignTokens.weightBold,
+                            color: Color(0x38393735),
+                            letterSpacing: 0.3,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              if (slot.nodeType == 'shelf')
+                Container(height: 3, color: const Color(0x886B6660)),
+            ],
           ),
         ),
-      );
-    }
-
-    // Filled slot
-    return Container(
-      decoration: BoxDecoration(
-        color: AppTheme.canvasBg,
-        border: isActive
-            ? Border.all(color: AppTheme.accent, width: 2)
-            : Border.all(
-                // ignore: deprecated_member_use
-                color: AppTheme.primary.withOpacity(0.4)),
-        borderRadius: BorderRadius.circular(2),
-      ),
-      padding: const EdgeInsets.all(4),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          SlotSilhouetteRenderer(
-            slot: slot,
-            productType: productType,
-            width: w - 16,
-            height: (h - 28).clamp(20.0, 80.0),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            slot.productName ?? '',
-            style: const TextStyle(
-              fontSize: 8,
-              fontWeight: FontWeight.w700,
-              color: AppTheme.primary,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            textAlign: TextAlign.center,
-          ),
-          Text(
-            _modeLabel(slot.presentationMode),
-            style: const TextStyle(
-              fontSize: 7,
-              color: AppTheme.textSecondary,
-              letterSpacing: DesignTokens.letterSpacingEyebrow,
-            ),
-          ),
-        ],
       ),
     );
   }
 
-  String _modeLabel(String mode) {
-    switch (mode) {
-      case 'shoulder_out': return 'SHOULDER';
-      case 'folded':       return 'FOLD';
-      case 'face_out':
-      default:             return 'FACE';
+  Widget _buildFilledContent(double cellH) {
+    switch (slot.nodeType) {
+      case 'shoulder':
+        return _ShoulderContent(slot: slot);
+      case 'faceout':
+        return _FaceoutContent(slot: slot);
+      case 'ubar':
+        return _UbarContent(slot: slot);
+      case 'shelf':
+        return _ShelfContent(slot: slot);
+      default:
+        return _ShoulderContent(slot: slot);
     }
   }
 }
 
-class _DashedBorderPainter extends CustomPainter {
-  _DashedBorderPainter({required this.color, required this.radius});
+class _EmptyFixtureContent extends StatelessWidget {
+  const _EmptyFixtureContent({required this.nodeType});
+  final String nodeType;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(
+          nodeType == 'shelf'
+              ? Icons.table_rows_outlined
+              : nodeType == 'ubar'
+                  ? Icons.horizontal_rule
+                  : Icons.dry_cleaning,
+          size: 16,
+          color: const Color(0x55393735),
+        ),
+        const SizedBox(height: 4),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+          decoration: BoxDecoration(
+            border: Border.all(color: const Color(0x33393735)),
+            borderRadius: BorderRadius.circular(2),
+          ),
+          child: const Text(
+            '+ ADD',
+            style: TextStyle(
+              fontSize: 6,
+              fontWeight: FontWeight.w700,
+              color: Color(0x88393735),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ShoulderContent extends StatelessWidget {
+  const _ShoulderContent({required this.slot});
+  final PgSlot slot;
+
+  @override
+  Widget build(BuildContext context) {
+    final item = slot.items.first;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('👕', style: TextStyle(fontSize: 16)),
+        const SizedBox(height: 2),
+        Text(
+          item.productName,
+          style: const TextStyle(
+            fontSize: 7.5,
+            fontWeight: FontWeight.w700,
+            color: AppTheme.primary,
+          ),
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+        ),
+        const Text(
+          'SHOULDER',
+          style: TextStyle(
+            fontSize: 6,
+            color: AppTheme.textSecondary,
+            letterSpacing: 0.4,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _FaceoutContent extends StatelessWidget {
+  const _FaceoutContent({required this.slot});
+  final PgSlot slot;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '${slot.items.length} product${slot.items.length == 1 ? '' : 's'}',
+          style: const TextStyle(fontSize: 6.5, color: AppTheme.textSecondary),
+        ),
+        const SizedBox(height: 3),
+        ...slot.items.take(5).map((item) => Padding(
+              padding: const EdgeInsets.only(bottom: 2),
+              child: Row(
+                children: [
+                  Container(
+                    width: 6,
+                    height: 6,
+                    decoration: BoxDecoration(
+                      color: _hexColor(item.colorHex) ?? Colors.grey.shade400,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 3),
+                  Expanded(
+                    child: Text(
+                      item.productName,
+                      style: const TextStyle(
+                        fontSize: 7,
+                        fontWeight: FontWeight.w700,
+                        color: AppTheme.primary,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            )),
+      ],
+    );
+  }
+
+  Color? _hexColor(String? hex) {
+    if (hex == null) return null;
+    try {
+      return Color(int.parse(hex.replaceFirst('#', '0xFF')));
+    } catch (_) {
+      return null;
+    }
+  }
+}
+
+class _UbarContent extends StatelessWidget {
+  const _UbarContent({required this.slot});
+  final PgSlot slot;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            Container(
+                width: 5,
+                height: 5,
+                decoration: const BoxDecoration(
+                    color: AppTheme.accent, shape: BoxShape.circle)),
+            Expanded(
+                child: Container(
+                    height: 2,
+                    decoration: BoxDecoration(
+                        color: AppTheme.accent.withValues(alpha: 0.3),
+                        borderRadius: BorderRadius.circular(1)))),
+            Container(
+                width: 5,
+                height: 5,
+                decoration: const BoxDecoration(
+                    color: AppTheme.accent, shape: BoxShape.circle)),
+          ],
+        ),
+        const SizedBox(height: 4),
+        ...slot.items.take(4).map((item) => Padding(
+              padding: const EdgeInsets.only(bottom: 2),
+              child: Row(
+                children: [
+                  Container(
+                      width: 2,
+                      height: 10,
+                      decoration: BoxDecoration(
+                          color: const Color(0x66393735),
+                          borderRadius: BorderRadius.circular(1))),
+                  const SizedBox(width: 3),
+                  Expanded(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 3, vertical: 2),
+                      decoration: BoxDecoration(
+                          color: const Color(0x0D393735),
+                          borderRadius: BorderRadius.circular(2)),
+                      child: Text(
+                        item.productName,
+                        style: const TextStyle(
+                            fontSize: 7,
+                            fontWeight: FontWeight.w700,
+                            color: AppTheme.primary),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            )),
+      ],
+    );
+  }
+}
+
+class _ShelfContent extends StatelessWidget {
+  const _ShelfContent({required this.slot});
+  final PgSlot slot;
+
+  @override
+  Widget build(BuildContext context) {
+    final item = slot.items.first;
+    return Row(
+      children: [
+        const Text('📦', style: TextStyle(fontSize: 12)),
+        const SizedBox(width: 4),
+        Expanded(
+          child: Text(
+            item.productName,
+            style: const TextStyle(
+              fontSize: 7.5,
+              fontWeight: FontWeight.w700,
+              color: AppTheme.primary,
+            ),
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// Exported for _GridView empty cells in planogram_editor_screen.dart.
+class DashedBorderPainter extends CustomPainter {
+  DashedBorderPainter({required this.color, required this.radius});
   final Color color;
   final double radius;
 
@@ -254,6 +403,6 @@ class _DashedBorderPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _DashedBorderPainter old) =>
+  bool shouldRepaint(covariant DashedBorderPainter old) =>
       old.color != color || old.radius != radius;
 }

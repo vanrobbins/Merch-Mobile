@@ -8,6 +8,12 @@ import 'planogram_slot.dart';
 import 'product_slot_picker.dart';
 import 'slot_cell_widget.dart';
 
+// Quarter-height equivalent for legacy grid/bay views (1 spanQuarter = cellH/4).
+const double _kLegacyCellW = 72.0;
+const double _kLegacyCellH = 80.0;
+// Each slot defaults to spanQuarters=4, so quarterHeight = cellH / 4.
+const double _kQuarterH = _kLegacyCellH / 4;
+
 class PlanogramEditorScreen extends ConsumerStatefulWidget {
   const PlanogramEditorScreen({super.key, required this.planogramId});
   final String planogramId;
@@ -265,8 +271,8 @@ class _BayView extends StatelessWidget {
     final pg = editorState.planogram;
     if (pg == null) return const SizedBox.shrink();
 
-    const cellW = 72.0;
-    const cellH = 80.0;
+    const cellW = _kLegacyCellW;
+    const quarterH = _kQuarterH;
 
     return ListView.builder(
       padding: const EdgeInsets.all(DesignTokens.spaceMd),
@@ -379,14 +385,20 @@ class _BayView extends StatelessWidget {
                   if (blockedCols.contains(colIdx)) {
                     return Padding(
                       padding: const EdgeInsets.only(right: 4),
-                      child: SlotCellWidget(
-                        slot: PgSlot(
-                            id: '', position: 0, row: rowIdx, col: colIdx),
-                        isActive: false,
-                        isBlocked: true,
-                        cellWidth: cellW,
-                        cellHeight: cellH,
-                        productType: null,
+                      child: SizedBox(
+                        width: cellW,
+                        height: _kLegacyCellH,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade200,
+                            border: Border.all(color: Colors.grey.shade300),
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                          child: const Center(
+                            child: Icon(Icons.lock_outline,
+                                size: 14, color: Colors.grey),
+                          ),
+                        ),
                       ),
                     );
                   }
@@ -402,14 +414,12 @@ class _BayView extends StatelessWidget {
                       activeRow == rowIdx && activeCol == colIdx;
                   return Padding(
                     padding: const EdgeInsets.only(right: 4),
-                    child: SlotCellWidget(
+                    child: _ActiveSlotWrapper(
                       slot: slot,
                       isActive: isActive,
-                      isBlocked: false,
                       cellWidth: cellW,
-                      cellHeight: cellH,
-                      productType: null,
-                      onTap: slot.productId != null
+                      quarterHeight: quarterH,
+                      onTap: slot.items.isNotEmpty
                           ? () => onTapFilled(rowIdx, colIdx)
                           : () => onTapEmpty(rowIdx, colIdx),
                       onLongPress: () => onLongPress(rowIdx, colIdx),
@@ -464,8 +474,8 @@ class _GridView extends StatelessWidget {
     final pg = editorState.planogram;
     if (pg == null) return const SizedBox.shrink();
 
-    const cellW = 72.0;
-    const cellH = 80.0;
+    const cellW = _kLegacyCellW;
+    const quarterH = _kQuarterH;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(DesignTokens.spaceMd),
@@ -489,14 +499,12 @@ class _GridView extends StatelessWidget {
                     activeRow == rowIdx && activeCol == colIdx;
                 return Padding(
                   padding: const EdgeInsets.only(right: 4),
-                  child: SlotCellWidget(
+                  child: _ActiveSlotWrapper(
                     slot: slot,
                     isActive: isActive,
-                    isBlocked: false,
                     cellWidth: cellW,
-                    cellHeight: cellH,
-                    productType: null,
-                    onTap: slot.productId != null
+                    quarterHeight: quarterH,
+                    onTap: slot.items.isNotEmpty
                         ? () => onTapFilled(rowIdx, colIdx)
                         : () => onTapEmpty(rowIdx, colIdx),
                     onLongPress: () => onLongPress(rowIdx, colIdx),
@@ -510,6 +518,125 @@ class _GridView extends StatelessWidget {
           );
         }),
       ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Active-slot wrapper — adds long-press + drag handles around SlotCellWidget.
+// ---------------------------------------------------------------------------
+
+class _ActiveSlotWrapper extends StatelessWidget {
+  const _ActiveSlotWrapper({
+    required this.slot,
+    required this.isActive,
+    required this.cellWidth,
+    required this.quarterHeight,
+    this.onTap,
+    this.onLongPress,
+    this.onSpanColsDrag,
+    this.onSpanRowsDrag,
+    this.onRotate,
+  });
+
+  final PgSlot slot;
+  final bool isActive;
+  final double cellWidth;
+  final double quarterHeight;
+  final VoidCallback? onTap;
+  final VoidCallback? onLongPress;
+  final ValueChanged<int>? onSpanColsDrag;
+  final ValueChanged<int>? onSpanRowsDrag;
+  final VoidCallback? onRotate;
+
+  @override
+  Widget build(BuildContext context) {
+    final cellH = quarterHeight * slot.spanQuarters +
+        (slot.spanQuarters - 1) * 2.0;
+
+    Widget child = GestureDetector(
+      onLongPress: onLongPress,
+      child: SlotCellWidget(
+        slot: slot,
+        cellWidth: cellWidth,
+        quarterHeight: quarterHeight,
+        isActive: isActive,
+        onPress: onTap,
+      ),
+    );
+
+    if (!isActive) return child;
+
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        child,
+        // Right edge — spanCols drag handle
+        Positioned(
+          right: -10,
+          top: 0,
+          bottom: 0,
+          child: GestureDetector(
+            onHorizontalDragUpdate: (d) {
+              if (onSpanColsDrag == null) return;
+              final newSpan =
+                  (slot.spanCols + (d.delta.dx / cellWidth).round())
+                      .clamp(1, 4);
+              onSpanColsDrag!(newSpan);
+            },
+            child: Container(
+              width: 20,
+              decoration: BoxDecoration(
+                color: AppTheme.accent.withValues(alpha: 0.8),
+                borderRadius: BorderRadius.circular(2),
+              ),
+              child:
+                  const Icon(Icons.chevron_right, size: 14, color: Colors.white),
+            ),
+          ),
+        ),
+        // Bottom edge — spanRows drag handle
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: -10,
+          child: GestureDetector(
+            onVerticalDragUpdate: (d) {
+              if (onSpanRowsDrag == null) return;
+              final newSpan =
+                  (slot.spanRows + (d.delta.dy / cellH).round()).clamp(1, 6);
+              onSpanRowsDrag!(newSpan);
+            },
+            child: Container(
+              height: 20,
+              decoration: BoxDecoration(
+                color: AppTheme.accent.withValues(alpha: 0.8),
+                borderRadius: BorderRadius.circular(2),
+              ),
+              child:
+                  const Icon(Icons.expand_more, size: 14, color: Colors.white),
+            ),
+          ),
+        ),
+        // Top-right corner — rotation
+        Positioned(
+          right: -8,
+          top: -8,
+          child: GestureDetector(
+            onTap: onRotate,
+            child: Container(
+              width: 22,
+              height: 22,
+              decoration: const BoxDecoration(
+                color: AppTheme.primary,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.rotate_90_degrees_cw,
+                  size: 12, color: Colors.white),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
