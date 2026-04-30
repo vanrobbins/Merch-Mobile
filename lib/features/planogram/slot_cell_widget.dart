@@ -166,7 +166,9 @@ class _EmptyFixtureContent extends StatelessWidget {
               ? Icons.table_rows_outlined
               : nodeType == 'ubar'
                   ? Icons.horizontal_rule
-                  : Icons.dry_cleaning,
+                  : nodeType == 'faceout'
+                      ? Icons.view_agenda_outlined
+                      : Icons.dry_cleaning,
           size: 16,
           color: const Color(0x55393735),
         ),
@@ -197,6 +199,7 @@ class _ShoulderContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (slot.items.isEmpty) return const SizedBox.shrink();
     final item = slot.items.first;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -353,6 +356,7 @@ class _ShelfContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (slot.items.isEmpty) return const SizedBox.shrink();
     final item = slot.items.first;
     return Row(
       children: [

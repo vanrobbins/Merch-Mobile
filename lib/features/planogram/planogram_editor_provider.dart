@@ -134,10 +134,9 @@ class PlanogramEditorNotifier extends _$PlanogramEditorNotifier {
     }
     // shoulder / faceout / ubar: size to tallest item
     if (items.isEmpty) return 4;
-    final maxHang = items.map((i) => hangLength(i.category)).reduce(math.max);
-    return autoSpanQuarters(
-        items.firstWhere((i) => hangLength(i.category) == maxHang).category,
-        rowHeightIn);
+    final tallest = items.reduce((a, b) =>
+        hangLength(a.category) >= hangLength(b.category) ? a : b);
+    return autoSpanQuarters(tallest.category, rowHeightIn);
   }
 
   /// Wrap a mutation: capture before → mutate → record entry.
@@ -297,6 +296,9 @@ class PlanogramEditorNotifier extends _$PlanogramEditorNotifier {
       subRow: subRow,
       spanQuarters: nodeType == 'shelf' ? emptyShelfQuarters : 4,
     );
+    // newSlot is constructed before _record() so the before-snapshot (captured
+    // inside _record) still reflects pre-mutation state. Do not add newSlot to
+    // state.slots before the _record call.
     _record('Place fixture', () {
       state = state.copyWith(slots: [...state.slots, newSlot]);
     });
@@ -330,9 +332,11 @@ class PlanogramEditorNotifier extends _$PlanogramEditorNotifier {
           if (s.items.length >= cap) return s;
           final newItems = [...s.items, item];
           final rh = _rowHeightForSubRow(subRow);
+          final totalQuarters = (state.planogram?.rows ?? 1) * 4;
+          final maxQ = totalQuarters - subRow;
           return s.copyWith(
             items: newItems,
-            spanQuarters: _computeSpan(s.nodeType, newItems, rh),
+            spanQuarters: _computeSpan(s.nodeType, newItems, rh).clamp(1, maxQ),
           );
         }).toList(),
       );
@@ -348,9 +352,11 @@ class PlanogramEditorNotifier extends _$PlanogramEditorNotifier {
           if (s.col != col || s.subRow != subRow) return s;
           final newItems = [...s.items]..removeAt(itemIndex);
           final rh = _rowHeightForSubRow(subRow);
+          final totalQuarters = (state.planogram?.rows ?? 1) * 4;
+          final maxQ = totalQuarters - subRow;
           return s.copyWith(
             items: newItems,
-            spanQuarters: _computeSpan(s.nodeType, newItems, rh),
+            spanQuarters: _computeSpan(s.nodeType, newItems, rh).clamp(1, maxQ),
           );
         }).toList(),
       );
@@ -372,8 +378,10 @@ class PlanogramEditorNotifier extends _$PlanogramEditorNotifier {
       // Re-compute spanQuarters for all fixtures in this row.
       final newSlots = state.slots.map((s) {
         if (s.subRow ~/ 4 != rowIndex) return s;
+        final totalQ = (state.planogram?.rows ?? 1) * 4;
         return s.copyWith(
-            spanQuarters: _computeSpan(s.nodeType, s.items, heightIn));
+            spanQuarters: _computeSpan(s.nodeType, s.items, heightIn)
+                .clamp(1, totalQ - s.subRow));
       }).toList();
       state = state.copyWith(rows: newRows, slots: newSlots);
     });

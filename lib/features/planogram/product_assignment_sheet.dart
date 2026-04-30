@@ -180,7 +180,7 @@ class ProductAssignmentSheet extends ConsumerWidget {
                                         fontSize: 11,
                                         fontWeight: FontWeight.w500)),
                                 Text(
-                                    '${item.productSku} · ${hangLength(item.category)}"',
+                                    '${item.productSku} · ${currentSlot.nodeType == 'shelf' ? foldedHeight(item.category) : hangLength(item.category)}"',
                                     style: const TextStyle(
                                         fontSize: 9,
                                         color: AppTheme.textSecondary)),
