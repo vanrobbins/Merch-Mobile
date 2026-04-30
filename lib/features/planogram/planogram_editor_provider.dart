@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -7,6 +9,8 @@ import '../../core/services/firestore_refs.dart';
 import 'pg_row.dart';
 import 'planogram_provider.dart';
 import 'planogram_slot.dart';
+import 'slot_item.dart';
+import 'slot_sizing.dart';
 
 part 'planogram_editor_provider.g.dart';
 
@@ -110,6 +114,31 @@ class PlanogramEditorNotifier extends _$PlanogramEditorNotifier {
 
   String _currentSlotsJson() => PgSlot.encodeList(state.slots);
   String _currentRowsJson() => PgRow.encodeList(state.rows);
+
+  // Returns the heightIn of the row that contains [subRow].
+  double _rowHeightForSubRow(int subRow) {
+    final rowIndex = subRow ~/ 4;
+    if (rowIndex >= state.rows.length) return 24.0;
+    return state.rows[rowIndex].heightIn;
+  }
+
+  // Compute spanQuarters for [nodeType] given [items] (or empty placeholder).
+  int _computeSpan(String nodeType, List<SlotItem> items, double rowHeightIn) {
+    if (nodeType == 'shelf') {
+      if (items.isEmpty) return emptyShelfQuarters;
+      final maxFolded = items
+          .map((i) => foldedHeight(i.category))
+          .reduce(math.max);
+      final quarterIn = rowHeightIn / 4;
+      return math.max(2, (maxFolded / quarterIn).ceil() + 1);
+    }
+    // shoulder / faceout / ubar: size to tallest item
+    if (items.isEmpty) return 4;
+    final maxHang = items.map((i) => hangLength(i.category)).reduce(math.max);
+    return autoSpanQuarters(
+        items.firstWhere((i) => hangLength(i.category) == maxHang).category,
+        rowHeightIn);
+  }
 
   /// Wrap a mutation: capture before → mutate → record entry.
   void _record(String label, void Function() mutate) {
@@ -244,6 +273,109 @@ class PlanogramEditorNotifier extends _$PlanogramEditorNotifier {
           return r.copyWith(rowType: rowType);
         }).toList(),
       );
+    });
+  }
+
+  // -------------------------------------------------------------------------
+  // Fixture placement
+  // -------------------------------------------------------------------------
+
+  /// Place an empty fixture at [col] × [subRow] with the given [nodeType].
+  /// No-op if a fixture already exists at that position.
+  void placeFixture(int col, int subRow, String nodeType) {
+    if (state.slots.any((s) => s.col == col && s.subRow == subRow)) return;
+    final pg = state.planogram;
+    if (pg == null) return;
+    final id = 'slot_${col}_$subRow';
+    final rowIndex = subRow ~/ 4;
+    final newSlot = PgSlot(
+      id: id,
+      position: subRow * pg.cols + col + 1,
+      row: rowIndex,
+      col: col,
+      nodeType: nodeType,
+      subRow: subRow,
+      spanQuarters: nodeType == 'shelf' ? emptyShelfQuarters : 4,
+    );
+    _record('Place fixture', () {
+      state = state.copyWith(slots: [...state.slots, newSlot]);
+    });
+  }
+
+  /// Remove the fixture at [col] × [subRow].
+  void removeFixture(int col, int subRow) {
+    _record('Remove fixture', () {
+      state = state.copyWith(
+        slots: state.slots
+            .where((s) => !(s.col == col && s.subRow == subRow))
+            .toList(),
+      );
+    });
+  }
+
+  // -------------------------------------------------------------------------
+  // Item assignment
+  // -------------------------------------------------------------------------
+
+  static const _capacity = {'shoulder': 1, 'faceout': 6, 'ubar': 6, 'shelf': 99};
+
+  /// Append [item] to the fixture at [col] × [subRow].
+  /// Enforces type capacity. Auto-sizes [spanQuarters] after adding.
+  void addItemToSlot(int col, int subRow, SlotItem item) {
+    _record('Add item', () {
+      state = state.copyWith(
+        slots: state.slots.map((s) {
+          if (s.col != col || s.subRow != subRow) return s;
+          final cap = _capacity[s.nodeType] ?? 6;
+          if (s.items.length >= cap) return s;
+          final newItems = [...s.items, item];
+          final rh = _rowHeightForSubRow(subRow);
+          return s.copyWith(
+            items: newItems,
+            spanQuarters: _computeSpan(s.nodeType, newItems, rh),
+          );
+        }).toList(),
+      );
+    });
+  }
+
+  /// Remove the item at [itemIndex] from the fixture at [col] × [subRow].
+  /// Auto-sizes [spanQuarters] after removal.
+  void removeItemFromSlot(int col, int subRow, int itemIndex) {
+    _record('Remove item', () {
+      state = state.copyWith(
+        slots: state.slots.map((s) {
+          if (s.col != col || s.subRow != subRow) return s;
+          final newItems = [...s.items]..removeAt(itemIndex);
+          final rh = _rowHeightForSubRow(subRow);
+          return s.copyWith(
+            items: newItems,
+            spanQuarters: _computeSpan(s.nodeType, newItems, rh),
+          );
+        }).toList(),
+      );
+    });
+  }
+
+  // -------------------------------------------------------------------------
+  // Row height
+  // -------------------------------------------------------------------------
+
+  /// Update the physical height of row [rowIndex] and re-size all fixtures
+  /// whose subRow falls in that row.
+  void setRowHeight(int rowIndex, double heightIn) {
+    _record('Set row height', () {
+      final newRows = state.rows.map((r) {
+        if (r.index != rowIndex) return r;
+        return r.copyWith(heightIn: heightIn);
+      }).toList();
+      // Re-compute spanQuarters for all fixtures in this row.
+      final newSlots = state.slots.map((s) {
+        if (s.subRow ~/ 4 != rowIndex) return s;
+        return s.copyWith(
+            spanQuarters: _computeSpan(s.nodeType, s.items, heightIn));
+      }).toList();
+      state = state.copyWith(rows: newRows, slots: newSlots);
     });
   }
 
