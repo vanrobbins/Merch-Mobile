@@ -7,11 +7,12 @@ import '../../core/theme/design_tokens.dart';
 import '../product_catalog/catalog_provider.dart';
 import 'planogram_provider.dart';
 
-/// Signature for the editor callback: productId, name, sku, optional colorHex.
+/// Signature for the editor callback: productId, name, sku, category, optional colorHex.
 typedef SlotAssignCallback = void Function(
   String productId,
   String name,
-  String sku, {
+  String sku,
+  String category, {
   String? colorHex,
 });
 
@@ -226,7 +227,7 @@ class _ProductSlotPickerState extends ConsumerState<ProductSlotPicker> {
   Future<void> _assign(Product product) async {
     if (widget.onAssign != null) {
       // Editor callback path
-      widget.onAssign!(product.id, product.name, product.sku);
+      widget.onAssign!(product.id, product.name, product.sku, product.category);
       if (mounted) Navigator.pop(context);
       return;
     }

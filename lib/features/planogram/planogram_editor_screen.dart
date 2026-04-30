@@ -184,7 +184,7 @@ class _PlanogramEditorScreenState
     ProductSlotPicker.show(
       context,
       planogramId: widget.planogramId,
-      onAssign: (productId, name, sku, {colorHex}) {
+      onAssign: (productId, name, sku, category, {colorHex}) {
         ref
             .read(planogramEditorNotifierProvider(widget.planogramId)
                 .notifier)
