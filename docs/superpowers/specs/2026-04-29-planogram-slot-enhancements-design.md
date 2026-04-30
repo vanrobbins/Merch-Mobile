@@ -78,11 +78,26 @@ class SlotItem {
 Each row is divided into **4 quarter-slots** vertically.
 
 - **Quarter height in px:** `rowHeightPx / 4`
-- **Shelf** always occupies exactly **1 quarter-slot** (fixed).
+- **Shelf** auto-sizes to the **folded height** of its assigned item (see table below), minimum 1 quarter.
 - **Shoulder, Face-out, U-bar** occupy `ceil(hangLength / (rowHeightIn / 4))` quarter-slots, minimum 1.
 - **Free column placement:** fixtures stack in any order within a column. A shelf at the top leaves 3 free quarter-slots below for hanging fixtures. No restrictions on mixing types in a column.
 
-### Hang length lookup (by `Product.category` keywords, case-insensitive)
+### Folded height lookup — shelves (by `Product.category` keywords, case-insensitive)
+
+| Keywords | Folded height | Quarters (at 24" row) |
+|---|---|---|
+| hoodie, sweater, gown | 12" | 2 |
+| jacket, blazer | 10" | 2 |
+| pants, jeans, trousers, dress | 8" | 2 |
+| shirt, blouse, top, tee, tank, shorts | 6" | 1 |
+| bra, bralette, underwear, lingerie | 4" | 1 |
+| everything else | 6" | 1 |
+
+Pure function: `int foldedQuarters(String category, double rowHeightIn)` — same structure as `autoSpanQuarters`.
+
+**Shelf clearance (enforced):** shelf `spanQuarters = foldedQuarters(item) + 1`. The extra quarter (6" at default 24" rows) is mandatory headroom so items are reachable. Empty shelf = 1 + 1 = **2 quarters minimum**. Users can manually reduce via the span stepper if they need to override.
+
+### Hang length lookup — hanging fixtures (by `Product.category` keywords, case-insensitive)
 
 | Keywords | Hang length |
 |---|---|
@@ -102,7 +117,8 @@ Pure function: `int autoSpanQuarters(String longestCategory, double rowHeightIn)
 3. `return max(1, (hangIn / quarterIn).ceil())`
 
 For **shoulder**: called with the single item's category.  
-For **face-out / u-bar**: called with the category of the tallest item in `items`. Recalculated on every add/remove.
+For **face-out / u-bar**: called with the category of the tallest item in `items`. Recalculated on every add/remove.  
+For **shelf**: calls `foldedQuarters(item.category, rowHeightIn)`. Recalculates when item is replaced. Empty shelf = 1 quarter.
 
 **Fit warning:** if the total hang length exceeds the available column height, the slot cell shows a red `!` badge. The assignment is still saved.
 
