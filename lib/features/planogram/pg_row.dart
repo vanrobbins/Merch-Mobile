@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+/// A row in a planogram (wall/shelf/rack/table).
+/// Stored as JSON in [Planogram.rowsJson].
 class PgRow {
   final int index;
   final String rowType; // 'bar' | 'shelf'
@@ -45,6 +47,8 @@ class PgRow {
         .toList();
   }
 
+  /// Default rows for a new planogram.
+  /// Wall/shelf/rack default to 'bar'. Table defaults to 'shelf'.
   static List<PgRow> defaults(int count, String planogramType) =>
       List.generate(
         count,
