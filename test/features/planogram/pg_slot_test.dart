@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:merch_mobile/features/planogram/planogram_slot.dart';
+import 'package:merch_mobile/features/planogram/slot_item.dart';
 
 void main() {
   group('PgSlot.fromJson / toJson round-trip', () {
@@ -101,5 +102,77 @@ void main() {
     test('rack → shoulder_out', () => expect(PgSlot.defaultMode('rack'), 'shoulder_out'));
     test('shelf → shoulder_out', () => expect(PgSlot.defaultMode('shelf'), 'shoulder_out'));
     test('table → folded', () => expect(PgSlot.defaultMode('table'), 'folded'));
+  });
+
+  group('PgSlot new fields', () {
+    test('new fields survive round-trip', () {
+      final slot = PgSlot(
+        id: 'slot_1_0',
+        position: 1,
+        col: 1,
+        nodeType: 'faceout',
+        items: [
+          SlotItem(
+              productId: 'p1',
+              productName: 'Shirt A',
+              productSku: 'SA-001',
+              category: 'shirt',
+              colorHex: '#BF5534'),
+        ],
+        subRow: 4,
+        spanQuarters: 5,
+      );
+      final restored = PgSlot.fromJson(slot.toJson());
+      expect(restored.nodeType, 'faceout');
+      expect(restored.items.length, 1);
+      expect(restored.items.first.productSku, 'SA-001');
+      expect(restored.items.first.category, 'shirt');
+      expect(restored.subRow, 4);
+      expect(restored.spanQuarters, 5);
+    });
+
+    test('back-compat: legacy productId wrapped into items', () {
+      final oldJson = <String, dynamic>{
+        'id': 'slot_0_2',
+        'position': 3,
+        'row': 0,
+        'col': 2,
+        'productId': 'p99',
+        'productName': 'Old Jacket',
+        'productSku': 'OJ-001',
+        'spanRows': 2,
+      };
+      final slot = PgSlot.fromJson(oldJson);
+      expect(slot.items.length, 1);
+      expect(slot.items.first.productId, 'p99');
+      expect(slot.items.first.productName, 'Old Jacket');
+      expect(slot.items.first.category, 'other'); // no category in old data
+      expect(slot.subRow, 0); // row 0 → subRow 0
+      expect(slot.spanQuarters, 8); // spanRows 2 → 8 quarters
+      expect(slot.nodeType, 'shoulder'); // default
+    });
+
+    test('back-compat: no items and no productId → empty items list', () {
+      final json = <String, dynamic>{'id': 's1', 'position': 1, 'row': 0, 'col': 0};
+      final slot = PgSlot.fromJson(json);
+      expect(slot.items, isEmpty);
+      expect(slot.nodeType, 'shoulder');
+    });
+
+    test('cleared() removes items and resets spanQuarters to 4', () {
+      final slot = PgSlot(
+        id: 's1',
+        position: 1,
+        col: 0,
+        nodeType: 'faceout',
+        items: [SlotItem(productId: 'p1', productName: 'X', productSku: 'X', category: 'shirt')],
+        subRow: 0,
+        spanQuarters: 5,
+      );
+      final cleared = slot.cleared();
+      expect(cleared.items, isEmpty);
+      expect(cleared.spanQuarters, 4);
+      expect(cleared.nodeType, 'faceout'); // type preserved
+    });
   });
 }
