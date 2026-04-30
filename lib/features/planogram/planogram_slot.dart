@@ -86,6 +86,8 @@ class PgSlot {
       );
 
   /// Return a cleared slot: items removed, spanQuarters reset to 4 (1 row).
+  /// Legacy grid fields (spanCols, rotation) also reset to defaults so
+  /// _GridView cleared cells start from a clean state.
   PgSlot cleared() => PgSlot(
         id: id,
         position: position,
@@ -94,6 +96,8 @@ class PgSlot {
         nodeType: nodeType,
         subRow: subRow,
         spanQuarters: 4,
+        // spanCols, rotation, productId/Name/Sku intentionally omitted —
+        // constructor defaults (1, 0, null) reset legacy _GridView fields.
         presentationMode: presentationMode,
       );
 

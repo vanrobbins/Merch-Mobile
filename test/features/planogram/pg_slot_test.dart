@@ -174,5 +174,21 @@ void main() {
       expect(cleared.spanQuarters, 4);
       expect(cleared.nodeType, 'faceout'); // type preserved
     });
+
+    test('items key present (even empty) takes priority over legacy productId', () {
+      final json = <String, dynamic>{
+        'id': 's2',
+        'position': 1,
+        'row': 0,
+        'col': 0,
+        'items': [],           // explicit empty list
+        'productId': 'p99',   // stale legacy field co-existing
+      };
+      final slot = PgSlot.fromJson(json);
+      // items key wins — do not fall through to productId synthesiser
+      expect(slot.items, isEmpty);
+      // legacy productId is preserved (needed by _GridView which reads it directly)
+      expect(slot.productId, 'p99');
+    });
   });
 }
