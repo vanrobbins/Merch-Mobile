@@ -44,7 +44,7 @@ final currentMembershipProvider =
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef CurrentMembershipRef = AutoDisposeStreamProviderRef<StoreMembership?>;
-String _$myStoresHash() => r'e52d3a512b15c139ad74d20ac68dbbe37e53313e';
+String _$myStoresHash() => r'2492e53b979ff569877b4ef2003495986ed5c0b0';
 
 /// All stores where the current user has an active membership.
 /// Primary source: /userStores/{uid} document (fast, no index needed).

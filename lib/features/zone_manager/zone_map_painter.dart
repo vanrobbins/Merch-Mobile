@@ -229,15 +229,13 @@ class ZoneMapPainter extends CustomPainter {
       text: TextSpan(
         text: zone.name.toUpperCase(),
         style: TextStyle(
-          // ignore: deprecated_member_use
-          color: color.withOpacity(0.95),
+          color: color.withValues(alpha: 0.95),
           fontSize: 10,
           fontWeight: FontWeight.w700,
           letterSpacing: 1.0,
           shadows: [
             Shadow(
-              // ignore: deprecated_member_use
-              color: Colors.white.withOpacity(0.7),
+              color: Colors.white.withValues(alpha: 0.7),
               blurRadius: 3,
             ),
           ],

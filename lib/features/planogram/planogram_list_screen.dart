@@ -18,8 +18,6 @@ import '../../core/widgets/role_guard.dart';
 import 'pg_row.dart';
 import 'planogram_provider.dart';
 
-/// List of planograms for the active store. Coordinator/manager can create
-/// new planograms; staff see the list read-only.
 class PlanogramListScreen extends ConsumerWidget {
   const PlanogramListScreen({super.key});
 
@@ -28,122 +26,79 @@ class PlanogramListScreen extends ConsumerWidget {
     final planogramsAsync = ref.watch(planogramListProvider);
 
     return Scaffold(
-      body: planogramsAsync.when(
-        data: (planograms) => CustomScrollView(
-          slivers: [
-            const SliverAppBar(
-              expandedHeight: 88,
-              pinned: true,
-              backgroundColor: AppTheme.primary,
-              flexibleSpace: FlexibleSpaceBar(
-                titlePadding: EdgeInsets.fromLTRB(16, 0, 16, 12),
-                title: Text(
-                  'PLANOGRAMS',
-                  style: TextStyle(
-                    color: AppTheme.canvasBg,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w700,
-                  ),
+      body: CustomScrollView(
+        slivers: [
+          const SliverAppBar(
+            expandedHeight: 88,
+            pinned: true,
+            backgroundColor: AppTheme.primary,
+            flexibleSpace: FlexibleSpaceBar(
+              titlePadding: EdgeInsets.fromLTRB(16, 0, 16, 12),
+              title: Text(
+                'PLANOGRAMS',
+                style: TextStyle(
+                  color: AppTheme.canvasBg,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
                 ),
-                collapseMode: CollapseMode.pin,
               ),
+              collapseMode: CollapseMode.pin,
             ),
-            if (planograms.isEmpty)
-              const SliverFillRemaining(
-                child: MmEmptyState(
-                  icon: Icons.grid_view_outlined,
-                  headline: 'No Planograms',
-                  body: 'Create a planogram to start arranging products.',
-                ),
-              )
-            else
-              SliverPadding(
-                padding: const EdgeInsets.all(DesignTokens.spaceMd),
-                sliver: SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (_, i) => Padding(
-                      padding: const EdgeInsets.only(
-                          bottom: DesignTokens.spaceSm),
-                      child: MmListSection(
-                        children: [
-                          MmListTile(
-                            title: planograms[i].title,
-                            subtitle:
-                                '${planograms[i].season} · ${planograms[i].status.toUpperCase()}',
-                            onTap: () => context.goNamed(
-                              AppRoutes.planogramDetail,
-                              pathParameters: {
-                                'planogramId': planograms[i].id
-                              },
-                            ),
+          ),
+          planogramsAsync.when(
+            data: (planograms) => planograms.isEmpty
+                ? const SliverFillRemaining(
+                    child: MmEmptyState(
+                      icon: Icons.grid_view_outlined,
+                      headline: 'No Planograms',
+                      body: 'Create a planogram to start arranging products.',
+                    ),
+                  )
+                : SliverPadding(
+                    padding: const EdgeInsets.all(DesignTokens.spaceMd),
+                    sliver: SliverList(
+                      delegate: SliverChildBuilderDelegate(
+                        (_, i) => Padding(
+                          padding: const EdgeInsets.only(
+                              bottom: DesignTokens.spaceSm),
+                          child: MmListSection(
+                            children: [
+                              MmListTile(
+                                title: planograms[i].title,
+                                subtitle:
+                                    '${planograms[i].season} · ${planograms[i].status.toUpperCase()}',
+                                onTap: () => context.goNamed(
+                                  AppRoutes.planogramDetail,
+                                  pathParameters: {
+                                    'planogramId': planograms[i].id
+                                  },
+                                ),
+                              ),
+                            ],
                           ),
-                        ],
+                        ),
+                        childCount: planograms.length,
                       ),
                     ),
-                    childCount: planograms.length,
                   ),
-                ),
-              ),
-          ],
-        ),
-        loading: () => const CustomScrollView(
-          slivers: [
-            SliverAppBar(
-              expandedHeight: 88,
-              pinned: true,
-              backgroundColor: AppTheme.primary,
-              flexibleSpace: FlexibleSpaceBar(
-                titlePadding: EdgeInsets.fromLTRB(16, 0, 16, 12),
-                title: Text(
-                  'PLANOGRAMS',
-                  style: TextStyle(
-                    color: AppTheme.canvasBg,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                collapseMode: CollapseMode.pin,
-              ),
+            loading: () => const SliverFillRemaining(
+              child: Center(
+                  child: CircularProgressIndicator(color: AppTheme.accent)),
             ),
-            SliverFillRemaining(
-              child: Center(child: CircularProgressIndicator(color: AppTheme.accent)),
-            ),
-          ],
-        ),
-        error: (e, _) => CustomScrollView(
-          slivers: [
-            const SliverAppBar(
-              expandedHeight: 88,
-              pinned: true,
-              backgroundColor: AppTheme.primary,
-              flexibleSpace: FlexibleSpaceBar(
-                titlePadding: EdgeInsets.fromLTRB(16, 0, 16, 12),
-                title: Text(
-                  'PLANOGRAMS',
-                  style: TextStyle(
-                    color: AppTheme.canvasBg,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                collapseMode: CollapseMode.pin,
-              ),
-            ),
-            SliverFillRemaining(
+            error: (e, _) => SliverFillRemaining(
               child: Center(
                 child: Padding(
                   padding: const EdgeInsets.all(DesignTokens.spaceLg),
                   child: Text(
                     'Error: $e',
-                    style:
-                        const TextStyle(color: AppTheme.textSecondary),
+                    style: const TextStyle(color: AppTheme.textSecondary),
                     textAlign: TextAlign.center,
                   ),
                 ),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
       floatingActionButton: RoleGuard(
         allowedRoles: const ['coordinator', 'manager'],
@@ -185,10 +140,7 @@ class PlanogramListScreen extends ConsumerWidget {
                   maxLength: 80,
                 ),
                 const SizedBox(height: 8),
-                MmTextField(
-                  label: 'Season',
-                  controller: seasonCtrl,
-                ),
+                MmTextField(label: 'Season', controller: seasonCtrl),
                 const SizedBox(height: 16),
                 const MmEyebrow('TYPE'),
                 const SizedBox(height: 6),
@@ -250,8 +202,7 @@ class PlanogramListScreen extends ConsumerWidget {
                 ? ((linearFt ?? 8.0) / 2).round().clamp(1, 20)
                 : (int.tryParse(colsCtrl.text.trim()) ?? 4);
 
-            final storeId =
-                ref.read(activeStoreIdProvider).value ?? '';
+            final storeId = ref.read(activeStoreIdProvider).value ?? '';
             final planogram = Planogram(
               id: const Uuid().v4(),
               title: title,
@@ -260,8 +211,7 @@ class PlanogramListScreen extends ConsumerWidget {
               rows: rowCount,
               cols: cols,
               linearFt: linearFt,
-              rowsJson:
-                  PgRow.encodeList(PgRow.defaults(rowCount, selectedType)),
+              rowsJson: PgRow.encodeList(PgRow.defaults(rowCount, selectedType)),
               slotsJson: '',
               updatedAt: DateTime.now(),
             );

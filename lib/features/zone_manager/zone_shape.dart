@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:ui';
 
-/// Converts between List<Offset> and the JSON stored in zones.shapePoints.
+/// Converts between `List<Offset>` and the JSON stored in zones.shapePoints.
 class ZoneShape {
   static String encode(List<Offset> points) =>
       jsonEncode(points.map((p) => {'x': p.dx, 'y': p.dy}).toList());

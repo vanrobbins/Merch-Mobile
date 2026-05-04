@@ -7,7 +7,7 @@ part of 'planogram_editor_provider.dart';
 // **************************************************************************
 
 String _$planogramEditorNotifierHash() =>
-    r'03f89cc1b9b5cff8ac5bd6b6d2682e3268138e7a';
+    r'8371be800d313922fb067a26bf498e46b67e0a92';
 
 /// Copied from Dart SDK
 class _SystemHash {

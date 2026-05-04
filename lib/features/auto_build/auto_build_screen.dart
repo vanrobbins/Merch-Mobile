@@ -16,6 +16,21 @@ import 'presets_sheet.dart';
 // accommodates an async compute/apply flow so the upgrade is additive.
 // Staff see a read-only preview (compute / apply are RoleGuarded).
 
+ButtonStyle _segmentedStyle() => ButtonStyle(
+      shape: WidgetStateProperty.all(const RoundedRectangleBorder(
+        borderRadius:
+            BorderRadius.all(Radius.circular(DesignTokens.radiusSm)),
+      )),
+      backgroundColor: WidgetStateProperty.resolveWith((s) =>
+          s.contains(WidgetState.selected)
+              ? AppTheme.accent
+              : AppTheme.surfaceVariant),
+      foregroundColor: WidgetStateProperty.resolveWith((s) =>
+          s.contains(WidgetState.selected)
+              ? AppTheme.canvasBg
+              : AppTheme.textPrimary),
+    );
+
 class AutoBuildScreen extends ConsumerStatefulWidget {
   const AutoBuildScreen({super.key, required this.zoneId});
 
@@ -90,26 +105,7 @@ class _AutoBuildScreenState extends ConsumerState<AutoBuildScreen> {
                     selected: {_season},
                     onSelectionChanged: (s) =>
                         setState(() => _season = s.first),
-                    style: ButtonStyle(
-                      shape: WidgetStateProperty.all(
-                        const RoundedRectangleBorder(
-                          borderRadius: BorderRadius.all(
-                              Radius.circular(DesignTokens.radiusSm)),
-                        ),
-                      ),
-                      backgroundColor: WidgetStateProperty.resolveWith((states) {
-                        if (states.contains(WidgetState.selected)) {
-                          return AppTheme.accent;
-                        }
-                        return AppTheme.surfaceVariant;
-                      }),
-                      foregroundColor: WidgetStateProperty.resolveWith((states) {
-                        if (states.contains(WidgetState.selected)) {
-                          return AppTheme.canvasBg;
-                        }
-                        return AppTheme.textPrimary;
-                      }),
-                    ),
+                    style: _segmentedStyle(),
                   ),
                   const SizedBox(height: DesignTokens.spaceMd),
                   // STYLE
@@ -130,26 +126,7 @@ class _AutoBuildScreenState extends ConsumerState<AutoBuildScreen> {
                     onSelectionChanged: (s) => ref
                         .read(autoBuildNotifierProvider.notifier)
                         .setLayoutStyle(s.first),
-                    style: ButtonStyle(
-                      shape: WidgetStateProperty.all(
-                        const RoundedRectangleBorder(
-                          borderRadius: BorderRadius.all(
-                              Radius.circular(DesignTokens.radiusSm)),
-                        ),
-                      ),
-                      backgroundColor: WidgetStateProperty.resolveWith((states) {
-                        if (states.contains(WidgetState.selected)) {
-                          return AppTheme.accent;
-                        }
-                        return AppTheme.surfaceVariant;
-                      }),
-                      foregroundColor: WidgetStateProperty.resolveWith((states) {
-                        if (states.contains(WidgetState.selected)) {
-                          return AppTheme.canvasBg;
-                        }
-                        return AppTheme.textPrimary;
-                      }),
-                    ),
+                    style: _segmentedStyle(),
                   ),
                   const SizedBox(height: DesignTokens.spaceMd),
                   // DENSITY
@@ -169,26 +146,7 @@ class _AutoBuildScreenState extends ConsumerState<AutoBuildScreen> {
                     onSelectionChanged: (s) => ref
                         .read(autoBuildNotifierProvider.notifier)
                         .setDensity(s.first),
-                    style: ButtonStyle(
-                      shape: WidgetStateProperty.all(
-                        const RoundedRectangleBorder(
-                          borderRadius: BorderRadius.all(
-                              Radius.circular(DesignTokens.radiusSm)),
-                        ),
-                      ),
-                      backgroundColor: WidgetStateProperty.resolveWith((states) {
-                        if (states.contains(WidgetState.selected)) {
-                          return AppTheme.accent;
-                        }
-                        return AppTheme.surfaceVariant;
-                      }),
-                      foregroundColor: WidgetStateProperty.resolveWith((states) {
-                        if (states.contains(WidgetState.selected)) {
-                          return AppTheme.canvasBg;
-                        }
-                        return AppTheme.textPrimary;
-                      }),
-                    ),
+                    style: _segmentedStyle(),
                   ),
                   const SizedBox(height: DesignTokens.spaceSm),
                   // INCLUDE MANNEQUINS

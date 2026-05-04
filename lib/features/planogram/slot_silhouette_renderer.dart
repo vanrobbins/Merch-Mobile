@@ -100,11 +100,9 @@ class _FallbackBlock extends StatelessWidget {
       width: width,
       height: height,
       decoration: BoxDecoration(
-        // ignore: deprecated_member_use
-        color: color.withOpacity(0.3),
+        color: color.withValues(alpha: 0.3),
         borderRadius: BorderRadius.circular(2),
-        // ignore: deprecated_member_use
-        border: Border.all(color: color.withOpacity(0.6)),
+        border: Border.all(color: color.withValues(alpha: 0.6)),
       ),
       child: Center(
         child: Text(
