@@ -17,6 +17,15 @@ service cloud.firestore {
       return role(storeId) == 'coordinator' || role(storeId) == 'manager';
     }
 
+    function withinFieldLimit(max) {
+      return request.resource.data.keys().size() <= max;
+    }
+
+    // Rate-limit counters written exclusively by Cloud Functions (Admin SDK bypasses rules).
+    match /_rateLimits/{userId} {
+      allow read, write: if false;
+    }
+
     match /userStores/{userId} {
       allow read:  if request.auth != null && request.auth.uid == userId;
       allow write: if request.auth != null && request.auth.uid == userId;
@@ -82,7 +91,7 @@ service cloud.firestore {
 
       match /mannequinProposals/{proposalId} {
         allow read:   if isMember(storeId);
-        allow create: if isMember(storeId);
+        allow create: if isMember(storeId) && withinFieldLimit(15);
         allow update: if isCoordinatorOrManager(storeId);
         allow delete: if isCoordinatorOrManager(storeId);
       }
@@ -99,15 +108,15 @@ service cloud.firestore {
 
       match /proposals/{proposalId} {
         allow read:   if isMember(storeId);
-        allow create: if isMember(storeId);
+        allow create: if isMember(storeId) && withinFieldLimit(15);
         allow update: if isCoordinatorOrManager(storeId);
         allow delete: if isCoordinatorOrManager(storeId);
       }
 
       match /photos/{photoId} {
         allow read:   if isMember(storeId);
-        allow create: if isMember(storeId);
-        allow update: if isMember(storeId);
+        allow create: if isMember(storeId) && withinFieldLimit(12);
+        allow update: if isMember(storeId) && withinFieldLimit(12);
         allow delete: if isCoordinatorOrManager(storeId);
       }
 

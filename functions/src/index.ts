@@ -36,6 +36,21 @@ export const joinByInviteCode = onCall(async (request) => {
     (token.email as string | undefined) ??
     'Staff';
 
+  // Rate limit: 1 attempt per minute per user.
+  const rateLimitRef = db.collection('_rateLimits').doc(uid);
+  const limitSnap = await rateLimitRef.get();
+  if (limitSnap.exists) {
+    const lastMs = (limitSnap.data()?.lastAttempt as admin.firestore.Timestamp | undefined)
+      ?.toMillis() ?? 0;
+    if (Date.now() - lastMs < 60_000) {
+      throw new HttpsError('resource-exhausted', 'Too many attempts. Please wait a minute and try again.');
+    }
+  }
+  await rateLimitRef.set(
+    { lastAttempt: admin.firestore.FieldValue.serverTimestamp() },
+    { merge: true },
+  );
+
   const storeSnap = await db
     .collection('stores')
     .where('inviteCode', '==', inviteCode)
