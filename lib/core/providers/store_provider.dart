@@ -85,8 +85,10 @@ Stream<List<Store>> myStores(Ref ref) {
 
     final stores = <Store>[];
     for (final storeId in storeIds) {
-      final storeSnap = await FirestoreRefs.store(storeId).get();
-      if (storeSnap.exists) stores.add(StoreFirestore.fromDoc(storeSnap));
+      try {
+        final storeSnap = await FirestoreRefs.store(storeId).get();
+        if (storeSnap.exists) stores.add(StoreFirestore.fromDoc(storeSnap));
+      } catch (_) {}
     }
     return stores;
   });

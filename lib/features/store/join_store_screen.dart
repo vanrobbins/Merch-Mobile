@@ -1,5 +1,6 @@
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/providers/store_provider.dart';
@@ -78,6 +79,11 @@ class _JoinStoreScreenState extends ConsumerState<JoinStoreScreen> {
             MmTextField(
               label: 'Invite code',
               controller: _codeCtrl,
+              maxLength: 6,
+              inputFormatters: [
+                TextInputFormatter.withFunction((_, v) =>
+                    v.copyWith(text: v.text.toUpperCase())),
+              ],
             ),
             if (_error != null) ...[
               const SizedBox(height: DesignTokens.spaceXs),
