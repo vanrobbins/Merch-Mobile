@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/theme/app_theme.dart';
+import '../../core/widgets/mm_button.dart';
 import 'planogram_editor_provider.dart';
 import 'planogram_slot.dart';
 import 'product_slot_picker.dart';
@@ -41,8 +42,8 @@ class ProductAssignmentSheet extends ConsumerWidget {
   static const _typeColor = {
     'shoulder': Color(0xFF3A3735),
     'faceout': Color(0xFF2E6DA4),
-    'ubar': Color(0xFFBF5534),
-    'shelf': Color(0xFF6B6660),
+    'ubar': AppTheme.accent,
+    'shelf': AppTheme.textSecondary,
   };
 
   @override
@@ -86,7 +87,7 @@ class ProductAssignmentSheet extends ConsumerWidget {
       expand: false,
       builder: (ctx, scroll) => Container(
         decoration: const BoxDecoration(
-          color: Colors.white,
+          color: AppTheme.cardSurface,
           borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
         ),
         child: Column(
@@ -97,7 +98,7 @@ class ProductAssignmentSheet extends ConsumerWidget {
                 height: 4,
                 margin: const EdgeInsets.only(top: 8),
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
+                  color: AppTheme.surfaceVariant,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -156,7 +157,7 @@ class ProductAssignmentSheet extends ConsumerWidget {
                       padding: const EdgeInsets.fromLTRB(10, 8, 6, 8),
                       decoration: BoxDecoration(
                         color: AppTheme.canvasBg,
-                        border: Border.all(color: const Color(0xFFD5D2CB)),
+                        border: Border.all(color: AppTheme.divider),
                         borderRadius: BorderRadius.circular(3),
                       ),
                       child: Row(
@@ -189,7 +190,7 @@ class ProductAssignmentSheet extends ConsumerWidget {
                           ),
                           IconButton(
                             icon: Icon(Icons.close,
-                                size: 16, color: Colors.red.shade400),
+                                size: 16, color: AppTheme.errorColor),
                             onPressed: () => notifier.removeItemFromSlot(
                                 currentSlot.col, currentSlot.subRow, i),
                           ),
@@ -205,7 +206,7 @@ class ProductAssignmentSheet extends ConsumerWidget {
                         padding: const EdgeInsets.symmetric(
                             vertical: 10, horizontal: 10),
                         decoration: BoxDecoration(
-                          border: Border.all(color: const Color(0xFFD5D2CB)),
+                          border: Border.all(color: AppTheme.divider),
                           borderRadius: BorderRadius.circular(3),
                         ),
                         child: const Row(
@@ -227,12 +228,12 @@ class ProductAssignmentSheet extends ConsumerWidget {
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
                         color: fitOk
-                            ? const Color(0xFFF0FBF4)
-                            : const Color(0xFFFFF3F3),
+                            ? AppTheme.successColor.withValues(alpha: 0.08)
+                            : AppTheme.errorColor.withValues(alpha: 0.06),
                         border: Border.all(
                             color: fitOk
-                                ? const Color(0xFF6FCF97)
-                                : Colors.red.shade300),
+                                ? AppTheme.successColor.withValues(alpha: 0.4)
+                                : AppTheme.errorColor.withValues(alpha: 0.4)),
                         borderRadius: BorderRadius.circular(3),
                       ),
                       child: Text(
@@ -241,28 +242,20 @@ class ProductAssignmentSheet extends ConsumerWidget {
                           fontSize: 10,
                           fontWeight: FontWeight.w700,
                           color: fitOk
-                              ? const Color(0xFF2E7D32)
-                              : Colors.red.shade700,
+                              ? AppTheme.successColor
+                              : AppTheme.errorColor,
                         ),
                       ),
                     ),
                   ],
                   const SizedBox(height: 16),
-                  TextButton(
+                  MmButton.text(
+                    label: 'REMOVE FIXTURE',
                     onPressed: () {
                       notifier.removeFixture(
                           currentSlot.col, currentSlot.subRow);
                       Navigator.pop(ctx);
                     },
-                    child: Text(
-                      'REMOVE FIXTURE',
-                      style: TextStyle(
-                        fontSize: 9,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 1.2,
-                        color: Colors.red.shade600,
-                      ),
-                    ),
                   ),
                 ],
               ),
@@ -298,7 +291,7 @@ class ProductAssignmentSheet extends ConsumerWidget {
     try {
       return Color(int.parse(hex.replaceFirst('#', '0xFF')));
     } catch (_) {
-      return Colors.grey;
+      return AppTheme.textHint;
     }
   }
 }

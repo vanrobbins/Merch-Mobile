@@ -13,9 +13,12 @@ class ZoneMapPainter extends CustomPainter {
     this.widthFt,
     this.depthFt,
     this.entranceJson,
+    this.storeShapePoints,
     this.activeVertexIdx,
     this.snapPreviewPoints,
     this.entranceEditMode = false,
+    this.storeShapeEditMode = false,
+    this.activeStoreVertexIdx,
     this.liveEntrance,
     this.overlappingZoneIds = const {},
   });
@@ -26,9 +29,12 @@ class ZoneMapPainter extends CustomPainter {
   final double? widthFt;
   final double? depthFt;
   final String? entranceJson;
+  final List<Offset>? storeShapePoints;
   final int? activeVertexIdx;
   final List<Offset>? snapPreviewPoints;
   final bool entranceEditMode;
+  final bool storeShapeEditMode;
+  final int? activeStoreVertexIdx;
   final StoreEntrance? liveEntrance;
   final Set<String> overlappingZoneIds;
 
@@ -45,6 +51,17 @@ class ZoneMapPainter extends CustomPainter {
     final ppf = _pixelsPerFt;
     if (ppf == 0) return Rect.zero;
     return Rect.fromLTWH(0, 0, widthFt! * ppf, depthFt! * ppf);
+  }
+
+  List<Offset>? get _storePolyCanvasPts {
+    if (storeShapePoints == null || storeShapePoints!.length < 3) return null;
+    final ppf = _pixelsPerFt;
+    if (ppf == 0) return null;
+    final storeW = widthFt! * ppf;
+    final storeH = depthFt! * ppf;
+    return storeShapePoints!
+        .map((p) => Offset(p.dx * storeW, p.dy * storeH))
+        .toList();
   }
 
   @override
@@ -69,6 +86,7 @@ class ZoneMapPainter extends CustomPainter {
         : zones.where((z) => z.id == selectedZoneId).firstOrNull;
     if (selected != null) _drawVertexHandles(canvas, size, selected);
     if (snapPreviewPoints != null) _drawSnapPreview(canvas, size, snapPreviewPoints!);
+    if (storeShapeEditMode && storeShapePoints != null) _drawStoreVertexHandles(canvas);
   }
 
   void _drawGrid(Canvas canvas, Size size) {
@@ -102,17 +120,48 @@ class ZoneMapPainter extends CustomPainter {
 
   void _drawStoreBoundary(Canvas canvas) {
     final rect = _storeRect;
-    canvas.drawRect(rect, Paint()..color = const Color(0xFFF2EFE8));
-    final entrance = StoreEntrance.fromJson(entranceJson);
-    final path = StoreEntrance.boundaryPath(rect, entrance);
-    canvas.drawPath(
-      path,
-      Paint()
-        ..color = const Color(0xFF1A1917)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 2.5
-        ..strokeCap = StrokeCap.square,
-    );
+    final borderPaint = Paint()
+      ..color = const Color(0xFF1A1917)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.5
+      ..strokeCap = StrokeCap.square;
+    final entrance = liveEntrance ?? StoreEntrance.fromJson(entranceJson);
+
+    final polyPts = _storePolyCanvasPts;
+    if (polyPts != null) {
+      final fillPath = Path()..addPolygon(polyPts, true);
+      canvas.drawPath(fillPath, Paint()..color = const Color(0xFFF2EFE8));
+      final borderPath = StoreEntrance.boundaryPathPolygon(polyPts, entrance);
+      canvas.drawPath(borderPath, borderPaint);
+    } else {
+      canvas.drawRect(rect, Paint()..color = const Color(0xFFF2EFE8));
+      final borderPath = StoreEntrance.boundaryPath(rect, entrance);
+      canvas.drawPath(borderPath, borderPaint);
+    }
+  }
+
+  void _drawStoreVertexHandles(Canvas canvas) {
+    if (storeShapePoints == null || storeShapePoints!.isEmpty) return;
+    final ppf = _pixelsPerFt;
+    if (ppf == 0) return;
+    final storeW = widthFt! * ppf;
+    final storeH = depthFt! * ppf;
+    final pts = storeShapePoints!
+        .map((p) => Offset(p.dx * storeW, p.dy * storeH))
+        .toList();
+
+    final ringPaint = Paint()
+      ..color = const Color(0xFFBF5534)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.0;
+    final fillPaint = Paint()..color = Colors.white;
+    final activeFill = Paint()..color = const Color(0xFFBF5534);
+
+    for (var i = 0; i < pts.length; i++) {
+      const r = 8.0;
+      canvas.drawCircle(pts[i], r, i == activeStoreVertexIdx ? activeFill : fillPaint);
+      canvas.drawCircle(pts[i], r, ringPaint);
+    }
   }
 
   void _drawZone(Canvas canvas, Size size, StoreZone zone) {
@@ -129,13 +178,11 @@ class ZoneMapPainter extends CustomPainter {
     final centroid = _centroid(points);
     final outsideBoundary = _hasStoreDims && !_storeRect.contains(centroid);
 
-    // Fill
     final fillColor = outsideBoundary
         ? Colors.red.withValues(alpha: 0.18)
         : color.withValues(alpha: isSelected ? 0.45 : 0.20);
     canvas.drawPath(path, Paint()..color = fillColor);
 
-    // Stroke
     if (isSelected) {
       _drawDashedPath(
         canvas,
@@ -161,7 +208,6 @@ class ZoneMapPainter extends CustomPainter {
       }
     }
 
-    // Overlap warning tint
     if (overlappingZoneIds.contains(zone.id)) {
       canvas.drawPath(
         path,
@@ -178,7 +224,6 @@ class ZoneMapPainter extends CustomPainter {
       );
     }
 
-    // Label
     final tp = TextPainter(
       text: TextSpan(
         text: zone.name.toUpperCase(),
@@ -205,12 +250,11 @@ class ZoneMapPainter extends CustomPainter {
   void _drawVertexHandles(Canvas canvas, Size size, StoreZone zone) {
     final points = _getPoints(zone, size);
 
-    // Draw edge length labels when a vertex is actively dragged.
     if (activeVertexIdx != null && _hasStoreDims) {
       final normPts = ZoneShape.decode(zone.shapePoints);
       final n = normPts.length;
       for (var i = 0; i < n; i++) {
-        // Only draw edges that involve the active vertex.
+        // only draw edges adjacent to the active vertex
         final next = (i + 1) % n;
         if (i != activeVertexIdx && next != activeVertexIdx) continue;
 
@@ -323,10 +367,18 @@ class ZoneMapPainter extends CustomPainter {
     return sum / pts.length.toDouble();
   }
 
-  String? zoneIdAt(Offset position) {
+  String? zoneIdAt(Offset position, {double centroidHitRadius = 0}) {
     for (final zone in zones.reversed) {
       final path = _zonePaths[zone.id];
       if (path != null && path.contains(position)) return zone.id;
+    }
+    // fallback: centroid hit for zones whose polygon is mostly off-canvas
+    if (centroidHitRadius > 0) {
+      for (final zone in zones.reversed) {
+        final pts = _getPoints(zone, canvasSize);
+        if (pts.isEmpty) continue;
+        if ((_centroid(pts) - position).distance < centroidHitRadius) return zone.id;
+      }
     }
     return null;
   }
@@ -350,9 +402,16 @@ class ZoneMapPainter extends CustomPainter {
   ];
 
   void _drawEntranceHandles(Canvas canvas, StoreEntrance e) {
-    final rect = _storeRect;
-    final walls = _wallSegments(rect);
-    final (from, to) = walls[e.wall];
+    Offset from, to;
+    final polyPts = _storePolyCanvasPts;
+    if (polyPts != null) {
+      final edgeIdx = StoreEntrance.edgeForWall(storeShapePoints!, e.wall);
+      from = polyPts[edgeIdx];
+      to = polyPts[(edgeIdx + 1) % polyPts.length];
+    } else {
+      final walls = _wallSegments(_storeRect);
+      (from, to) = walls[e.wall.clamp(0, 3)];
+    }
     final dir = to - from;
     final gapStart = (e.pos - e.widthFrac / 2).clamp(0.0, 1.0);
     final gapEnd = (e.pos + e.widthFrac / 2).clamp(0.0, 1.0);
@@ -379,12 +438,30 @@ class ZoneMapPainter extends CustomPainter {
   }
 
   void _drawEntrancePlacementHints(Canvas canvas) {
-    final rect = _storeRect;
     final hintPaint = Paint()
       ..color = const Color(0xFFBF5534).withValues(alpha: 0.35)
       ..strokeWidth = 2.0
       ..strokeCap = StrokeCap.round;
 
+    final polyPts = _storePolyCanvasPts;
+    if (polyPts != null) {
+      final n = polyPts.length;
+      for (int i = 0; i < n; i++) {
+        final from = polyPts[i];
+        final to = polyPts[(i + 1) % n];
+        final mid = (from + to) / 2;
+        final dir = to - from;
+        final len = dir.distance;
+        if (len < 1) continue;
+        // outward normal for clockwise polygon (Y down)
+        final norm = Offset(dir.dy / len, -dir.dx / len);
+        canvas.drawLine(mid, mid + norm * 10, hintPaint);
+        _drawPlacementLabel(canvas, 'TAP TO PLACE', mid + norm * 22);
+      }
+      return;
+    }
+
+    final rect = _storeRect;
     final wallMids = [
       Offset(rect.center.dx, rect.bottom),
       Offset(rect.right, rect.center.dy),

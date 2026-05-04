@@ -10,6 +10,7 @@ class ZoneEdge {
     required this.angleDeg,
     required this.lengthPx,
     required this.lengthFt,
+    this.isOnStoreWall = false,
   });
 
   final int index;
@@ -19,6 +20,16 @@ class ZoneEdge {
   final double angleDeg;
   final double lengthPx;
   final double lengthFt;
+  /// True when both endpoints lie on a store perimeter wall (x≈0, x≈1, y≈0, or y≈1).
+  final bool isOnStoreWall;
+
+  static bool _onStoreWall(Offset a, Offset b) {
+    const eps = 0.01;
+    return (a.dx <= eps && b.dx <= eps) ||
+           (a.dx >= 1 - eps && b.dx >= 1 - eps) ||
+           (a.dy <= eps && b.dy <= eps) ||
+           (a.dy >= 1 - eps && b.dy >= 1 - eps);
+  }
 
   static const _padding = 40.0;
 
@@ -80,6 +91,9 @@ class ZoneEdge {
         angleDeg: math.atan2(dy, dx) * 180 / math.pi,
         lengthPx: lenPx,
         lengthFt: lenPx / pixelsPerFt,
+        isOnStoreWall: storeWidthFt != null
+            ? _onStoreWall(normalizedPts[i], normalizedPts[(i + 1) % n])
+            : false,
       ));
     }
     return edges;

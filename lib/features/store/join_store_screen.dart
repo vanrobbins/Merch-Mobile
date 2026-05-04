@@ -8,6 +8,8 @@ import '../../core/router/app_router.dart';
 import '../../core/services/firestore_refs.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/design_tokens.dart';
+import '../../core/widgets/mm_button.dart';
+import '../../core/widgets/mm_text_field.dart';
 
 class JoinStoreScreen extends ConsumerStatefulWidget {
   const JoinStoreScreen({super.key});
@@ -102,29 +104,30 @@ class _JoinStoreScreenState extends ConsumerState<JoinStoreScreen> {
               style: TextStyle(color: AppTheme.textSecondary),
             ),
             const SizedBox(height: DesignTokens.spaceMd),
-            TextField(
+            MmTextField(
+              label: 'Invite code',
               controller: _codeCtrl,
-              decoration: InputDecoration(
-                labelText: 'Invite code',
-                errorText: _error,
-              ),
-              textCapitalization: TextCapitalization.characters,
-              maxLength: 6,
-              style: const TextStyle(fontSize: 24, letterSpacing: 8),
-              textAlign: TextAlign.center,
             ),
+            if (_error != null) ...[
+              const SizedBox(height: DesignTokens.spaceXs),
+              Text(
+                _error!,
+                style: const TextStyle(
+                  color: AppTheme.errorColor,
+                  fontSize: DesignTokens.typeSm,
+                ),
+              ),
+            ],
             const SizedBox(height: DesignTokens.spaceSm),
             const Text(
               "You'll join as staff. Your coordinator can change your role after approving.",
               style: TextStyle(color: AppTheme.textSecondary, fontSize: DesignTokens.typeSm),
             ),
             const SizedBox(height: DesignTokens.spaceLg),
-            ElevatedButton(
+            MmButton(
+              label: 'REQUEST TO JOIN',
+              isLoading: _loading,
               onPressed: _loading ? null : _requestJoin,
-              style: ElevatedButton.styleFrom(backgroundColor: AppTheme.accent),
-              child: _loading
-                  ? const CircularProgressIndicator(color: Colors.white)
-                  : const Text('REQUEST TO JOIN'),
             ),
           ],
         ),

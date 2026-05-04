@@ -6,7 +6,7 @@ part of 'zone_map_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$zoneMapNotifierHash() => r'b81cea9df15192edc206d8efde8d924a8f4ecddd';
+String _$zoneMapNotifierHash() => r'e37dded002129feb919c9658d0d70211305221e0';
 
 /// See also [ZoneMapNotifier].
 @ProviderFor(ZoneMapNotifier)

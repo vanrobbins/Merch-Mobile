@@ -10,6 +10,7 @@ import '../../core/providers/store_provider.dart';
 import '../../core/services/firestore_refs.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/design_tokens.dart';
+import '../../core/widgets/mm_button.dart';
 import '../../core/widgets/mm_empty_state.dart';
 
 /// Manager / coordinator screen listing all pending mannequin outfit proposals
@@ -181,32 +182,16 @@ class _ProposalCard extends ConsumerWidget {
             Row(
               children: [
                 Expanded(
-                  child: ElevatedButton(
+                  child: MmButton(
+                    label: 'APPROVE',
                     onPressed: () => _review(context, ref, 'approved'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.successColor,
-                      foregroundColor: Colors.white,
-                      shape: const RoundedRectangleBorder(
-                        borderRadius: BorderRadius.all(
-                            Radius.circular(AppTheme.borderRadius)),
-                      ),
-                    ),
-                    child: const Text('APPROVE'),
                   ),
                 ),
                 const SizedBox(width: DesignTokens.spaceSm),
                 Expanded(
-                  child: OutlinedButton(
+                  child: MmButton.outlined(
+                    label: 'REJECT',
                     onPressed: () => _review(context, ref, 'rejected'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppTheme.errorColor,
-                      side: const BorderSide(color: AppTheme.errorColor),
-                      shape: const RoundedRectangleBorder(
-                        borderRadius: BorderRadius.all(
-                            Radius.circular(AppTheme.borderRadius)),
-                      ),
-                    ),
-                    child: const Text('REJECT'),
                   ),
                 ),
               ],
@@ -323,7 +308,7 @@ class _StatusChip extends StatelessWidget {
       child: Text(
         status.toUpperCase(),
         style: const TextStyle(
-          color: Colors.white,
+          color: AppTheme.cardSurface,
           fontSize: DesignTokens.typeXs,
           fontWeight: DesignTokens.weightBold,
           letterSpacing: DesignTokens.letterSpacingEyebrow,

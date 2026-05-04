@@ -8,7 +8,12 @@ import '../../core/providers/store_provider.dart';
 import '../../core/router/app_router.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/design_tokens.dart';
+import '../../core/widgets/mm_button.dart';
+import '../../core/widgets/mm_dialog.dart';
 import '../../core/widgets/mm_empty_state.dart';
+import '../../core/widgets/mm_eyebrow.dart';
+import '../../core/widgets/mm_list_tile.dart';
+import '../../core/widgets/mm_text_field.dart';
 import '../../core/widgets/role_guard.dart';
 import 'pg_row.dart';
 import 'planogram_provider.dart';
@@ -23,32 +28,121 @@ class PlanogramListScreen extends ConsumerWidget {
     final planogramsAsync = ref.watch(planogramListProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('PLANOGRAMS')),
       body: planogramsAsync.when(
-        data: (planograms) => planograms.isEmpty
-            ? const MmEmptyState(
-                icon: Icons.grid_view_outlined,
-                headline: 'No Planograms',
-                body: 'Create a planogram to start arranging products.',
-              )
-            : ListView.separated(
-                padding: const EdgeInsets.all(DesignTokens.spaceMd),
-                itemCount: planograms.length,
-                separatorBuilder: (_, __) =>
-                    const SizedBox(height: DesignTokens.spaceSm),
-                itemBuilder: (_, i) =>
-                    _PlanogramTile(planogram: planograms[i]),
+        data: (planograms) => CustomScrollView(
+          slivers: [
+            SliverAppBar(
+              expandedHeight: 88,
+              pinned: true,
+              backgroundColor: AppTheme.primary,
+              flexibleSpace: const FlexibleSpaceBar(
+                titlePadding: EdgeInsets.fromLTRB(16, 0, 16, 12),
+                title: Text(
+                  'PLANOGRAMS',
+                  style: TextStyle(
+                    color: AppTheme.canvasBg,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                collapseMode: CollapseMode.pin,
               ),
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(
-          child: Padding(
-            padding: const EdgeInsets.all(DesignTokens.spaceLg),
-            child: Text(
-              'Error: $e',
-              style: const TextStyle(color: AppTheme.textSecondary),
-              textAlign: TextAlign.center,
             ),
-          ),
+            if (planograms.isEmpty)
+              const SliverFillRemaining(
+                child: MmEmptyState(
+                  icon: Icons.grid_view_outlined,
+                  headline: 'No Planograms',
+                  body: 'Create a planogram to start arranging products.',
+                ),
+              )
+            else
+              SliverPadding(
+                padding: const EdgeInsets.all(DesignTokens.spaceMd),
+                sliver: SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (_, i) => Padding(
+                      padding: const EdgeInsets.only(
+                          bottom: DesignTokens.spaceSm),
+                      child: MmListSection(
+                        children: [
+                          MmListTile(
+                            title: planograms[i].title,
+                            subtitle:
+                                '${planograms[i].season} · ${planograms[i].status.toUpperCase()}',
+                            onTap: () => context.goNamed(
+                              AppRoutes.planogramDetail,
+                              pathParameters: {
+                                'planogramId': planograms[i].id
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    childCount: planograms.length,
+                  ),
+                ),
+              ),
+          ],
+        ),
+        loading: () => const CustomScrollView(
+          slivers: [
+            SliverAppBar(
+              expandedHeight: 88,
+              pinned: true,
+              backgroundColor: AppTheme.primary,
+              flexibleSpace: FlexibleSpaceBar(
+                titlePadding: EdgeInsets.fromLTRB(16, 0, 16, 12),
+                title: Text(
+                  'PLANOGRAMS',
+                  style: TextStyle(
+                    color: AppTheme.canvasBg,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                collapseMode: CollapseMode.pin,
+              ),
+            ),
+            SliverFillRemaining(
+              child: Center(child: CircularProgressIndicator()),
+            ),
+          ],
+        ),
+        error: (e, _) => CustomScrollView(
+          slivers: [
+            const SliverAppBar(
+              expandedHeight: 88,
+              pinned: true,
+              backgroundColor: AppTheme.primary,
+              flexibleSpace: FlexibleSpaceBar(
+                titlePadding: EdgeInsets.fromLTRB(16, 0, 16, 12),
+                title: Text(
+                  'PLANOGRAMS',
+                  style: TextStyle(
+                    color: AppTheme.canvasBg,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                collapseMode: CollapseMode.pin,
+              ),
+            ),
+            SliverFillRemaining(
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(DesignTokens.spaceLg),
+                  child: Text(
+                    'Error: $e',
+                    style:
+                        const TextStyle(color: AppTheme.textSecondary),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
       floatingActionButton: RoleGuard(
@@ -58,7 +152,7 @@ class PlanogramListScreen extends ConsumerWidget {
           label: const Text('NEW PLANOGRAM'),
           icon: const Icon(Icons.add),
           backgroundColor: AppTheme.accent,
-          foregroundColor: Colors.white,
+          foregroundColor: AppTheme.canvasBg,
         ),
       ),
     );
@@ -72,154 +166,109 @@ class PlanogramListScreen extends ConsumerWidget {
     final linearFtCtrl = TextEditingController(text: '8');
     String selectedType = 'shelf';
 
-    showDialog<void>(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
+    MmDialog.show<void>(
+      context,
+      title: 'NEW PLANOGRAM',
+      content: StatefulBuilder(
         builder: (ctx, setDialogState) {
           final isWallOrShelf =
               selectedType == 'wall' || selectedType == 'shelf';
-          return AlertDialog(
-            title: const Text('NEW PLANOGRAM',
-                style: TextStyle(
-                  fontWeight: DesignTokens.weightBold,
-                  letterSpacing: DesignTokens.letterSpacingEyebrow,
-                  fontSize: DesignTokens.typeMd,
-                )),
-            content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  TextField(
-                    controller: titleCtrl,
-                    decoration: const InputDecoration(labelText: 'Title'),
-                    autofocus: true,
-                    textCapitalization: TextCapitalization.words,
-                  ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: seasonCtrl,
-                    decoration: const InputDecoration(labelText: 'Season'),
-                    textCapitalization: TextCapitalization.words,
-                  ),
-                  const SizedBox(height: 16),
-                  const Text('TYPE',
-                      style: TextStyle(
-                        fontSize: DesignTokens.typeXs,
-                        fontWeight: DesignTokens.weightBold,
-                        letterSpacing: DesignTokens.letterSpacingEyebrow,
-                        color: AppTheme.textSecondary,
-                      )),
-                  const SizedBox(height: 6),
-                  SegmentedButton<String>(
-                    segments: const [
-                      ButtonSegment(value: 'wall', label: Text('Wall')),
-                      ButtonSegment(value: 'shelf', label: Text('Shelf')),
-                      ButtonSegment(value: 'table', label: Text('Table')),
-                      ButtonSegment(value: 'rack', label: Text('Rack')),
-                    ],
-                    selected: {selectedType},
-                    onSelectionChanged: (s) =>
-                        setDialogState(() => selectedType = s.first),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: rowsCtrl,
-                    decoration: const InputDecoration(labelText: 'Rows'),
+          return SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                MmTextField(
+                  label: 'Title',
+                  controller: titleCtrl,
+                  autofocus: true,
+                ),
+                const SizedBox(height: 8),
+                MmTextField(
+                  label: 'Season',
+                  controller: seasonCtrl,
+                ),
+                const SizedBox(height: 16),
+                const MmEyebrow('TYPE'),
+                const SizedBox(height: 6),
+                SegmentedButton<String>(
+                  segments: const [
+                    ButtonSegment(value: 'wall', label: Text('Wall')),
+                    ButtonSegment(value: 'shelf', label: Text('Shelf')),
+                    ButtonSegment(value: 'table', label: Text('Table')),
+                    ButtonSegment(value: 'rack', label: Text('Rack')),
+                  ],
+                  selected: {selectedType},
+                  onSelectionChanged: (s) =>
+                      setDialogState(() => selectedType = s.first),
+                ),
+                const SizedBox(height: 12),
+                MmTextField(
+                  label: 'Rows',
+                  controller: rowsCtrl,
+                  keyboardType: TextInputType.number,
+                ),
+                const SizedBox(height: 8),
+                if (isWallOrShelf)
+                  MmTextField(
+                    label: 'Linear Ft',
+                    hint: 'e.g. 8',
+                    controller: linearFtCtrl,
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
+                  )
+                else
+                  MmTextField(
+                    label: 'Cols',
+                    controller: colsCtrl,
                     keyboardType: TextInputType.number,
                   ),
-                  const SizedBox(height: 8),
-                  if (isWallOrShelf)
-                    TextField(
-                      controller: linearFtCtrl,
-                      decoration: const InputDecoration(
-                          labelText: 'Linear Ft',
-                          hintText: 'e.g. 8'),
-                      keyboardType:
-                          const TextInputType.numberWithOptions(decimal: true),
-                    )
-                  else
-                    TextField(
-                      controller: colsCtrl,
-                      decoration: const InputDecoration(labelText: 'Cols'),
-                      keyboardType: TextInputType.number,
-                    ),
-                ],
-              ),
+              ],
             ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text('CANCEL'),
-              ),
-              ElevatedButton(
-                onPressed: () async {
-                  final title = titleCtrl.text.trim();
-                  if (title.isEmpty) return;
-
-                  final rowCount =
-                      int.tryParse(rowsCtrl.text.trim()) ?? 2;
-                  final double? linearFt = isWallOrShelf
-                      ? double.tryParse(linearFtCtrl.text.trim())
-                      : null;
-                  final cols = isWallOrShelf
-                      ? ((linearFt ?? 8.0) / 2).round().clamp(1, 20)
-                      : (int.tryParse(colsCtrl.text.trim()) ?? 4);
-
-                  final storeId =
-                      ref.read(activeStoreIdProvider).value ?? '';
-                  final planogram = Planogram(
-                    id: const Uuid().v4(),
-                    title: title,
-                    season: seasonCtrl.text.trim(),
-                    planogramType: selectedType,
-                    rows: rowCount,
-                    cols: cols,
-                    linearFt: linearFt,
-                    rowsJson: PgRow.encodeList(
-                        PgRow.defaults(rowCount, selectedType)),
-                    slotsJson: '',
-                    updatedAt: DateTime.now(),
-                  );
-                  await upsertPlanogram(storeId, planogram);
-                  if (ctx.mounted) Navigator.pop(ctx);
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.accent,
-                  foregroundColor: Colors.white,
-                ),
-                child: const Text('CREATE'),
-              ),
-            ],
           );
         },
       ),
-    );
-  }
-}
+      actions: [
+        MmButton.outlined(
+          label: 'CANCEL',
+          onPressed: () => Navigator.pop(context),
+        ),
+        MmButton(
+          label: 'CREATE',
+          onPressed: () async {
+            final title = titleCtrl.text.trim();
+            if (title.isEmpty) return;
 
-class _PlanogramTile extends StatelessWidget {
-  const _PlanogramTile({required this.planogram});
-  final Planogram planogram;
+            final isWallOrShelf =
+                selectedType == 'wall' || selectedType == 'shelf';
+            final rowCount = int.tryParse(rowsCtrl.text.trim()) ?? 2;
+            final double? linearFt = isWallOrShelf
+                ? double.tryParse(linearFtCtrl.text.trim())
+                : null;
+            final cols = isWallOrShelf
+                ? ((linearFt ?? 8.0) / 2).round().clamp(1, 20)
+                : (int.tryParse(colsCtrl.text.trim()) ?? 4);
 
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      child: ListTile(
-        title: Text(
-          planogram.title,
-          style: const TextStyle(fontWeight: FontWeight.w600),
+            final storeId =
+                ref.read(activeStoreIdProvider).value ?? '';
+            final planogram = Planogram(
+              id: const Uuid().v4(),
+              title: title,
+              season: seasonCtrl.text.trim(),
+              planogramType: selectedType,
+              rows: rowCount,
+              cols: cols,
+              linearFt: linearFt,
+              rowsJson:
+                  PgRow.encodeList(PgRow.defaults(rowCount, selectedType)),
+              slotsJson: '',
+              updatedAt: DateTime.now(),
+            );
+            await upsertPlanogram(storeId, planogram);
+            if (context.mounted) Navigator.pop(context);
+          },
         ),
-        subtitle: Text(
-          '${planogram.season} · ${planogram.status.toUpperCase()}',
-          style: const TextStyle(fontSize: DesignTokens.typeXs),
-        ),
-        trailing: const Icon(Icons.chevron_right),
-        onTap: () => context.goNamed(
-          AppRoutes.planogramDetail,
-          pathParameters: {'planogramId': planogram.id},
-        ),
-      ),
+      ],
     );
   }
 }

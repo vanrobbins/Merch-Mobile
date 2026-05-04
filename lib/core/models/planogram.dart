@@ -18,6 +18,7 @@ class Planogram with _$Planogram {
     @Default('draft') String status,
     @Default('') String slotsJson,
     @Default('') String rowsJson,
+    @Default('') String looksJson,
     DateTime? publishedAt,
     required DateTime updatedAt,
   }) = _Planogram;
@@ -41,6 +42,7 @@ extension PlanogramFirestore on Planogram {
       status: d['status'] as String? ?? 'draft',
       slotsJson: d['slotsJson'] as String? ?? '',
       rowsJson: d['rowsJson'] as String? ?? '',
+      looksJson: d['looksJson'] as String? ?? '',
       publishedAt: d['publishedAt'] != null
           ? (d['publishedAt'] as Timestamp).toDate()
           : null,
@@ -59,6 +61,7 @@ extension PlanogramFirestore on Planogram {
         'status': status,
         'slotsJson': slotsJson,
         'rowsJson': rowsJson,
+        'looksJson': looksJson,
         if (publishedAt != null)
           'publishedAt': Timestamp.fromDate(publishedAt!),
         'updatedAt': Timestamp.fromDate(updatedAt),

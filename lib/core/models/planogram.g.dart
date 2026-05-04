@@ -19,6 +19,7 @@ _$PlanogramImpl _$$PlanogramImplFromJson(Map<String, dynamic> json) =>
       status: json['status'] as String? ?? 'draft',
       slotsJson: json['slotsJson'] as String? ?? '',
       rowsJson: json['rowsJson'] as String? ?? '',
+      looksJson: json['looksJson'] as String? ?? '',
       publishedAt: json['publishedAt'] == null
           ? null
           : DateTime.parse(json['publishedAt'] as String),
@@ -38,6 +39,7 @@ Map<String, dynamic> _$$PlanogramImplToJson(_$PlanogramImpl instance) =>
       'status': instance.status,
       'slotsJson': instance.slotsJson,
       'rowsJson': instance.rowsJson,
+      'looksJson': instance.looksJson,
       'publishedAt': instance.publishedAt?.toIso8601String(),
       'updatedAt': instance.updatedAt.toIso8601String(),
     };

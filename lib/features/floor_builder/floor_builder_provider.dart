@@ -428,12 +428,13 @@ class FloorBuilderNotifier extends _$FloorBuilderNotifier {
     );
   }
 
-  Future<void> resizeFixture(String id, double? widthFt, double? depthFt) {
+  Future<void> resizeFixture(String id, double? widthFt, double? depthFt,
+      {Fixture? before}) {
     final fixture = state.fixtures.firstWhereOrNull((f) => f.id == id);
     if (fixture == null) return Future.value();
     final updated = _resizedFixture(fixture, widthFt, depthFt);
     _push(UndoEntry(
-      before: [fixture.toFirestore()],
+      before: [(before ?? fixture).toFirestore()],
       after: [updated.toFirestore()],
       ids: [id],
       collection: 'fixtures',

@@ -13,15 +13,15 @@ class FixturePickerSheet extends StatelessWidget {
   static const _fixtures = [
     _FixtureConfig('shoulder', 'Shoulder', Icons.dry_cleaning, Color(0xFF3A3735)),
     _FixtureConfig('faceout',  'Face-out', Icons.view_agenda_outlined, Color(0xFF2E6DA4)),
-    _FixtureConfig('ubar',     'U-Bar',    Icons.horizontal_rule,  Color(0xFFBF5534)),
-    _FixtureConfig('shelf',    'Shelf',    Icons.table_rows_outlined, Color(0xFF6B6660)),
+    _FixtureConfig('ubar',     'U-Bar',    Icons.horizontal_rule,  AppTheme.accent),
+    _FixtureConfig('shelf',    'Shelf',    Icons.table_rows_outlined, AppTheme.textSecondary),
   ];
 
   @override
   Widget build(BuildContext context) {
     return Container(
       decoration: const BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.cardSurface,
         borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
       ),
       padding: const EdgeInsets.fromLTRB(
@@ -36,7 +36,7 @@ class FixturePickerSheet extends StatelessWidget {
               height: 4,
               margin: const EdgeInsets.only(bottom: DesignTokens.spaceMd),
               decoration: BoxDecoration(
-                color: Colors.grey.shade300,
+                color: AppTheme.surfaceVariant,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -96,7 +96,7 @@ class _FixtureTile extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 14),
         decoration: BoxDecoration(
           color: AppTheme.canvasBg,
-          border: Border.all(color: const Color(0xFFD5D2CB)),
+          border: Border.all(color: AppTheme.divider),
           borderRadius: BorderRadius.circular(4),
         ),
         child: Column(

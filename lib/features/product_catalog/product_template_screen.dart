@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/design_tokens.dart';
+import '../../core/widgets/mm_eyebrow.dart';
 import 'catalog_provider.dart';
 
 class ProductTemplateScreen extends ConsumerWidget {
@@ -42,15 +43,7 @@ class ProductTemplateScreen extends ConsumerWidget {
                 DesignTokens.spaceMd,
                 DesignTokens.spaceXs,
               ),
-              child: Text(
-                'BUILT-IN',
-                style: TextStyle(
-                  fontSize: DesignTokens.typeXs,
-                  fontWeight: DesignTokens.weightBold,
-                  letterSpacing: DesignTokens.letterSpacingEyebrow,
-                  color: AppTheme.textSecondary,
-                ),
-              ),
+              child: MmEyebrow('BUILT-IN', padding: EdgeInsets.zero),
             ),
           ),
           SliverPadding(
@@ -77,15 +70,7 @@ class ProductTemplateScreen extends ConsumerWidget {
                 DesignTokens.spaceMd,
                 DesignTokens.spaceXs,
               ),
-              child: Text(
-                'CUSTOM',
-                style: TextStyle(
-                  fontSize: DesignTokens.typeXs,
-                  fontWeight: DesignTokens.weightBold,
-                  letterSpacing: DesignTokens.letterSpacingEyebrow,
-                  color: AppTheme.textSecondary,
-                ),
-              ),
+              child: MmEyebrow('CUSTOM', padding: EdgeInsets.zero),
             ),
           ),
           if (customAsync.isLoading)
@@ -99,15 +84,7 @@ class ProductTemplateScreen extends ConsumerWidget {
                   const SizedBox(height: DesignTokens.spaceMd),
                   Icon(Icons.style_outlined, size: 36, color: AppTheme.textSecondary.withValues(alpha: 0.4)),
                   const SizedBox(height: DesignTokens.spaceSm),
-                  const Text(
-                    'NO CUSTOM TEMPLATES',
-                    style: TextStyle(
-                      color: AppTheme.textSecondary,
-                      fontSize: DesignTokens.typeSm,
-                      fontWeight: DesignTokens.weightBold,
-                      letterSpacing: DesignTokens.letterSpacingEyebrow,
-                    ),
-                  ),
+                  const MmEyebrow('NO CUSTOM TEMPLATES', padding: EdgeInsets.zero),
                 ],
               ),
             )

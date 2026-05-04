@@ -6,6 +6,7 @@ import '../../core/providers/auth_provider.dart';
 import '../../core/providers/store_provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/design_tokens.dart';
+import '../../core/widgets/mm_button.dart';
 import '../../core/widgets/mm_empty_state.dart';
 import 'planogram_provider.dart';
 import 'planogram_slot.dart';
@@ -71,14 +72,14 @@ class _ProposalStatusChip extends StatelessWidget {
     Color bg;
     switch (status.toLowerCase()) {
       case 'approved':
-        bg = Colors.green.shade600;
+        bg = AppTheme.successColor;
         break;
       case 'rejected':
-        bg = Colors.red.shade600;
+        bg = AppTheme.errorColor;
         break;
       case 'pending':
       default:
-        bg = Colors.amber.shade700;
+        bg = AppTheme.accent;
     }
     return Container(
       padding: const EdgeInsets.symmetric(
@@ -87,12 +88,12 @@ class _ProposalStatusChip extends StatelessWidget {
       ),
       decoration: BoxDecoration(
         color: bg,
-        borderRadius: BorderRadius.circular(AppTheme.borderRadius),
+        borderRadius: BorderRadius.circular(DesignTokens.radiusBadge),
       ),
       child: Text(
         status.toUpperCase(),
         style: const TextStyle(
-          color: Colors.white,
+          color: AppTheme.canvasBg,
           fontSize: DesignTokens.typeXs,
           fontWeight: DesignTokens.weightBold,
           letterSpacing: DesignTokens.letterSpacingEyebrow,
@@ -113,6 +114,9 @@ class _ProposalCard extends ConsumerWidget {
         : <PgSlot>[];
     final assignedCount = slots.where((s) => s.productId != null).length;
 
+    // Never show raw UIDs in the UI — use a friendly fallback.
+    const proposerLabel = 'a team member';
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(DesignTokens.spaceMd),
@@ -123,7 +127,7 @@ class _ProposalCard extends ConsumerWidget {
               children: [
                 Expanded(
                   child: Text(
-                    'Proposed by ${proposal.proposedByUid}',
+                    'Proposed by $proposerLabel',
                     style: const TextStyle(
                       fontWeight: FontWeight.w600,
                       fontSize: DesignTokens.typeSm,
@@ -156,32 +160,16 @@ class _ProposalCard extends ConsumerWidget {
             Row(
               children: [
                 Expanded(
-                  child: ElevatedButton(
+                  child: MmButton(
+                    label: 'APPROVE',
                     onPressed: () => _review(ref, 'approved'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green.shade600,
-                      foregroundColor: Colors.white,
-                      shape: const RoundedRectangleBorder(
-                        borderRadius: BorderRadius.all(
-                            Radius.circular(AppTheme.borderRadius)),
-                      ),
-                    ),
-                    child: const Text('APPROVE'),
                   ),
                 ),
                 const SizedBox(width: DesignTokens.spaceSm),
                 Expanded(
-                  child: OutlinedButton(
+                  child: MmButton.destructive(
+                    label: 'REJECT',
                     onPressed: () => _review(ref, 'rejected'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.red.shade600,
-                      side: BorderSide(color: Colors.red.shade600),
-                      shape: const RoundedRectangleBorder(
-                        borderRadius: BorderRadius.all(
-                            Radius.circular(AppTheme.borderRadius)),
-                      ),
-                    ),
-                    child: const Text('REJECT'),
                   ),
                 ),
               ],

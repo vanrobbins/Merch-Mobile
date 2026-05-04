@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/design_tokens.dart';
+import '../../core/widgets/mm_button.dart';
+import '../../core/widgets/mm_eyebrow.dart';
 import '../../core/widgets/role_guard.dart';
 import 'auto_build_models.dart';
 import 'auto_build_provider.dart';
@@ -49,12 +51,20 @@ class _AutoBuildScreenState extends ConsumerState<AutoBuildScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        backgroundColor: AppTheme.primary,
+        foregroundColor: AppTheme.canvasBg,
         title: const Text('AUTO BUILD'),
         actions: [
           TextButton(
             onPressed: () => PresetsSheet.show(context, widget.zoneId),
-            child: const Text('PRESETS',
-                style: TextStyle(color: Colors.white)),
+            child: const Text(
+              'PRESETS',
+              style: TextStyle(
+                color: AppTheme.canvasBg,
+                fontWeight: DesignTokens.weightBold,
+                letterSpacing: DesignTokens.letterSpacingEyebrow,
+              ),
+            ),
           ),
         ],
       ),
@@ -68,13 +78,7 @@ class _AutoBuildScreenState extends ConsumerState<AutoBuildScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   // SEASON
-                  const Text('SEASON',
-                      style: TextStyle(
-                        fontSize: DesignTokens.typeXs,
-                        fontWeight: DesignTokens.weightBold,
-                        letterSpacing: DesignTokens.letterSpacingEyebrow,
-                        color: AppTheme.textSecondary,
-                      )),
+                  const MmEyebrow('Season'),
                   const SizedBox(height: DesignTokens.spaceSm),
                   SegmentedButton<String>(
                     segments: const [
@@ -93,17 +97,23 @@ class _AutoBuildScreenState extends ConsumerState<AutoBuildScreen> {
                               Radius.circular(DesignTokens.radiusSm)),
                         ),
                       ),
+                      backgroundColor: WidgetStateProperty.resolveWith((states) {
+                        if (states.contains(WidgetState.selected)) {
+                          return AppTheme.accent;
+                        }
+                        return AppTheme.surfaceVariant;
+                      }),
+                      foregroundColor: WidgetStateProperty.resolveWith((states) {
+                        if (states.contains(WidgetState.selected)) {
+                          return AppTheme.canvasBg;
+                        }
+                        return AppTheme.textPrimary;
+                      }),
                     ),
                   ),
                   const SizedBox(height: DesignTokens.spaceMd),
                   // STYLE
-                  const Text('STYLE',
-                      style: TextStyle(
-                        fontSize: DesignTokens.typeXs,
-                        fontWeight: DesignTokens.weightBold,
-                        letterSpacing: DesignTokens.letterSpacingEyebrow,
-                        color: AppTheme.textSecondary,
-                      )),
+                  const MmEyebrow('Style'),
                   const SizedBox(height: DesignTokens.spaceSm),
                   SegmentedButton<LayoutStyle>(
                     segments: const [
@@ -127,17 +137,23 @@ class _AutoBuildScreenState extends ConsumerState<AutoBuildScreen> {
                               Radius.circular(DesignTokens.radiusSm)),
                         ),
                       ),
+                      backgroundColor: WidgetStateProperty.resolveWith((states) {
+                        if (states.contains(WidgetState.selected)) {
+                          return AppTheme.accent;
+                        }
+                        return AppTheme.surfaceVariant;
+                      }),
+                      foregroundColor: WidgetStateProperty.resolveWith((states) {
+                        if (states.contains(WidgetState.selected)) {
+                          return AppTheme.canvasBg;
+                        }
+                        return AppTheme.textPrimary;
+                      }),
                     ),
                   ),
                   const SizedBox(height: DesignTokens.spaceMd),
                   // DENSITY
-                  const Text('DENSITY',
-                      style: TextStyle(
-                        fontSize: DesignTokens.typeXs,
-                        fontWeight: DesignTokens.weightBold,
-                        letterSpacing: DesignTokens.letterSpacingEyebrow,
-                        color: AppTheme.textSecondary,
-                      )),
+                  const MmEyebrow('Density'),
                   const SizedBox(height: DesignTokens.spaceSm),
                   SegmentedButton<LayoutDensity>(
                     segments: const [
@@ -160,51 +176,47 @@ class _AutoBuildScreenState extends ConsumerState<AutoBuildScreen> {
                               Radius.circular(DesignTokens.radiusSm)),
                         ),
                       ),
+                      backgroundColor: WidgetStateProperty.resolveWith((states) {
+                        if (states.contains(WidgetState.selected)) {
+                          return AppTheme.accent;
+                        }
+                        return AppTheme.surfaceVariant;
+                      }),
+                      foregroundColor: WidgetStateProperty.resolveWith((states) {
+                        if (states.contains(WidgetState.selected)) {
+                          return AppTheme.canvasBg;
+                        }
+                        return AppTheme.textPrimary;
+                      }),
                     ),
                   ),
                   const SizedBox(height: DesignTokens.spaceSm),
                   // INCLUDE MANNEQUINS
                   SwitchListTile(
-                    title: const Text('INCLUDE MANNEQUINS',
-                        style: TextStyle(
-                          fontSize: DesignTokens.typeXs,
-                          fontWeight: DesignTokens.weightBold,
-                          letterSpacing: DesignTokens.letterSpacingEyebrow,
-                        )),
+                    title: const Text(
+                      'INCLUDE MANNEQUINS',
+                      style: TextStyle(
+                        fontSize: DesignTokens.typeXs,
+                        fontWeight: DesignTokens.weightBold,
+                        letterSpacing: DesignTokens.letterSpacingEyebrow,
+                      ),
+                    ),
                     value: state.includeMannequins,
                     onChanged: (v) => ref
                         .read(autoBuildNotifierProvider.notifier)
                         .setIncludeMannequins(v),
-                    activeColor: AppTheme.accent,
+                    activeTrackColor: AppTheme.accent,
                     contentPadding: EdgeInsets.zero,
                   ),
                   const SizedBox(height: DesignTokens.spaceSm),
                   // COMPUTE
                   RoleGuard(
                     allowedRoles: const ['coordinator', 'manager'],
-                    child: ElevatedButton.icon(
+                    child: MmButton(
+                      label: state.isComputing ? 'Computing…' : 'Compute',
+                      icon: Icons.auto_fix_high,
+                      isLoading: state.isComputing,
                       onPressed: state.isComputing ? null : _compute,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.primary,
-                        foregroundColor: Colors.white,
-                        shape: const RoundedRectangleBorder(
-                          borderRadius: BorderRadius.all(
-                              Radius.circular(DesignTokens.radiusSm)),
-                        ),
-                        padding: const EdgeInsets.symmetric(
-                            vertical: DesignTokens.spaceSm),
-                      ),
-                      icon: state.isComputing
-                          ? const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.white),
-                            )
-                          : const Icon(Icons.auto_fix_high),
-                      label: Text(
-                          state.isComputing ? 'COMPUTING…' : 'COMPUTE'),
                     ),
                   ),
                 ],
@@ -221,18 +233,10 @@ class _AutoBuildScreenState extends ConsumerState<AutoBuildScreen> {
               allowedRoles: const ['coordinator', 'manager'],
               child: Padding(
                 padding: const EdgeInsets.all(DesignTokens.spaceMd),
-                child: ElevatedButton(
-                  onPressed:
-                      state.suggestedFixtures.isEmpty ? null : _apply,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.accent,
-                    foregroundColor: Colors.white,
-                    shape: const RoundedRectangleBorder(
-                      borderRadius: BorderRadius.all(
-                          Radius.circular(DesignTokens.radiusSm)),
-                    ),
-                  ),
-                  child: const Text('APPLY'),
+                child: MmButton(
+                  label: 'Apply Layout',
+                  icon: Icons.check,
+                  onPressed: state.suggestedFixtures.isEmpty ? null : _apply,
                 ),
               ),
             ),

@@ -145,7 +145,7 @@ class _StockDot extends StatelessWidget {
         decoration: BoxDecoration(
           color: inStock ? AppTheme.successColor : AppTheme.errorColor,
           shape: BoxShape.circle,
-          boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 2)],
+          boxShadow: [BoxShadow(color: AppTheme.primary.withValues(alpha: 0.26), blurRadius: 2)],
         ),
       );
 }

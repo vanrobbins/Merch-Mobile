@@ -21,7 +21,7 @@ class Mannequin {
   final String storeId;
   final String zoneId;
   final String? name;
-  // full_body | half_body | torso | leg_form | bra_form
+  // full_body | half_body | torso | leg_form | bra_form | bag_stand | hat_stand
   final String mannequinType;
   // floor | wall | platform
   final String mountType;

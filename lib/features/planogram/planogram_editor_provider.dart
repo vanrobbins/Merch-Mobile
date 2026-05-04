@@ -7,6 +7,7 @@ import '../../core/models/planogram.dart';
 import '../../core/providers/store_provider.dart';
 import '../../core/services/firestore_refs.dart';
 import 'pg_row.dart';
+import 'planogram_look.dart';
 import 'planogram_provider.dart';
 import 'planogram_slot.dart';
 import 'slot_item.dart';
@@ -86,9 +87,7 @@ class PlanogramEditorNotifier extends _$PlanogramEditorNotifier {
       if (state.hasUnsavedChanges) {
         state = state.copyWith(planogram: pg);
       } else {
-        final slots = pg.slotsJson.isEmpty
-            ? PgSlot.defaultGrid(pg.rows, pg.cols, pg.planogramType)
-            : PgSlot.decodeList(pg.slotsJson);
+        final slots = _initialSlots(pg);
         final rows = pg.rowsJson.isEmpty
             ? PgRow.defaults(pg.rows, pg.planogramType)
             : PgRow.decodeList(pg.rowsJson);
@@ -99,13 +98,16 @@ class PlanogramEditorNotifier extends _$PlanogramEditorNotifier {
     // Initialise synchronously from whatever value is already cached.
     final pg = ref.read(planogramDetailProvider(planogramId)).value;
     if (pg == null) return const PlanogramEditorState();
-    final slots = pg.slotsJson.isEmpty
-        ? PgSlot.defaultGrid(pg.rows, pg.cols, pg.planogramType)
-        : PgSlot.decodeList(pg.slotsJson);
+    final slots = _initialSlots(pg);
     final rows = pg.rowsJson.isEmpty
         ? PgRow.defaults(pg.rows, pg.planogramType)
         : PgRow.decodeList(pg.rowsJson);
     return PlanogramEditorState(planogram: pg, slots: slots, rows: rows);
+  }
+
+  static List<PgSlot> _initialSlots(Planogram pg) {
+    if (pg.slotsJson.isNotEmpty) return PgSlot.decodeList(pg.slotsJson);
+    return const [];
   }
 
   // -------------------------------------------------------------------------
@@ -409,6 +411,62 @@ class PlanogramEditorNotifier extends _$PlanogramEditorNotifier {
     final storeId = ref.read(activeStoreIdProvider).value ?? '';
     await FirestoreRefs.planograms(storeId).doc(pg.id).update({
       'title': title,
+      'updatedAt': Timestamp.now(),
+    });
+  }
+
+  // -------------------------------------------------------------------------
+  // Outfit callouts (looks)
+  // -------------------------------------------------------------------------
+
+  Future<void> addLook(String mannequinType, String outfitName,
+      {String notes = ''}) async {
+    final pg = state.planogram;
+    if (pg == null) return;
+    final looks = PlanogramLook.decodeList(pg.looksJson)
+      ..add(PlanogramLook.create(
+        mannequinType: mannequinType,
+        outfitName: outfitName,
+        notes: notes,
+      ));
+    final storeId = ref.read(activeStoreIdProvider).value ?? '';
+    await FirestoreRefs.planograms(storeId).doc(pg.id).update({
+      'looksJson': PlanogramLook.encodeList(looks),
+      'updatedAt': Timestamp.now(),
+    });
+  }
+
+  Future<void> removeLook(String lookId) async {
+    final pg = state.planogram;
+    if (pg == null) return;
+    final looks = PlanogramLook.decodeList(pg.looksJson)
+      ..removeWhere((l) => l.id == lookId);
+    final storeId = ref.read(activeStoreIdProvider).value ?? '';
+    await FirestoreRefs.planograms(storeId).doc(pg.id).update({
+      'looksJson': PlanogramLook.encodeList(looks),
+      'updatedAt': Timestamp.now(),
+    });
+  }
+
+  Future<void> updateLook(
+    String lookId, {
+    String? mannequinType,
+    String? outfitName,
+    String? notes,
+  }) async {
+    final pg = state.planogram;
+    if (pg == null) return;
+    final looks = PlanogramLook.decodeList(pg.looksJson).map((l) {
+      if (l.id != lookId) return l;
+      return l.copyWith(
+        mannequinType: mannequinType,
+        outfitName: outfitName,
+        notes: notes,
+      );
+    }).toList();
+    final storeId = ref.read(activeStoreIdProvider).value ?? '';
+    await FirestoreRefs.planograms(storeId).doc(pg.id).update({
+      'looksJson': PlanogramLook.encodeList(looks),
       'updatedAt': Timestamp.now(),
     });
   }

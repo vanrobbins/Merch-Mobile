@@ -16,6 +16,7 @@ class FixtureMiniPanel extends StatelessWidget {
     this.onEdit,
     this.onRotate,
     this.onDelete,
+    this.onExpandPlanogram,
   });
 
   final Fixture fixture;
@@ -24,6 +25,7 @@ class FixtureMiniPanel extends StatelessWidget {
   final VoidCallback? onEdit;
   final VoidCallback? onRotate;
   final VoidCallback? onDelete;
+  final VoidCallback? onExpandPlanogram;
 
   @override
   Widget build(BuildContext context) {
@@ -33,10 +35,10 @@ class FixtureMiniPanel extends StatelessWidget {
             .toUpperCase();
 
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: AppTheme.primary,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
-        boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 12, offset: Offset(0, -2))],
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+        boxShadow: [BoxShadow(color: AppTheme.primary.withValues(alpha: 0.15), blurRadius: 12, offset: const Offset(0, -2))],
       ),
       padding: EdgeInsets.only(
         left: DesignTokens.spaceMd,
@@ -48,19 +50,28 @@ class FixtureMiniPanel extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Drag handle
-          Center(
-            child: Container(
-              width: 32,
-              height: 3,
-              margin: const EdgeInsets.only(bottom: DesignTokens.spaceSm),
-              decoration: BoxDecoration(
-                color: Colors.white24,
-                borderRadius: BorderRadius.circular(2),
+          GestureDetector(
+            onTap: onExpandPlanogram,
+            onVerticalDragEnd: onExpandPlanogram == null
+                ? null
+                : (d) {
+                    if ((d.primaryVelocity ?? 0) < -100) onExpandPlanogram!();
+                  },
+            behavior: HitTestBehavior.opaque,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              child: Center(
+                child: Container(
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppTheme.canvasBg.withValues(alpha: onExpandPlanogram != null ? 0.54 : 0.24),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
               ),
             ),
           ),
-          // Header row: label + quick actions
           Row(
             children: [
               Expanded(
@@ -70,7 +81,7 @@ class FixtureMiniPanel extends StatelessWidget {
                     Text(
                       label,
                       style: const TextStyle(
-                        color: Colors.white,
+                        color: AppTheme.canvasBg,
                         fontSize: DesignTokens.typeMd,
                         fontWeight: DesignTokens.weightBold,
                         letterSpacing: DesignTokens.letterSpacingEyebrow,
@@ -79,12 +90,11 @@ class FixtureMiniPanel extends StatelessWidget {
                     const SizedBox(height: 2),
                     Text(
                       '${fixture.widthFt.toStringAsFixed(1)} × ${fixture.depthFt.toStringAsFixed(1)} ft  ·  ${fixture.fixtureType}',
-                      style: const TextStyle(color: Colors.white54, fontSize: DesignTokens.typeSm),
+                      style: TextStyle(color: AppTheme.canvasBg.withValues(alpha: 0.54), fontSize: DesignTokens.typeSm),
                     ),
                   ],
                 ),
               ),
-              // Quick actions
               if (onRotate != null)
                 _MiniAction(
                   icon: Icons.rotate_right,
@@ -107,64 +117,82 @@ class FixtureMiniPanel extends StatelessWidget {
               _MiniAction(
                 icon: Icons.close,
                 tooltip: 'Dismiss',
-                color: Colors.white54,
+                color: AppTheme.canvasBg,
                 onTap: onDismiss,
               ),
             ],
           ),
-          // Planogram row
           const SizedBox(height: DesignTokens.spaceSm),
-          Row(
-            children: [
-              const Icon(Icons.grid_view_rounded, color: Colors.white38, size: 15),
-              const SizedBox(width: 6),
-              Expanded(
-                child: planogram == null
-                    ? const Text(
-                        'No planogram assigned',
-                        style: TextStyle(color: Colors.white54, fontSize: DesignTokens.typeSm),
-                      )
-                    : Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            planogram!.title,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: DesignTokens.typeSm,
-                              fontWeight: DesignTokens.weightBold,
-                            ),
+          InkWell(
+            onTap: onExpandPlanogram,
+            borderRadius: BorderRadius.circular(4),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Row(
+                children: [
+                  Icon(Icons.grid_view_rounded, color: AppTheme.canvasBg.withValues(alpha: 0.38), size: 15),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: planogram == null
+                        ? Text(
+                            'No planogram assigned',
+                            style: TextStyle(color: AppTheme.canvasBg.withValues(alpha: 0.54), fontSize: DesignTokens.typeSm),
+                          )
+                        : Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                planogram!.title,
+                                style: const TextStyle(
+                                  color: AppTheme.canvasBg,
+                                  fontSize: DesignTokens.typeSm,
+                                  fontWeight: DesignTokens.weightBold,
+                                ),
+                              ),
+                              Text(
+                                '$slotCount slots · ${planogram!.season}',
+                                style: TextStyle(
+                                  color: AppTheme.canvasBg.withValues(alpha: 0.54),
+                                  fontSize: DesignTokens.typeSm,
+                                ),
+                              ),
+                            ],
                           ),
-                          Text(
-                            '$slotCount slots · ${planogram!.season}',
-                            style: const TextStyle(
-                              color: Colors.white54,
-                              fontSize: DesignTokens.typeSm,
-                            ),
-                          ),
-                        ],
+                  ),
+                  if (planogram == null && onExpandPlanogram != null)
+                    const Text(
+                      'ASSIGN →',
+                      style: TextStyle(
+                        color: AppTheme.accent,
+                        fontSize: DesignTokens.typeSm,
+                        fontWeight: DesignTokens.weightBold,
+                        letterSpacing: 1.0,
                       ),
-              ),
-              if (planogram != null)
-                TextButton(
-                  onPressed: () => context.goNamed(
-                    AppRoutes.planogramDetail,
-                    pathParameters: {'planogramId': planogram!.id},
-                  ),
-                  style: TextButton.styleFrom(
-                    foregroundColor: AppTheme.accent,
-                    padding: const EdgeInsets.symmetric(horizontal: DesignTokens.spaceSm),
-                  ),
-                  child: const Text(
-                    'VIEW →',
-                    style: TextStyle(
-                      fontWeight: DesignTokens.weightBold,
-                      fontSize: DesignTokens.typeSm,
-                      letterSpacing: 1.0,
                     ),
-                  ),
-                ),
-            ],
+                  if (planogram != null && onExpandPlanogram != null)
+                    Icon(Icons.keyboard_arrow_up, color: AppTheme.canvasBg.withValues(alpha: 0.38), size: 18),
+                  if (planogram != null && onExpandPlanogram == null)
+                    TextButton(
+                      onPressed: () => context.goNamed(
+                        AppRoutes.planogramDetail,
+                        pathParameters: {'planogramId': planogram!.id},
+                      ),
+                      style: TextButton.styleFrom(
+                        foregroundColor: AppTheme.accent,
+                        padding: const EdgeInsets.symmetric(horizontal: DesignTokens.spaceSm),
+                      ),
+                      child: const Text(
+                        'VIEW →',
+                        style: TextStyle(
+                          fontWeight: DesignTokens.weightBold,
+                          fontSize: DesignTokens.typeSm,
+                          letterSpacing: 1.0,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
           ),
         ],
       ),
@@ -177,7 +205,7 @@ class _MiniAction extends StatelessWidget {
     required this.icon,
     required this.onTap,
     this.tooltip,
-    this.color = Colors.white70,
+    this.color = AppTheme.canvasBg,
   });
   final IconData icon;
   final VoidCallback onTap;

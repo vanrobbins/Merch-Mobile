@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../core/models/store_zone.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/design_tokens.dart';
+import '../../core/widgets/mm_button.dart';
 
 class ZoneActionsSheet extends StatelessWidget {
   const ZoneActionsSheet({
@@ -18,7 +19,7 @@ class ZoneActionsSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: const BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.cardSurface,
         borderRadius: BorderRadius.vertical(top: Radius.circular(DesignTokens.radiusLg)),
       ),
       padding: EdgeInsets.only(
@@ -37,7 +38,7 @@ class ZoneActionsSheet extends StatelessWidget {
               height: 4,
               margin: const EdgeInsets.only(bottom: DesignTokens.spaceSm),
               decoration: BoxDecoration(
-                color: Colors.grey.shade300,
+                color: AppTheme.divider,
                 borderRadius: BorderRadius.circular(AppTheme.borderRadius),
               ),
             ),
@@ -63,31 +64,19 @@ class ZoneActionsSheet extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: OutlinedButton.icon(
+                child: MmButton.outlined(
+                  label: 'EDIT ZONE',
+                  icon: Icons.edit_outlined,
                   onPressed: onEdit,
-                  icon: const Icon(Icons.edit_outlined, size: 18),
-                  label: const Text('EDIT ZONE'),
-                  style: OutlinedButton.styleFrom(
-                    shape: const RoundedRectangleBorder(
-                      borderRadius: BorderRadius.all(Radius.circular(AppTheme.borderRadius)),
-                    ),
-                  ),
                 ),
               ),
               if (onOpen != null) ...[
                 const SizedBox(width: DesignTokens.spaceSm),
                 Expanded(
-                  child: ElevatedButton.icon(
+                  child: MmButton(
+                    label: 'OPEN ZONE',
+                    icon: Icons.open_in_new,
                     onPressed: onOpen,
-                    icon: const Icon(Icons.open_in_new, size: 18),
-                    label: const Text('OPEN ZONE'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.accent,
-                      foregroundColor: Colors.white,
-                      shape: const RoundedRectangleBorder(
-                        borderRadius: BorderRadius.all(Radius.circular(AppTheme.borderRadius)),
-                      ),
-                    ),
                   ),
                 ),
               ],

@@ -1,6 +1,6 @@
 # Merch Mobile — Project Context for Agents
 
-> **Read this first.** This document is the single source of truth for project state, past decisions, and architecture rules. Check it before exploring the codebase. Last updated: 2026-04-29 (v0.3 all 6 agents ✅ complete; v0.35 all 7 agents ✅ complete; v0.39 refactor ✅ complete — all on feature/v0.3).
+> **Read this first.** This document is the single source of truth for project state, past decisions, and architecture rules. Check it before exploring the codebase. Last updated: 2026-04-29 (v0.3 all 6 agents ✅ complete; v0.35 all 7 agents ✅ complete; v0.39 refactor ✅ complete; planogram slot enhancements ✅ complete — all on feature/v0.3).
 
 ---
 
@@ -55,7 +55,11 @@ lib/
     │                          # PropTypeSheet, ElementDeleteSheet
     ├── auto_build/            # AutoBuildScreen (stub)
     ├── planogram/             # PlanogramListScreen, PlanogramDetailScreen,
-    │                          # ProposalReviewScreen
+    │                          # ProposalReviewScreen, PlanogramEditorScreen,
+    │                          # BayView, SlotCellWidget, FixturePickerSheet,
+    │                          # ProductAssignmentSheet, ProductSlotPicker,
+    │                          # SlotItem, SlotSizing, PgRow, PgSlot,
+    │                          # PlanogramEditorNotifier
     ├── product_catalog/       # CatalogScreen, ProductCard
     └── photo_docs/            # PhotoListScreen, PhotoDetailScreen, photo_provider.dart
 ```
@@ -231,6 +235,40 @@ Four features: undo/redo delta stack (floor builder + planogram editor), AutoBui
 
 **Why:** Adds full planogram editing workflow, undo/redo safety net across floor builder and planogram editor, smarter AutoBuild with preset library, and gender-based product filtering throughout the app.
 
+### Planogram Slot Enhancements — Complete ✅ (branch: `feature/v0.3`, 2026-04-29)
+
+Spec: `docs/superpowers/specs/2026-04-29-planogram-slot-enhancements-design.md`
+Plan: `docs/superpowers/plans/2026-04-29-planogram-slot-enhancements.md`
+
+Replaces the single-product planogram grid with a free-placement fixture system. The wall is a continuous column grid divided into **quarter-slots** (4 per row). Fixtures are placed anywhere in a column and auto-size vertically based on the tallest assigned product's hang or fold length.
+
+**Fixture types:**
+
+| Type | Capacity | Auto-size rule |
+| --- | --- | --- |
+| `shoulder` | 1 item | `ceil(hangLength / (rowHeightIn/4))` quarters |
+| `faceout` | 1–6 items | sized to tallest item's hang length |
+| `ubar` | 2–6 items | sized to tallest item's hang length |
+| `shelf` | 1+ items | `ceil(foldedHeight / quarterIn) + 1` (clearance quarter) |
+
+**New files:**
+
+| File | Role |
+| --- | --- |
+| `slot_item.dart` | `SlotItem` model — productId/name/sku/category/colorHex? with JSON round-trip |
+| `slot_sizing.dart` | Pure functions: `hangLength`, `foldedHeight`, `autoSpanQuarters`, `shelfSpanQuarters` |
+| `bay_view.dart` | `BayView` — column × quarter-slot grid, FAB, placement-mode banner |
+| `fixture_picker_sheet.dart` | `FixturePickerSheet` — 4-tile bottom sheet for choosing fixture type |
+| `product_assignment_sheet.dart` | `ProductAssignmentSheet` — per-fixture product list, capacity counter, fit indicator |
+
+**Modified files:** `pg_row.dart` (+heightIn), `planogram_slot.dart` (+nodeType/items/subRow/spanQuarters, full back-compat), `planogram_editor_provider.dart` (5 new methods + `_computeSpan`/`_rowHeightForSubRow` helpers), `slot_cell_widget.dart` (full rewrite for quarter-slot heights), `product_slot_picker.dart` (SlotAssignCallback extended with `category`), `planogram_editor_screen.dart` (replaces inline `_BayView` with `BayView`).
+
+**Back-compat:** Old planograms (productId/name/sku top-level fields) are synthesised into one-item `items` list on deserialise. `subRow` absent → `row * 4`. No Firestore migration needed.
+
+**Tests:** 145 passing (up from 102). New: `slot_sizing_test.dart` (32 tests), `slot_item_test.dart` (3 tests), expanded `pg_row_test.dart` and `pg_slot_test.dart`.
+
+**Why:** Gives coordinators a realistic fixture-first merchandising tool where shelves, shoulder hooks, face-out hooks, and u-bars can be mixed freely within any column, with sizes driven by the actual garments assigned.
+
 ---
 
 ## Architecture Rules (Do Not Violate)
@@ -319,9 +357,7 @@ After any change to `@freezed` models or `@riverpod` providers: run `dart run bu
 ## Pending Work (ordered)
 
 1. **Merge `feature/v0.2` → `main`** — v0.2 is complete at tag v0.29
-2. **Complete `feature/v0.3`** — v0.3 Agents 1–6 all done; run final `flutter analyze` + `flutter test`, then tag `v0.3` and merge to `main`
-3. **v0.35** — undo/redo, AutoBuild enhancements, PlanogramEditorScreen, product gender classification (all 7 agents ✅ complete 2026-04-29, on `feature/v0.3`, pending emulator testing + PR)
-4. **v0.39 refactor** ✅ complete 2026-04-29 — 7 widget classes extracted from floor_builder_screen.dart and zone_map_screen.dart; `_snap` helper and `_patch` one-liner in provider; all 102 tests pass
+2. **Emulator testing + PR for `feature/v0.3`** — all feature work complete (v0.3, v0.35, v0.39, planogram slot enhancements); 145 tests pass; pending emulator smoke-test then merge to `main`
 
 ---
 
@@ -337,3 +373,5 @@ After any change to `@freezed` models or `@riverpod` providers: run `dart run bu
 | `docs/superpowers/specs/2026-04-29-v0.35-design.md` | v0.35 design spec (undo/redo, AutoBuild, planogram editor) |
 | `docs/superpowers/plans/2026-04-29-v0.35-manager.md` | v0.35 wave orchestration plan |
 | `docs/superpowers/plans/2026-04-29-v0.35-agent*.md`  | v0.35 implementation plans (Agents 1–7) |
+| `docs/superpowers/specs/2026-04-29-planogram-slot-enhancements-design.md` | Planogram slot enhancements design spec |
+| `docs/superpowers/plans/2026-04-29-planogram-slot-enhancements.md` | Planogram slot enhancements implementation plan (8 tasks) |

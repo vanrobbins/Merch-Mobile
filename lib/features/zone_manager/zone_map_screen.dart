@@ -6,10 +6,11 @@ import 'package:go_router/go_router.dart';
 import '../../core/models/store.dart';
 import '../../core/models/store_zone.dart';
 import '../../core/router/app_router.dart';
+import '../../core/widgets/mm_button.dart';
 import '../../core/widgets/role_guard.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/theme/design_tokens.dart';
 import 'store_dimensions_dialog.dart';
-import 'zone_actions_sheet.dart';
 import 'zone_map_painter.dart';
 import 'zone_map_provider.dart';
 import 'zone_properties_panel.dart';
@@ -25,6 +26,7 @@ class ZoneMapScreen extends ConsumerStatefulWidget {
 
 class _ZoneMapScreenState extends ConsumerState<ZoneMapScreen> {
   bool _entranceEditMode = false;
+  bool _storeShapeEditMode = false;
 
   @override
   void initState() {
@@ -33,12 +35,34 @@ class _ZoneMapScreenState extends ConsumerState<ZoneMapScreen> {
       _checkStoreDimensions();
       final params = GoRouterState.of(context).uri.queryParameters;
       if (params['entranceEdit'] == 'true') _enterEntranceEditMode();
+      if (params['storeShapeEdit'] == 'true') _showStoreShapePicker();
     });
   }
 
   void _enterEntranceEditMode() => setState(() => _entranceEditMode = true);
 
   void _exitEntranceEditMode() => setState(() => _entranceEditMode = false);
+
+  void _enterStoreShapeEditMode() => setState(() => _storeShapeEditMode = true);
+
+  void _exitStoreShapeEditMode() => setState(() => _storeShapeEditMode = false);
+
+  void _showStoreShapePicker() {
+    showModalBottomSheet<void>(
+      context: context,
+      builder: (_) => _StoreShapePickerSheet(
+        onPreset: (name) {
+          Navigator.pop(context);
+          ref.read(zoneMapNotifierProvider.notifier).applyStorePreset(name);
+          _enterStoreShapeEditMode();
+        },
+        onReset: () {
+          Navigator.pop(context);
+          ref.read(zoneMapNotifierProvider.notifier).updateStoreShape([]);
+        },
+      ),
+    );
+  }
 
   bool _needsDimensions(Store? store) =>
       store != null && (store.widthFt == null || store.depthFt == null);
@@ -66,31 +90,16 @@ class _ZoneMapScreenState extends ConsumerState<ZoneMapScreen> {
     final zone = ref.read(zoneMapNotifierProvider).zones
         .firstWhereOrNull((z) => z.id == zoneId);
     if (zone == null) return;
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (_) => ZoneActionsSheet(
-        zone: zone,
-        onEdit: () {
-          Navigator.pop(context);
-          showModalBottomSheet<void>(
-            context: context,
-            isScrollControlled: true,
-            backgroundColor: Colors.transparent,
-            builder: (_) => ZonePropertiesPanel(zone: zone),
-          );
-        },
-        onOpen: zone.zoneType == 'display'
-            ? () {
-                Navigator.pop(context);
-                context.goNamed(
-                  AppRoutes.zoneDetail,
-                  pathParameters: {'zoneId': zone.id},
-                );
-              }
-            : null,
-      ),
-    );
+    if (zone.zoneType == 'display') {
+      context.goNamed(AppRoutes.zoneDetail, pathParameters: {'zoneId': zone.id});
+    } else {
+      showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (_) => ZonePropertiesPanel(zone: zone),
+      );
+    }
   }
 
   @override
@@ -105,7 +114,10 @@ class _ZoneMapScreenState extends ConsumerState<ZoneMapScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(_entranceEditMode ? 'ENTRANCE' : 'ZONE MAP'),
+        title: Text(
+          _storeShapeEditMode ? 'STORE SHAPE' :
+          _entranceEditMode ? 'ENTRANCE' : 'ZONE MAP',
+        ),
         bottom: _entranceEditMode
             ? PreferredSize(
                 preferredSize: const Size.fromHeight(28),
@@ -125,15 +137,36 @@ class _ZoneMapScreenState extends ConsumerState<ZoneMapScreen> {
                   ),
                 ),
               )
-            : null,
-        actions: _entranceEditMode
+            : _storeShapeEditMode
+                ? PreferredSize(
+                    preferredSize: const Size.fromHeight(28),
+                    child: Container(
+                      color: const Color(0xFFBF5534).withValues(alpha: 0.12),
+                      padding: const EdgeInsets.symmetric(vertical: 6),
+                      child: const Center(
+                        child: Text(
+                          'DRAG VERTICES TO ADJUST SHAPE',
+                          style: TextStyle(
+                            fontSize: 9,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.8,
+                            color: Color(0xFFBF5534),
+                          ),
+                        ),
+                      ),
+                    ),
+                  )
+                : null,
+        actions: (_entranceEditMode || _storeShapeEditMode)
             ? [
                 TextButton(
-                  onPressed: _exitEntranceEditMode,
+                  onPressed: _entranceEditMode
+                      ? _exitEntranceEditMode
+                      : _exitStoreShapeEditMode,
                   child: const Text(
                     'DONE',
                     style: TextStyle(
-                      color: Colors.white,
+                      color: AppTheme.cardSurface,
                       fontWeight: FontWeight.w700,
                       letterSpacing: 0.8,
                     ),
@@ -147,11 +180,16 @@ class _ZoneMapScreenState extends ConsumerState<ZoneMapScreen> {
                     icon: const Icon(Icons.more_vert),
                     onSelected: (value) {
                       if (value == 'entrance') _enterEntranceEditMode();
+                      if (value == 'storeShape') _showStoreShapePicker();
                     },
                     itemBuilder: (_) => const [
                       PopupMenuItem(
                         value: 'entrance',
                         child: Text('Edit Entrance'),
+                      ),
+                      PopupMenuItem(
+                        value: 'storeShape',
+                        child: Text('Change Store Shape'),
                       ),
                     ],
                   ),
@@ -161,10 +199,11 @@ class _ZoneMapScreenState extends ConsumerState<ZoneMapScreen> {
       body: state.isLoading
           ? const Center(child: CircularProgressIndicator())
           : _ZoneCanvas(
-              onZoneTap: _entranceEditMode ? (_) {} : _onZoneTap,
+              onZoneTap: (_entranceEditMode || _storeShapeEditMode) ? (_) {} : _onZoneTap,
               entranceEditMode: _entranceEditMode,
+              storeShapeEditMode: _storeShapeEditMode,
             ),
-      floatingActionButton: _entranceEditMode
+      floatingActionButton: (_entranceEditMode || _storeShapeEditMode)
           ? null
           : RoleGuard(
               allowedRoles: const ['coordinator', 'manager'],
@@ -184,9 +223,11 @@ class _ZoneCanvas extends ConsumerStatefulWidget {
   const _ZoneCanvas({
     required this.onZoneTap,
     this.entranceEditMode = false,
+    this.storeShapeEditMode = false,
   });
   final void Function(String zoneId) onZoneTap;
   final bool entranceEditMode;
+  final bool storeShapeEditMode;
 
   @override
   ConsumerState<_ZoneCanvas> createState() => _ZoneCanvasState();
@@ -200,7 +241,6 @@ class _ZoneCanvasState extends ConsumerState<_ZoneCanvas> {
   ZoneMapPainter? _painter;
   int? _primaryPointer;
 
-  // View transform
   double _viewScale = 1.0;
   Offset _viewOffset = Offset.zero;
   final Map<int, Offset> _activePointers = {};
@@ -209,27 +249,26 @@ class _ZoneCanvasState extends ConsumerState<_ZoneCanvas> {
   double? _pinchScaleStart;
   Offset? _pinchOffsetStart;
 
-  // Vertex drag state
   String? _dragZoneId;
   int? _dragVertexIdx;
   List<Offset>? _dragPoints;
-  List<Offset>? _dragStartPoints; // original shape at drag start for revert
+  List<Offset>? _dragStartPoints; // kept for revert on self-intersect check
 
-  // Whole-zone move state
   String? _moveZoneId;
   Offset? _moveStartCanvas;
   List<Offset>? _moveStartPoints;
   List<Offset>? _moveCurrentPoints;
 
-  // Single-finger pan on empty canvas
   bool _isPanning = false;
   Offset? _panStartScreen;
   Offset? _panStartOffset;
 
-  // Entrance drag state
   StoreEntrance? _editEntrance;
   String? _entranceDragMode; // 'center' | 'end1' | 'end2'
   StoreEntrance? _entranceDragStartState;
+
+  int? _storeVertexDragIdx;
+  List<Offset>? _storeDragPoints; // live copy during drag (normalized)
 
   bool _hasFitView = false;
 
@@ -296,8 +335,6 @@ class _ZoneCanvasState extends ConsumerState<_ZoneCanvas> {
     return -1;
   }
 
-  /// Returns the edge index (i → i+1) closest to [canvas] within threshold,
-  /// or -1 if no edge is close enough.
   int _hitEdge(StoreZone zone, Offset canvas) {
     final normPts = ZoneShape.decode(zone.shapePoints);
     final n = normPts.length;
@@ -334,6 +371,21 @@ class _ZoneCanvasState extends ConsumerState<_ZoneCanvas> {
     return Rect.fromLTWH(0, 0, w * ppf, d * ppf);
   }
 
+  List<Offset>? _normPolyPts() {
+    final raw = ref.read(zoneMapNotifierProvider).storeData?.shapePoints;
+    if (raw == null || raw.isEmpty) return null;
+    final pts = ZoneShape.decode(raw);
+    return pts.length >= 3 ? pts : null;
+  }
+
+  List<Offset>? _storePolyCanvasPts() {
+    final norm = _normPolyPts();
+    if (norm == null) return null;
+    final rect = _storeRectCanvas;
+    if (rect == Rect.zero) return null;
+    return norm.map((p) => Offset(p.dx * rect.width, p.dy * rect.height)).toList();
+  }
+
   List<(Offset, Offset)> _wallSegments(Rect rect) => [
     (Offset(rect.right, rect.bottom), Offset(rect.left, rect.bottom)),
     (Offset(rect.right, rect.top), Offset(rect.right, rect.bottom)),
@@ -342,6 +394,30 @@ class _ZoneCanvasState extends ConsumerState<_ZoneCanvas> {
   ];
 
   int? _hitEntranceWall(Offset canvas) {
+    final polyPts = _storePolyCanvasPts();
+    if (polyPts != null) {
+      final threshold = 12.0 / _viewScale;
+      int? bestEdge;
+      double bestDist = threshold;
+      for (int i = 0; i < polyPts.length; i++) {
+        final from = polyPts[i];
+        final to = polyPts[(i + 1) % polyPts.length];
+        final d = _pointToSegmentDist(canvas, from, to);
+        if (d < bestDist) { bestDist = d; bestEdge = i; }
+      }
+      if (bestEdge == null) return null;
+      // classify tapped edge as wall direction 0–3
+      final from = polyPts[bestEdge];
+      final to = polyPts[(bestEdge + 1) % polyPts.length];
+      final mid = (from + to) / 2;
+      final rect = _storeRectCanvas;
+      final relX = mid.dx - rect.width / 2;
+      final relY = mid.dy - rect.height / 2;
+      return relY.abs() > relX.abs()
+          ? (relY > 0 ? 0 : 2)   // bottom or top
+          : (relX > 0 ? 1 : 3);  // right or left
+    }
+
     final rect = _storeRectCanvas;
     if (rect == Rect.zero) return null;
     final threshold = 12.0 / _viewScale;
@@ -356,9 +432,21 @@ class _ZoneCanvasState extends ConsumerState<_ZoneCanvas> {
   }
 
   double _wallFraction(int wallIdx, Offset canvas) {
+    final polyPts = _storePolyCanvasPts();
+    if (polyPts != null) {
+      final edgeIdx = StoreEntrance.edgeForWall(_normPolyPts()!, wallIdx);
+      final from = polyPts[edgeIdx];
+      final to = polyPts[(edgeIdx + 1) % polyPts.length];
+      final dir = to - from;
+      final len2 = dir.dx * dir.dx + dir.dy * dir.dy;
+      if (len2 == 0) return 0.5;
+      return (((canvas - from).dx * dir.dx + (canvas - from).dy * dir.dy) / len2)
+          .clamp(0.0, 1.0);
+    }
+
     final rect = _storeRectCanvas;
     final walls = _wallSegments(rect);
-    final (from, to) = walls[wallIdx];
+    final (from, to) = walls[wallIdx.clamp(0, 3)];
     final dir = to - from;
     final len2 = dir.dx * dir.dx + dir.dy * dir.dy;
     if (len2 == 0) return 0.5;
@@ -367,10 +455,25 @@ class _ZoneCanvasState extends ConsumerState<_ZoneCanvas> {
   }
 
   ({Offset center, Offset end1, Offset end2})? _entranceHandlePositions(StoreEntrance e) {
+    final polyPts = _storePolyCanvasPts();
+    if (polyPts != null) {
+      final edgeIdx = StoreEntrance.edgeForWall(_normPolyPts()!, e.wall);
+      final from = polyPts[edgeIdx];
+      final to = polyPts[(edgeIdx + 1) % polyPts.length];
+      final dir = to - from;
+      final gapStart = (e.pos - e.widthFrac / 2).clamp(0.0, 1.0);
+      final gapEnd = (e.pos + e.widthFrac / 2).clamp(0.0, 1.0);
+      return (
+        center: from + dir * e.pos,
+        end1: from + dir * gapStart,
+        end2: from + dir * gapEnd,
+      );
+    }
+
     final rect = _storeRectCanvas;
     if (rect == Rect.zero) return null;
     final walls = _wallSegments(rect);
-    final (from, to) = walls[e.wall];
+    final (from, to) = walls[e.wall.clamp(0, 3)];
     final dir = to - from;
     final gapStart = (e.pos - e.widthFrac / 2).clamp(0.0, 1.0);
     final gapEnd = (e.pos + e.widthFrac / 2).clamp(0.0, 1.0);
@@ -417,7 +520,6 @@ class _ZoneCanvasState extends ConsumerState<_ZoneCanvas> {
       }
     }
 
-    // Tap on a wall — place or move entrance to that wall
     final wallIdx = _hitEntranceWall(canvas);
     if (wallIdx != null) {
       final frac = _wallFraction(wallIdx, canvas);
@@ -470,6 +572,65 @@ class _ZoneCanvasState extends ConsumerState<_ZoneCanvas> {
     });
   }
 
+  // ── Store shape vertex editing ──────────────────────────────────────────────
+
+  int _hitStoreVertex(List<Offset> normPts, Offset canvasPos) {
+    final st = ref.read(zoneMapNotifierProvider);
+    final w = st.storeData?.widthFt;
+    final d = st.storeData?.depthFt;
+    if (w == null || d == null) return -1;
+    final ppf = (_canvasSize.width / w).clamp(0.0, _canvasSize.height / d);
+    final storeW = w * ppf;
+    final storeH = d * ppf;
+    final threshold = _vertexHitScreenPx / _viewScale;
+    for (var i = 0; i < normPts.length; i++) {
+      final pt = Offset(normPts[i].dx * storeW, normPts[i].dy * storeH);
+      if ((pt - canvasPos).distance < threshold) return i;
+    }
+    return -1;
+  }
+
+  void _handleStorePointerDown(PointerDownEvent event, List<Offset> normPts) {
+    final canvas = _toCanvas(event.localPosition);
+    final idx = _hitStoreVertex(normPts, canvas);
+    if (idx >= 0) {
+      _primaryPointer = event.pointer;
+      setState(() {
+        _storeVertexDragIdx = idx;
+        _storeDragPoints = List.of(normPts);
+      });
+    }
+  }
+
+  void _handleStorePointerMove(PointerMoveEvent event) {
+    if (event.pointer != _primaryPointer || _storeVertexDragIdx == null) return;
+    final st = ref.read(zoneMapNotifierProvider);
+    final w = st.storeData?.widthFt;
+    final d = st.storeData?.depthFt;
+    if (w == null || d == null) return;
+    final ppf = (_canvasSize.width / w).clamp(0.0, _canvasSize.height / d);
+    final storeW = w * ppf;
+    final storeH = d * ppf;
+    final canvas = _toCanvas(event.localPosition);
+    final normX = (canvas.dx / storeW).clamp(0.0, 1.0);
+    final normY = (canvas.dy / storeH).clamp(0.0, 1.0);
+    setState(() {
+      final pts = List.of(_storeDragPoints!);
+      pts[_storeVertexDragIdx!] = Offset(normX, normY);
+      _storeDragPoints = pts;
+    });
+  }
+
+  void _handleStorePointerUp(PointerUpEvent event) {
+    if (event.pointer != _primaryPointer || _storeDragPoints == null) return;
+    _notifier.updateStoreShape(_storeDragPoints!);
+    setState(() {
+      _primaryPointer = null;
+      _storeVertexDragIdx = null;
+      _storeDragPoints = null;
+    });
+  }
+
   void _onLongPress(LongPressStartDetails details) {
     if (widget.entranceEditMode) return;
     final state = ref.read(zoneMapNotifierProvider);
@@ -484,26 +645,36 @@ class _ZoneCanvasState extends ConsumerState<_ZoneCanvas> {
     final vIdx = _hitVertex(zone, canvas);
     if (vIdx >= 0) {
       _notifier.removeVertex(selectedId, vIdx);
-      setState(_resetGesture); // prevent _onPointerUp from restoring old shape
+      setState(_resetGesture); // prevents _onPointerUp from restoring old shape
       return;
     }
 
-    // Long-press on an edge → insert vertex at that position
     final eIdx = _hitEdge(zone, canvas);
     if (eIdx >= 0) {
-      _notifier.addVertex(selectedId, eIdx, _normalize(canvas));
-      setState(_resetGesture);
+      final normPt = _normalize(canvas);
+      final newPts = List.of(ZoneShape.decode(zone.shapePoints))
+        ..insert(eIdx + 1, normPt);
+      _notifier.addVertex(selectedId, eIdx, normPt);
+      setState(() {
+        _moveZoneId = null;
+        _moveStartCanvas = null;
+        _moveStartPoints = null;
+        _moveCurrentPoints = null;
+        _isPanning = false;
+        _dragZoneId = selectedId;
+        _dragVertexIdx = eIdx + 1;
+        _dragPoints = newPts;
+        _dragStartPoints = List.of(newPts);
+        // _primaryPointer stays set from _onPointerDown — move events continue
+      });
     }
   }
 
-  /// Snaps the move delta so the closest vertex pair aligns with another zone
-  /// or a store boundary wall. [startPts] must be the original vertex positions
-  /// at move-start so the delta and positions stay in the same coordinate frame.
   Offset _trySnapZoneMove(String zoneId, Offset normDelta, List<Offset> startPts) {
     final st = ref.read(zoneMapNotifierProvider);
     final threshold = _snapScreenPx / _viewScale;
 
-    // Zone-to-zone vertex snap (XY together).
+    // zone-to-zone vertex snap (XY together)
     Offset? bestDelta;
     double bestDist = threshold;
     for (final pt in startPts) {
@@ -523,7 +694,7 @@ class _ZoneCanvasState extends ConsumerState<_ZoneCanvas> {
     }
     if (bestDelta != null) return bestDelta;
 
-    // Zone-to-edge snap (vertex of moved zone snaps to nearest point on another zone's edge).
+    // zone-to-edge snap
     bestDist = threshold;
     for (final pt in startPts) {
       final movedCanvas = Offset(
@@ -552,7 +723,7 @@ class _ZoneCanvasState extends ConsumerState<_ZoneCanvas> {
     }
     if (bestDelta != null) return bestDelta;
 
-    // Store boundary snap (X and Y axes independently).
+    // store boundary snap (X and Y independently)
     final widthFt = st.storeData?.widthFt;
     final depthFt = st.storeData?.depthFt;
     if (widthFt != null && depthFt != null) {
@@ -581,7 +752,6 @@ class _ZoneCanvasState extends ConsumerState<_ZoneCanvas> {
     return normDelta;
   }
 
-  // Snap to nearest vertex of any OTHER zone.
   Offset _snapToVertex(Offset canvas, String dragZoneId) {
     final threshold = _snapScreenPx / _viewScale;
     final state = ref.read(zoneMapNotifierProvider);
@@ -601,7 +771,6 @@ class _ZoneCanvasState extends ConsumerState<_ZoneCanvas> {
     return best;
   }
 
-  // Snap to nearest point on any edge of any other zone.
   Offset _snapToEdge(Offset canvas, String dragZoneId) {
     final threshold = _snapScreenPx / _viewScale;
     final state = ref.read(zoneMapNotifierProvider);
@@ -622,7 +791,7 @@ class _ZoneCanvasState extends ConsumerState<_ZoneCanvas> {
     return best;
   }
 
-  // Snap vertex X/Y to adjacent vertices' coordinates → creates right-angle edges.
+  // snaps X/Y to adjacent vertices → creates right-angle edges
   Offset _snapOrthogonal(Offset canvas, List<Offset> normPts, int idx) {
     final n = normPts.length;
     final threshold = _snapScreenPx / _viewScale;
@@ -647,7 +816,6 @@ class _ZoneCanvasState extends ConsumerState<_ZoneCanvas> {
     return Offset(x, y);
   }
 
-  // Combined snap: vertex-to-vertex → edge → orthogonal.
   Offset _snapAll(Offset canvas, String dragZoneId, int vertexIdx) {
     final vtx = _snapToVertex(canvas, dragZoneId);
     if (vtx != canvas) return vtx;
@@ -657,7 +825,6 @@ class _ZoneCanvasState extends ConsumerState<_ZoneCanvas> {
     return canvas;
   }
 
-  // On pointer-up: try to perfect the shape into a rectangle or right triangle.
   List<Offset>? _trySnapToShape(List<Offset> normPts) {
     if (normPts.length == 4) return _tryRectangle(normPts);
     if (normPts.length == 3) return _tryRightTriangle(normPts);
@@ -811,6 +978,15 @@ class _ZoneCanvasState extends ConsumerState<_ZoneCanvas> {
       return;
     }
 
+    if (widget.storeShapeEditMode) {
+      final storeShapePts = ref.read(zoneMapNotifierProvider).storeData?.shapePoints;
+      final normPts = storeShapePts != null ? ZoneShape.decode(storeShapePts) : null;
+      if (normPts != null && normPts.length >= 3) {
+        _handleStorePointerDown(event, normPts);
+        return;
+      }
+    }
+
     final state = ref.read(zoneMapNotifierProvider);
     final canvas = _toCanvas(event.localPosition);
 
@@ -831,7 +1007,8 @@ class _ZoneCanvasState extends ConsumerState<_ZoneCanvas> {
       }
     }
 
-    final hitId = _painter?.zoneIdAt(canvas);
+    final hitId = _painter?.zoneIdAt(canvas,
+        centroidHitRadius: _vertexHitScreenPx / _viewScale);
     if (hitId != null) {
       _primaryPointer = event.pointer;
       final zone = state.zones.firstWhere((z) => z.id == hitId);
@@ -861,6 +1038,11 @@ class _ZoneCanvasState extends ConsumerState<_ZoneCanvas> {
 
     if (widget.entranceEditMode) {
       _handleEntrancePointerMove(event);
+      return;
+    }
+
+    if (widget.storeShapeEditMode && _storeVertexDragIdx != null) {
+      _handleStorePointerMove(event);
       return;
     }
 
@@ -902,6 +1084,11 @@ class _ZoneCanvasState extends ConsumerState<_ZoneCanvas> {
       return;
     }
 
+    if (widget.storeShapeEditMode) {
+      _handleStorePointerUp(event);
+      return;
+    }
+
     if (event.pointer != _primaryPointer) return;
 
     if (_dragZoneId != null && _dragPoints != null) {
@@ -923,8 +1110,15 @@ class _ZoneCanvasState extends ConsumerState<_ZoneCanvas> {
   void _onTapUp(TapUpDetails details) {
     if (widget.entranceEditMode) return;
     final canvas = _toCanvas(details.localPosition);
-    final id = _painter?.zoneIdAt(canvas);
+    final id = _painter?.zoneIdAt(canvas,
+        centroidHitRadius: _vertexHitScreenPx / _viewScale);
     if (id != null) {
+      final alreadySelected =
+          ref.read(zoneMapNotifierProvider).selectedZoneId == id;
+      if (alreadySelected) {
+        // don't re-navigate — tap may have been targeting a vertex
+        return;
+      }
       widget.onZoneTap(id);
     } else {
       _notifier.selectZone(null);
@@ -951,7 +1145,7 @@ class _ZoneCanvasState extends ConsumerState<_ZoneCanvas> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(zoneMapNotifierProvider);
-    // Re-fit when store dimensions are first set (e.g. after the setup dialog on a new store).
+    // re-fit when store dimensions are first set (after the setup dialog on a new store)
     ref.listen<ZoneMapState>(zoneMapNotifierProvider, (prev, next) {
       final hadDims = prev?.storeData?.widthFt != null;
       final hasDims = next.storeData?.widthFt != null;
@@ -968,6 +1162,9 @@ class _ZoneCanvasState extends ConsumerState<_ZoneCanvas> {
           WidgetsBinding.instance.addPostFrameCallback((_) { if (mounted) _fitView(); });
         }
         final snapPreview = _dragPoints != null ? _trySnapToShape(_dragPoints!) : null;
+        final rawShapePts = state.storeData?.shapePoints;
+        final storeShapePts = _storeDragPoints ??
+            (rawShapePts != null ? ZoneShape.decode(rawShapePts) : null);
         _painter = ZoneMapPainter(
           zones: state.zones,
           canvasSize: _canvasSize,
@@ -975,9 +1172,12 @@ class _ZoneCanvasState extends ConsumerState<_ZoneCanvas> {
           widthFt: state.storeData?.widthFt,
           depthFt: state.storeData?.depthFt,
           entranceJson: state.storeData?.entranceJson,
+          storeShapePoints: storeShapePts,
           activeVertexIdx: _dragVertexIdx,
           snapPreviewPoints: (snapPreview != null && snapPreview != _dragPoints) ? snapPreview : null,
           entranceEditMode: widget.entranceEditMode,
+          storeShapeEditMode: widget.storeShapeEditMode,
+          activeStoreVertexIdx: _storeVertexDragIdx,
           liveEntrance: _editEntrance,
           overlappingZoneIds: state.overlappingZoneIds,
         );
@@ -992,8 +1192,8 @@ class _ZoneCanvasState extends ConsumerState<_ZoneCanvas> {
               child: SizedBox.expand(
                 child: Transform(
                   transform: Matrix4.identity()
-                    ..translate(_viewOffset.dx, _viewOffset.dy)
-                    ..scale(_viewScale),
+                    ..translateByDouble(_viewOffset.dx, _viewOffset.dy, 0.0, 1.0)
+                    ..scaleByDouble(_viewScale, _viewScale, _viewScale, 1.0),
                   alignment: Alignment.topLeft,
                   child: CustomPaint(painter: _painter, size: _canvasSize),
                 ),
@@ -1002,6 +1202,84 @@ class _ZoneCanvasState extends ConsumerState<_ZoneCanvas> {
           ),
         );
       },
+    );
+  }
+}
+
+// ── Store shape picker sheet ──────────────────────────────────────────────────
+
+class _StoreShapePickerSheet extends StatelessWidget {
+  const _StoreShapePickerSheet({
+    required this.onPreset,
+    required this.onReset,
+  });
+  final void Function(String presetName) onPreset;
+  final VoidCallback onReset;
+
+  static const _shapes = [
+    ('rectangle', 'Rectangle', Icons.crop_square),
+    ('triangle', 'Triangle', Icons.change_history),
+    ('l_shape', 'L-Shape', Icons.crop),
+    ('t_shape', 'T-Shape', Icons.add),
+    ('u_shape', 'U-Shape', Icons.crop_free),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(DesignTokens.spaceMd),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Text(
+            'STORE SHAPE',
+            style: TextStyle(
+              fontWeight: DesignTokens.weightBold,
+              letterSpacing: DesignTokens.letterSpacingEyebrow,
+              fontSize: DesignTokens.typeMd,
+            ),
+          ),
+          const SizedBox(height: DesignTokens.spaceMd),
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: _shapes.map(((String, String, IconData) s) {
+              return GestureDetector(
+                onTap: () => onPreset(s.$1),
+                child: Container(
+                  width: 100,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    border: Border.all(color: AppTheme.divider),
+                    borderRadius: BorderRadius.circular(AppTheme.borderRadius),
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(s.$3, size: 32, color: AppTheme.primary),
+                      const SizedBox(height: DesignTokens.spaceXs),
+                      Text(s.$2, style: const TextStyle(fontSize: 11)),
+                    ],
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: DesignTokens.spaceMd),
+          const Text(
+            'After selecting, drag the vertex handles to fine-tune.',
+            style: TextStyle(fontSize: DesignTokens.typeXs, color: AppTheme.textSecondary),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: DesignTokens.spaceSm),
+          MmButton.outlined(
+            label: 'RESET TO RECTANGLE (no shape)',
+            onPressed: onReset,
+          ),
+          SizedBox(height: MediaQuery.of(context).padding.bottom),
+        ],
+      ),
     );
   }
 }

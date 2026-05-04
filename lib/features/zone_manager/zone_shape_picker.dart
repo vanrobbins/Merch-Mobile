@@ -19,6 +19,7 @@ class _ZoneShapePickerSheet extends StatelessWidget {
 
   static const _shapes = [
     ('rectangle', 'Rectangle', Icons.crop_square),
+    ('triangle', 'Triangle', Icons.change_history),
     ('l_shape', 'L-Shape', Icons.crop),
     ('t_shape', 'T-Shape', Icons.add),
     ('u_shape', 'U-Shape', Icons.crop_free),

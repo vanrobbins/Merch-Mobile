@@ -5,6 +5,9 @@ import '../../core/models/brand_color.dart';
 import '../../core/providers/store_provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/design_tokens.dart';
+import '../../core/widgets/mm_button.dart';
+import '../../core/widgets/mm_dialog.dart';
+import '../../core/widgets/mm_text_field.dart';
 import '../../core/widgets/role_guard.dart';
 import 'catalog_provider.dart';
 
@@ -92,7 +95,7 @@ class ColorPaletteScreen extends ConsumerWidget {
         child: FloatingActionButton(
           onPressed: () => _showEditSheet(context, ref, storeId, null),
           backgroundColor: AppTheme.accent,
-          foregroundColor: Colors.white,
+          foregroundColor: AppTheme.canvasBg,
           child: const Icon(Icons.add),
         ),
       ),
@@ -109,26 +112,20 @@ class ColorPaletteScreen extends ConsumerWidget {
   }
 
   Future<void> _confirmDelete(BuildContext context, WidgetRef ref, String storeId, BrandColor color) async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Delete color?'),
-        content: Text('Remove "${color.name}" from your palette?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('CANCEL'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.errorColor,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('DELETE'),
-          ),
-        ],
-      ),
+    final confirm = await MmDialog.show<bool>(
+      context,
+      title: 'Delete color?',
+      content: Text('Remove "${color.name}" from your palette?'),
+      actions: [
+        MmButton.text(
+          label: 'CANCEL',
+          onPressed: () => Navigator.pop(context, false),
+        ),
+        MmButton.destructive(
+          label: 'DELETE',
+          onPressed: () => Navigator.pop(context, true),
+        ),
+      ],
     );
     if (confirm == true) {
       await deleteBrandColor(storeId, color.id);
@@ -245,37 +242,21 @@ class _ColorEditSheetState extends ConsumerState<_ColorEditSheet> {
             ),
           ),
           const SizedBox(height: DesignTokens.spaceMd),
-          TextField(
+          MmTextField(
+            label: 'Color name',
             controller: _nameCtrl,
-            decoration: const InputDecoration(labelText: 'Color name'),
-            textCapitalization: TextCapitalization.words,
           ),
           const SizedBox(height: DesignTokens.spaceMd),
-          TextField(
+          MmTextField(
+            label: 'Hex value',
+            hint: '#FFFFFF',
             controller: _hexCtrl,
-            decoration: const InputDecoration(
-              labelText: 'Hex value',
-              hintText: '#FFFFFF',
-            ),
           ),
           const SizedBox(height: DesignTokens.spaceLg),
-          ElevatedButton(
+          MmButton(
+            label: widget.existing == null ? 'ADD COLOR' : 'SAVE CHANGES',
             onPressed: _loading ? null : _save,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.accent,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: const RoundedRectangleBorder(
-                borderRadius: BorderRadius.all(Radius.circular(AppTheme.borderRadius)),
-              ),
-            ),
-            child: _loading
-                ? const SizedBox(
-                    height: 20,
-                    width: 20,
-                    child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-                  )
-                : Text(widget.existing == null ? 'ADD COLOR' : 'SAVE CHANGES'),
+            isLoading: _loading,
           ),
           const SizedBox(height: DesignTokens.spaceSm),
         ],

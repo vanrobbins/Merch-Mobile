@@ -1,5 +1,4 @@
 import 'dart:math' as math;
-import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import '../../core/models/fixture.dart';
 import '../../core/models/mannequin.dart';
@@ -30,6 +29,7 @@ class BuilderCanvasPainter extends CustomPainter {
     this.platforms = const [],
     this.sceneProps = const [],
     this.selectedFixtureIds = const {},
+    this.showResizeHandles = true,
   });
 
   final List<Fixture> fixtures;
@@ -51,6 +51,7 @@ class BuilderCanvasPainter extends CustomPainter {
   final List<PlatformElement> platforms;
   final List<SceneProp> sceneProps;
   final Set<String> selectedFixtureIds;
+  final bool showResizeHandles;
 
   Map<String, Rect> fixtureRects = {};
   Map<String, Map<String, Rect>> resizeHandleRects = {};
@@ -91,7 +92,7 @@ class BuilderCanvasPainter extends CustomPainter {
       _drawEdgeHandles(canvas, wallEdges!);
     }
     for (final fixture in fixtures) {
-      if (fixture.id == selectedFixtureId) {
+      if (showResizeHandles && fixture.id == selectedFixtureId) {
         _drawResizeHandles(canvas, fixture);
       }
       _drawPlanogramBadges(canvas, fixture);
@@ -99,37 +100,16 @@ class BuilderCanvasPainter extends CustomPainter {
   }
 
   void _drawEdgeHandles(Canvas canvas, List<ZoneEdge> edges) {
-    for (var i = 0; i < edges.length; i++) {
-      final edge = edges[i];
+    for (final edge in edges) {
       canvas.drawLine(
         edge.startPx,
         edge.endPx,
         Paint()
-          ..color = AppTheme.accent.withValues(alpha: 0.55)
-          ..strokeWidth = 3.5
+          ..color = AppTheme.accent.withValues(alpha: 0.7)
+          ..strokeWidth = 5.0
           ..strokeCap = StrokeCap.round,
       );
-      canvas.drawCircle(edge.midPx, 14, Paint()..color = AppTheme.accent);
-      canvas.drawCircle(
-        edge.midPx,
-        14,
-        Paint()
-          ..color = Colors.white
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 2.0,
-      );
-      final tp = TextPainter(
-        text: TextSpan(
-          text: '${i + 1}',
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 11,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        textDirection: ui.TextDirection.ltr,
-      )..layout();
-      tp.paint(canvas, edge.midPx - Offset(tp.width / 2, tp.height / 2));
+      canvas.drawCircle(edge.midPx, 8, Paint()..color = AppTheme.accent);
     }
   }
 
@@ -140,7 +120,7 @@ class BuilderCanvasPainter extends CustomPainter {
     final List<Offset> screenPts;
 
     if (storeWidthFt != null && storeDepthFt != null) {
-      // Derive origin from actual shape-point extents — zone.posX/posY is not kept in sync.
+      // derive origin from shape-point extents — zone.posX/posY is not kept in sync
       final minX = pts.map((p) => p.dx).reduce((a, b) => a < b ? a : b);
       final minY = pts.map((p) => p.dy).reduce((a, b) => a < b ? a : b);
       screenPts = pts.map((p) => Offset(
@@ -148,7 +128,7 @@ class BuilderCanvasPainter extends CustomPainter {
         (p.dy - minY) * storeDepthFt! * pixelsPerFt,
       )).toList();
     } else {
-      // Fallback: scale to fill canvas (disconnected from fixture space)
+      // fallback: scale to fill canvas — disconnected from fixture space
       double minX = pts.map((p) => p.dx).reduce((a, b) => a < b ? a : b);
       double maxX = pts.map((p) => p.dx).reduce((a, b) => a > b ? a : b);
       double minY = pts.map((p) => p.dy).reduce((a, b) => a < b ? a : b);
@@ -171,9 +151,7 @@ class BuilderCanvasPainter extends CustomPainter {
     final path = Path()..addPolygon(screenPts, true);
     final color = zoneColor ?? AppTheme.primary;
 
-    // Floor fill
     canvas.drawPath(path, Paint()..color = color.withValues(alpha: 0.07)..style = PaintingStyle.fill);
-    // Zone boundary border
     canvas.drawPath(
       path,
       Paint()
@@ -183,7 +161,6 @@ class BuilderCanvasPainter extends CustomPainter {
         ..strokeJoin = StrokeJoin.round,
     );
 
-    // Zone name label at top of shape
     if (zoneName != null) {
       final tp = TextPainter(
         text: TextSpan(
@@ -228,11 +205,10 @@ class BuilderCanvasPainter extends CustomPainter {
 
     switch (fixture.fixtureType) {
       case 'rack':
+      case 'shelf': // legacy — draws as rack
         _drawRack(canvas, rect, fillPaint, borderPaint);
       case 'table':
         _drawTable(canvas, rect, fillPaint, borderPaint);
-      case 'shelf':
-        _drawShelf(canvas, rect, fillPaint, borderPaint);
       case 'wall':
         _drawWall(canvas, rect, fillPaint, borderPaint);
       case 'partition':
@@ -242,7 +218,6 @@ class BuilderCanvasPainter extends CustomPainter {
         canvas.drawRect(rect, borderPaint);
     }
 
-    // Label
     final label = fixture.label.isNotEmpty ? fixture.label : fixture.fixtureType.toUpperCase();
     _drawLabel(canvas, label, rect);
 
@@ -256,7 +231,12 @@ class BuilderCanvasPainter extends CustomPainter {
         ..color = AppTheme.accent
         ..strokeWidth = 2.0
         ..style = PaintingStyle.stroke;
+      canvas.save();
+      canvas.translate(cx, cy);
+      canvas.rotate(fixture.rotation * 3.14159 / 180);
+      canvas.translate(-cx, -cy);
       _drawDashedRect(canvas, rect, dashPaint, dashLen, gap);
+      canvas.restore();
     }
 
     fixtureRects[fixture.id] = rect;
@@ -264,44 +244,24 @@ class BuilderCanvasPainter extends CustomPainter {
   }
 
   void _drawDashedRect(Canvas canvas, Rect rect, Paint paint, double dashLen, double gap) {
-    // Top edge
     double x = rect.left;
     while (x < rect.right) {
-      canvas.drawLine(
-        Offset(x, rect.top),
-        Offset((x + dashLen).clamp(rect.left, rect.right), rect.top),
-        paint,
-      );
+      canvas.drawLine(Offset(x, rect.top), Offset((x + dashLen).clamp(rect.left, rect.right), rect.top), paint);
       x += dashLen + gap;
     }
-    // Bottom edge
     x = rect.left;
     while (x < rect.right) {
-      canvas.drawLine(
-        Offset(x, rect.bottom),
-        Offset((x + dashLen).clamp(rect.left, rect.right), rect.bottom),
-        paint,
-      );
+      canvas.drawLine(Offset(x, rect.bottom), Offset((x + dashLen).clamp(rect.left, rect.right), rect.bottom), paint);
       x += dashLen + gap;
     }
-    // Left edge
     double y = rect.top;
     while (y < rect.bottom) {
-      canvas.drawLine(
-        Offset(rect.left, y),
-        Offset(rect.left, (y + dashLen).clamp(rect.top, rect.bottom)),
-        paint,
-      );
+      canvas.drawLine(Offset(rect.left, y), Offset(rect.left, (y + dashLen).clamp(rect.top, rect.bottom)), paint);
       y += dashLen + gap;
     }
-    // Right edge
     y = rect.top;
     while (y < rect.bottom) {
-      canvas.drawLine(
-        Offset(rect.right, y),
-        Offset(rect.right, (y + dashLen).clamp(rect.top, rect.bottom)),
-        paint,
-      );
+      canvas.drawLine(Offset(rect.right, y), Offset(rect.right, (y + dashLen).clamp(rect.top, rect.bottom)), paint);
       y += dashLen + gap;
     }
   }
@@ -324,18 +284,6 @@ class BuilderCanvasPainter extends CustomPainter {
     canvas.drawRRect(rrect, border);
   }
 
-  void _drawShelf(Canvas canvas, Rect rect, Paint fill, Paint border) {
-    canvas.drawRect(rect, fill);
-    canvas.drawRect(rect, border);
-    // 3 horizontal lines
-    final spacing = rect.height / 4;
-    final linePaint = Paint()..color = border.color..strokeWidth = 0.8;
-    for (int i = 1; i <= 3; i++) {
-      final y = rect.top + spacing * i;
-      canvas.drawLine(Offset(rect.left + 4, y), Offset(rect.right - 4, y), linePaint);
-    }
-  }
-
   void _drawWall(Canvas canvas, Rect rect, Paint fill, Paint border) {
     final wallPaint = Paint()..color = AppTheme.primary.withValues(alpha: 0.35)..style = PaintingStyle.fill;
     canvas.drawRect(rect, wallPaint);
@@ -343,10 +291,8 @@ class BuilderCanvasPainter extends CustomPainter {
   }
 
   void _drawPartition(Canvas canvas, Rect rect, Paint fill, Paint border) {
-    // Interior divider — dashed centre line with light fill
     canvas.drawRect(rect, Paint()..color = AppTheme.accent.withValues(alpha: 0.12)..style = PaintingStyle.fill);
     canvas.drawRect(rect, Paint()..color = AppTheme.accent..strokeWidth = 1.5..style = PaintingStyle.stroke);
-    // Dashed centre line along long axis
     final isWide = rect.width >= rect.height;
     final dashPaint = Paint()..color = AppTheme.accent..strokeWidth = 1.0;
     const dashLen = 4.0;
@@ -375,16 +321,9 @@ class BuilderCanvasPainter extends CustomPainter {
     final top = platform.positionY * pixelsPerFt;
     final rect = Rect.fromLTWH(left, top, w, d);
     platformRects[platform.id] = rect;
-    // Subtle drop shadow
-    canvas.drawRect(
-      rect.translate(2, 2),
-      Paint()..color = Colors.black.withValues(alpha: 0.12)..style = PaintingStyle.fill,
-    );
-    // Khaki fill
+    canvas.drawRect(rect.translate(2, 2), Paint()..color = Colors.black.withValues(alpha: 0.12)..style = PaintingStyle.fill);
     canvas.drawRect(rect, Paint()..color = const Color(0xFFC8B89A).withValues(alpha: 0.4)..style = PaintingStyle.fill);
-    // Border
     canvas.drawRect(rect, Paint()..color = const Color(0xFF9B8B6E)..strokeWidth = 1.5..style = PaintingStyle.stroke);
-    // Elevation label
     final label = '+${platform.elevation.toStringAsFixed(1)}ft';
     final tp = TextPainter(
       text: TextSpan(
@@ -412,36 +351,24 @@ class BuilderCanvasPainter extends CustomPainter {
       ..color = accentColor;
 
     if (mannequin.mannequinType == 'leg_form') {
-      // Two vertical parallel lines
       canvas.drawLine(Offset(cx - 4, cy - 10), Offset(cx - 4, cy + 10), strokePaint);
       canvas.drawLine(Offset(cx + 4, cy - 10), Offset(cx + 4, cy + 10), strokePaint);
     } else if (mannequin.mannequinType == 'bra_form') {
-      // Horizontal bar with two small arcs
       canvas.drawLine(Offset(cx - 8, cy), Offset(cx + 8, cy), strokePaint);
-      final rect1 = Rect.fromCircle(center: Offset(cx - 4, cy), radius: 5);
-      final rect2 = Rect.fromCircle(center: Offset(cx + 4, cy), radius: 5);
-      canvas.drawArc(rect1, -3.14159, 3.14159, false, strokePaint);
-      canvas.drawArc(rect2, -3.14159, 3.14159, false, strokePaint);
+      canvas.drawArc(Rect.fromCircle(center: Offset(cx - 4, cy), radius: 5), -3.14159, 3.14159, false, strokePaint);
+      canvas.drawArc(Rect.fromCircle(center: Offset(cx + 4, cy), radius: 5), -3.14159, 3.14159, false, strokePaint);
     } else {
-      // Standard figure: head + body lines
-      // Head
       canvas.drawCircle(Offset(cx, cy - 9), 4, fillPaint);
-      // Body
       canvas.drawLine(Offset(cx, cy - 5), Offset(cx, cy + 5), strokePaint);
       if (mannequin.mannequinType == 'full_body') {
-        // Arms
         canvas.drawLine(Offset(cx - 7, cy - 2), Offset(cx + 7, cy - 2), strokePaint);
-        // Legs
         canvas.drawLine(Offset(cx, cy + 5), Offset(cx - 5, cy + 13), strokePaint);
         canvas.drawLine(Offset(cx, cy + 5), Offset(cx + 5, cy + 13), strokePaint);
       } else if (mannequin.mannequinType == 'half_body') {
-        // Arms only, no legs
         canvas.drawLine(Offset(cx - 7, cy - 2), Offset(cx + 7, cy - 2), strokePaint);
       }
-      // torso: just head + body, no arms/legs
     }
 
-    // Label below figure
     final label = mannequin.outfitName ?? mannequin.name ?? _mannequinAbbrev(mannequin.mannequinType);
     final tp = TextPainter(
       text: TextSpan(
@@ -535,9 +462,9 @@ class BuilderCanvasPainter extends CustomPainter {
     final cx = rect.center.dx;
     final cy = rect.center.dy;
 
-    // Handle size and offset scaled to appear constant on screen regardless of zoom.
+    // size/offset scaled to appear constant on screen regardless of zoom
     final hs = (20.0 / viewScale).clamp(14.0, 60.0);
-    // Offset from fixture edge so handles sit fully outside the body.
+    // offset from fixture edge so handles sit fully outside the body
     final ho = hs / 2 + (3.0 / viewScale).clamp(2.0, 8.0);
 
     Offset toScreen(Offset local) {
@@ -596,7 +523,6 @@ class BuilderCanvasPainter extends CustomPainter {
     }
   }
 
-  // Rotates [pt] around [center] by [angle] radians.
   static Offset _rotateAround(Offset pt, Offset center, double angle) {
     final dx = pt.dx - center.dx;
     final dy = pt.dy - center.dy;
@@ -606,7 +532,6 @@ class BuilderCanvasPainter extends CustomPainter {
     );
   }
 
-  // Draws a double-headed arrow centred at [center] along direction [dirAngle] (radians).
   void _drawArrow(Canvas canvas, Offset center, double dirAngle) {
     final paint = Paint()
       ..color = Colors.white
@@ -619,11 +544,9 @@ class BuilderCanvasPainter extends CustomPainter {
     final tip1 = Offset(center.dx - cosA * arm, center.dy - sinA * arm);
     final tip2 = Offset(center.dx + cosA * arm, center.dy + sinA * arm);
     canvas.drawLine(tip1, tip2, paint);
-    // Barbs at tip1 (toward tip2)
     final b1x = tip1.dx + cosA * 2; final b1y = tip1.dy + sinA * 2;
     canvas.drawLine(tip1, Offset(b1x + sinA * barb, b1y - cosA * barb), paint);
     canvas.drawLine(tip1, Offset(b1x - sinA * barb, b1y + cosA * barb), paint);
-    // Barbs at tip2 (toward tip1)
     final b2x = tip2.dx - cosA * 2; final b2y = tip2.dy - sinA * 2;
     canvas.drawLine(tip2, Offset(b2x + sinA * barb, b2y - cosA * barb), paint);
     canvas.drawLine(tip2, Offset(b2x - sinA * barb, b2y + cosA * barb), paint);

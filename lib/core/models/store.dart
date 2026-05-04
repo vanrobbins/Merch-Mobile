@@ -14,6 +14,7 @@ class Store with _$Store {
     double? widthFt,
     double? depthFt,
     String? entranceJson,
+    String? shapePoints,
     required DateTime createdAt,
   }) = _Store;
 
@@ -31,6 +32,7 @@ extension StoreFirestore on Store {
       widthFt: (d['widthFt'] as num?)?.toDouble(),
       depthFt: (d['depthFt'] as num?)?.toDouble(),
       entranceJson: d['entranceJson'] as String?,
+      shapePoints: d['shapePoints'] as String?,
       createdAt: (d['createdAt'] as Timestamp).toDate(),
     );
   }
@@ -42,6 +44,7 @@ extension StoreFirestore on Store {
     if (widthFt != null) 'widthFt': widthFt,
     if (depthFt != null) 'depthFt': depthFt,
     if (entranceJson != null) 'entranceJson': entranceJson,
+    if (shapePoints != null) 'shapePoints': shapePoints,
     'createdAt': Timestamp.fromDate(createdAt),
   };
 }

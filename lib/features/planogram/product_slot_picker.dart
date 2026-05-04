@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/models/product.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/design_tokens.dart';
+import '../../core/widgets/mm_button.dart';
 import '../product_catalog/catalog_provider.dart';
 import 'planogram_provider.dart';
 
@@ -80,7 +81,7 @@ class _ProductSlotPickerState extends ConsumerState<ProductSlotPicker> {
       expand: false,
       builder: (ctx, scrollCtrl) => Container(
         decoration: const BoxDecoration(
-          color: Colors.white,
+          color: AppTheme.cardSurface,
           borderRadius: BorderRadius.vertical(
               top: Radius.circular(DesignTokens.radiusLg)),
         ),
@@ -91,7 +92,7 @@ class _ProductSlotPickerState extends ConsumerState<ProductSlotPicker> {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.grey.shade300,
+                color: AppTheme.surfaceVariant,
                 borderRadius: BorderRadius.circular(AppTheme.borderRadius),
               ),
             ),
@@ -197,17 +198,9 @@ class _ProductSlotPickerState extends ConsumerState<ProductSlotPicker> {
                             style: const TextStyle(
                                 fontSize: DesignTokens.typeXs,
                                 color: AppTheme.textSecondary)),
-                        trailing: ElevatedButton(
+                        trailing: MmButton(
+                          label: 'ASSIGN',
                           onPressed: () => _assign(p),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppTheme.accent,
-                            foregroundColor: Colors.white,
-                            shape: const RoundedRectangleBorder(
-                              borderRadius: BorderRadius.all(
-                                  Radius.circular(AppTheme.borderRadius)),
-                            ),
-                          ),
-                          child: const Text('ASSIGN'),
                         ),
                       );
                     },
@@ -268,7 +261,7 @@ class _GenderChip extends StatelessWidget {
             fontSize: DesignTokens.typeXs,
             fontWeight: DesignTokens.weightBold,
             letterSpacing: DesignTokens.letterSpacingEyebrow,
-            color: selected ? Colors.white : AppTheme.textSecondary,
+            color: selected ? AppTheme.canvasBg : AppTheme.textSecondary,
           ),
         ),
       ),

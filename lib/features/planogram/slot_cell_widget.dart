@@ -251,7 +251,7 @@ class _FaceoutContent extends StatelessWidget {
                     width: 6,
                     height: 6,
                     decoration: BoxDecoration(
-                      color: _hexColor(item.colorHex) ?? Colors.grey.shade400,
+                      color: _hexColor(item.colorHex) ?? AppTheme.textHint,
                       shape: BoxShape.circle,
                     ),
                   ),

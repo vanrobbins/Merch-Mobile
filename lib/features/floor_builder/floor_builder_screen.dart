@@ -5,7 +5,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/providers/store_provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/design_tokens.dart';
+import '../../core/widgets/mm_button.dart';
 import '../zone_manager/zone_shape.dart';
+import '../../core/models/fixture.dart';
 import 'builder_canvas_painter.dart';
 import 'element_delete_sheet.dart';
 import 'element_library_panel.dart';
@@ -16,7 +18,6 @@ import 'mannequin_type_sheet.dart';
 import 'planogram_picker_sheet.dart';
 import 'prop_type_sheet.dart';
 import 'snap_grid.dart';
-import 'wall_placement_sheet.dart';
 import 'zone_edge_helper.dart';
 
 class FloorBuilderScreen extends ConsumerStatefulWidget {
@@ -75,6 +76,7 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
   double? _resizeStartAngle;
   double? _resizeStartPosX;
   double? _resizeStartPosY;
+  Fixture? _resizeStartFixture; // pre-drag snapshot for undo
 
   // Drag offset — prevents jump-to-cursor on pointer-down
   Offset? _dragPointerOffsetFt;
@@ -96,7 +98,7 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
           ref.read(floorBuilderNotifierProvider.notifier)
               .addFixture(type, _viewCenterFt());
         },
-        onWallSelected: _enterWallMode,
+        onWallDragStarted: _computeWallEdges,
         onDragStarted: () => Navigator.of(sheetCtx).pop(),
         onMannequinSelected: () => _showMannequinTypePicker(),
         onPlatformSelected: () {
@@ -106,6 +108,30 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
         onPropSelected: () => _showPropTypePicker(),
       ),
     );
+  }
+
+  void _computeWallEdges() {
+    final zone = ref.read(zoneByIdProvider(widget.zoneId)).valueOrNull;
+    if (zone == null) return;
+    final zonePts = ZoneShape.decode(zone.shapePoints);
+    if (zonePts.length < 3) return;
+    final store = ref.read(activeStoreProvider).valueOrNull;
+    final allEdges = ZoneEdge.compute(
+      zonePts,
+      _canvasSize,
+      _pixelsPerFt,
+      zoneOriginNorm: Offset(zone.posX, zone.posY),
+      storeWidthFt: store?.widthFt,
+      storeDepthFt: store?.depthFt,
+    );
+    final wallEdges = allEdges.where((e) => e.isOnStoreWall).toList();
+    if (wallEdges.isNotEmpty) {
+      setState(() => _wallEdges = wallEdges);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No edges of this zone touch the store wall.')),
+      );
+    }
   }
 
   void _showMannequinTypePicker() {
@@ -139,48 +165,6 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
     );
   }
 
-  void _enterWallMode() {
-    final zone = ref.read(zoneByIdProvider(widget.zoneId)).valueOrNull;
-    if (zone == null) return;
-    final zonePts = ZoneShape.decode(zone.shapePoints);
-    if (zonePts.length < 3) return;
-    final store = ref.read(activeStoreProvider).valueOrNull;
-    final edges = ZoneEdge.compute(
-      zonePts,
-      _canvasSize,
-      _pixelsPerFt,
-      zoneOriginNorm: Offset(zone.posX, zone.posY),
-      storeWidthFt: store?.widthFt,
-      storeDepthFt: store?.depthFt,
-    );
-    if (edges.isEmpty) return;
-    setState(() => _wallEdges = edges);
-    _showWallPlacementSheet(edges);
-  }
-
-  void _showWallPlacementSheet(List<ZoneEdge> edges) {
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (_) => WallPlacementSheet(
-        edges: edges,
-        pixelsPerFt: _pixelsPerFt,
-        onPlace: (edge, lengthFt) {
-          final centerFt = Offset(
-            edge.midPx.dx / _pixelsPerFt,
-            edge.midPx.dy / _pixelsPerFt,
-          );
-          ref.read(floorBuilderNotifierProvider.notifier).addWallFixture(
-            centerFt: centerFt,
-            lengthFt: lengthFt,
-            angleDeg: edge.angleDeg,
-          );
-          setState(() => _wallEdges = null);
-        },
-      ),
-    ).whenComplete(() => setState(() => _wallEdges = null));
-  }
 
   void _onFixtureLongPress(String fixtureId, String currentLabel) {
     final fixture = ref
@@ -189,6 +173,8 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
         .firstWhere((f) => f.id == fixtureId);
     showModalBottomSheet<void>(
       context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
       builder: (_) => FixtureActionsSheet(
         fixtureId: fixtureId,
         currentLabel: currentLabel,
@@ -274,6 +260,8 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
     if (prop == null) return;
     showModalBottomSheet<void>(
       context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
       builder: (_) => ElementDeleteSheet(
         title: prop.propType.toUpperCase(),
         subtitle: 'SCENE PROP',
@@ -289,6 +277,8 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
     if (m == null) return;
     showModalBottomSheet<void>(
       context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
       builder: (_) => ElementDeleteSheet(
         title: m.mannequinType.toUpperCase().replaceAll('_', ' '),
         subtitle: 'MANNEQUIN',
@@ -301,6 +291,8 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
   void _showPlatformActionsSheet(String platformId) {
     showModalBottomSheet<void>(
       context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
       builder: (_) => ElementDeleteSheet(
         title: 'PLATFORM',
         subtitle: 'RAISED ELEMENT',
@@ -331,6 +323,7 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
           _dragPointerOffsetFt = null;
           _resizeStartPosX = null;
           _resizeStartPosY = null;
+          _resizeStartFixture = null;
           _isPanning = false;
           _panStartScreen = null;
         });
@@ -344,6 +337,12 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
     }
     if (_activePointers.length > 2) return;
     if (_painter == null || _primaryPointer != null) return;
+
+    // Wall placement mode: consume the tap — pointer-up will snap to nearest edge.
+    if (_wallEdges != null) {
+      _primaryPointer = event.pointer;
+      return;
+    }
 
     final canvas = _toCanvas(event.localPosition);
 
@@ -365,6 +364,7 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
             _resizeStartAngle = fixture.rotation * pi / 180;
             _resizeStartPosX = fixture.posX;
             _resizeStartPosY = fixture.posY;
+            _resizeStartFixture = fixture;
           });
           return;
         }
@@ -493,23 +493,34 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
     if (_resizingFixtureId != null && _resizeHandle != null && _resizeStartPos != null) {
       final delta = canvas - _resizeStartPos!;
       final angle = _resizeStartAngle ?? 0.0;
-      final localW = (delta.dx * cos(angle) + delta.dy * sin(angle)) / _pixelsPerFt;
-      final localD = (-delta.dx * sin(angle) + delta.dy * cos(angle)) / _pixelsPerFt;
+      final cosA = cos(angle);
+      final sinA = sin(angle);
+      final localW = (delta.dx * cosA + delta.dy * sinA) / _pixelsPerFt;
+      final localD = (-delta.dx * sinA + delta.dy * cosA) / _pixelsPerFt;
       double? newWidth;
       double? newDepth;
-      double? newPosX;
-      double? newPosY;
+      double newPosX = _resizeStartPosX!;
+      double newPosY = _resizeStartPosY!;
+      // For a rotated fixture, changing widthFt/depthFt shifts the rotation center,
+      // which moves all visual edges. We compensate posX/posY so the anchor edge
+      // (opposite the handle being dragged) stays visually fixed.
       switch (_resizeHandle!) {
         case 'right':
           newWidth = (_resizeStartWidth! + localW).clamp(0.5, double.infinity);
+          newPosX = _resizeStartPosX! + (_resizeStartWidth! - newWidth) / 2 * (1 - cosA);
+          newPosY = _resizeStartPosY! - (_resizeStartWidth! - newWidth) / 2 * sinA;
         case 'left':
           newWidth = (_resizeStartWidth! - localW).clamp(0.5, double.infinity);
-          newPosX = _resizeStartPosX! + (_resizeStartWidth! - newWidth);
+          newPosX = _resizeStartPosX! + (_resizeStartWidth! - newWidth) / 2 * (1 + cosA);
+          newPosY = _resizeStartPosY! + (_resizeStartWidth! - newWidth) / 2 * sinA;
         case 'bottom':
           newDepth = (_resizeStartDepth! + localD).clamp(0.5, double.infinity);
+          newPosX = _resizeStartPosX! + (_resizeStartDepth! - newDepth) / 2 * sinA;
+          newPosY = _resizeStartPosY! + (_resizeStartDepth! - newDepth) / 2 * (1 - cosA);
         case 'top':
           newDepth = (_resizeStartDepth! - localD).clamp(0.5, double.infinity);
-          newPosY = _resizeStartPosY! + (_resizeStartDepth! - newDepth);
+          newPosX = _resizeStartPosX! - (_resizeStartDepth! - newDepth) / 2 * sinA;
+          newPosY = _resizeStartPosY! + (_resizeStartDepth! - newDepth) / 2 * (1 + cosA);
       }
       ref.read(floorBuilderNotifierProvider.notifier).resizeFixtureLocal(
             _resizingFixtureId!, newWidth, newDepth,
@@ -570,6 +581,25 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
     if (event.pointer != _primaryPointer) return;
     _primaryPointer = null;
 
+    // Wall placement mode: snap to the nearest highlighted edge.
+    if (_wallEdges != null) {
+      final canvasPos = _toCanvas(event.localPosition);
+      final edges = _wallEdges!;
+      setState(() => _wallEdges = null);
+      var nearest = edges.first;
+      var minDist = (nearest.midPx - canvasPos).distance;
+      for (final e in edges.skip(1)) {
+        final d = (e.midPx - canvasPos).distance;
+        if (d < minDist) { minDist = d; nearest = e; }
+      }
+      ref.read(floorBuilderNotifierProvider.notifier).addWallFixture(
+        centerFt: Offset(nearest.midPx.dx / _pixelsPerFt, nearest.midPx.dy / _pixelsPerFt),
+        lengthFt: nearest.lengthFt,
+        angleDeg: nearest.angleDeg,
+      );
+      return;
+    }
+
     if (_resizingFixtureId != null) {
       final id = _resizingFixtureId!;
       final fixture = ref
@@ -577,9 +607,41 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
           .fixtures
           .firstWhereOrNull((f) => f.id == id);
       if (fixture != null) {
-        ref
-            .read(floorBuilderNotifierProvider.notifier)
-            .resizeFixture(id, fixture.widthFt, fixture.depthFt);
+        double finalW = fixture.widthFt;
+        double finalD = fixture.depthFt;
+        double finalPosX = fixture.posX;
+        double finalPosY = fixture.posY;
+        final fType = fixture.fixtureType;
+        if (fType == 'wall' || fType == 'shelf' || fType == 'rack' || fType == 'partition') {
+          final cosA = cos(_resizeStartAngle ?? 0.0);
+          final sinA = sin(_resizeStartAngle ?? 0.0);
+          final startW = _resizeStartWidth ?? finalW;
+          final startD = _resizeStartDepth ?? finalD;
+          final startPX = _resizeStartPosX ?? finalPosX;
+          final startPY = _resizeStartPosY ?? finalPosY;
+          final snappedW = finalW.round().toDouble().clamp(1.0, double.infinity);
+          final snappedD = finalD.round().toDouble().clamp(1.0, double.infinity);
+          switch (_resizeHandle) {
+            case 'right':
+              finalPosX = startPX + (startW - snappedW) / 2 * (1 - cosA);
+              finalPosY = startPY - (startW - snappedW) / 2 * sinA;
+            case 'left':
+              finalPosX = startPX + (startW - snappedW) / 2 * (1 + cosA);
+              finalPosY = startPY + (startW - snappedW) / 2 * sinA;
+            case 'bottom':
+              finalPosX = startPX + (startD - snappedD) / 2 * sinA;
+              finalPosY = startPY + (startD - snappedD) / 2 * (1 - cosA);
+            case 'top':
+              finalPosX = startPX - (startD - snappedD) / 2 * sinA;
+              finalPosY = startPY + (startD - snappedD) / 2 * (1 + cosA);
+          }
+          finalW = snappedW;
+          finalD = snappedD;
+          ref.read(floorBuilderNotifierProvider.notifier)
+              .resizeFixtureLocal(id, finalW, finalD, posX: finalPosX, posY: finalPosY);
+        }
+        ref.read(floorBuilderNotifierProvider.notifier)
+            .resizeFixture(id, finalW, finalD, before: _resizeStartFixture);
       }
       setState(() {
         _resizingFixtureId = null;
@@ -590,6 +652,7 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
         _resizeStartAngle = null;
         _resizeStartPosX = null;
         _resizeStartPosY = null;
+        _resizeStartFixture = null;
       });
     }
 
@@ -749,24 +812,26 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        backgroundColor: AppTheme.primary,
+        foregroundColor: AppTheme.canvasBg,
         title: const Text('FLOOR BUILDER'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.undo),
+            icon: const Icon(Icons.undo, color: AppTheme.canvasBg),
             tooltip: 'Undo',
             onPressed: state.canUndo
                 ? () => ref.read(floorBuilderNotifierProvider.notifier).undo()
                 : null,
           ),
           IconButton(
-            icon: const Icon(Icons.redo),
+            icon: const Icon(Icons.redo, color: AppTheme.canvasBg),
             tooltip: 'Redo',
             onPressed: state.canRedo
                 ? () => ref.read(floorBuilderNotifierProvider.notifier).redo()
                 : null,
           ),
           IconButton(
-            icon: const Icon(Icons.fit_screen_outlined),
+            icon: const Icon(Icons.fit_screen_outlined, color: AppTheme.canvasBg),
             tooltip: 'Fit to view',
             onPressed: () {
               final z = ref.read(zoneByIdProvider(widget.zoneId)).valueOrNull;
@@ -790,7 +855,9 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
           IconButton(
             icon: Icon(
               state.snapGridEnabled ? Icons.grid_on : Icons.grid_off,
-              color: state.snapGridEnabled ? AppTheme.accent : Colors.white54,
+              color: state.snapGridEnabled
+                  ? AppTheme.accent
+                  : AppTheme.canvasBg.withValues(alpha: 0.54),
             ),
             tooltip: 'Toggle snap grid',
             onPressed: () => ref.read(floorBuilderNotifierProvider.notifier).toggleSnap(),
@@ -801,6 +868,7 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
           ? const Center(child: CircularProgressIndicator())
           : DragTarget<String>(
               onMove: (details) {
+                if (details.data == 'wall') return;
                 final box = context.findRenderObject() as RenderBox?;
                 if (box == null) return;
                 final localPos = box.globalToLocal(details.offset);
@@ -809,10 +877,11 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
                   _ghostType = details.data;
                 });
               },
-              onLeave: (_) {
+              onLeave: (data) {
                 setState(() {
                   _ghostPos = null;
                   _ghostType = null;
+                  if (data != 'wall') _wallEdges = null;
                 });
               },
               onAcceptWithDetails: (details) {
@@ -820,12 +889,27 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
                 final localPos = box != null
                     ? box.globalToLocal(details.offset)
                     : details.offset;
-                final normalizedPos = _normalizeOffset(_toCanvas(localPos));
-                ref.read(floorBuilderNotifierProvider.notifier).addFixture(details.data, normalizedPos);
-                setState(() {
-                  _ghostPos = null;
-                  _ghostType = null;
-                });
+                final canvasPos = _toCanvas(localPos);
+                setState(() { _ghostPos = null; _ghostType = null; });
+                if (details.data == 'wall') {
+                  final edges = _wallEdges;
+                  setState(() => _wallEdges = null);
+                  if (edges == null || edges.isEmpty) return;
+                  var nearest = edges.first;
+                  var minDist = (nearest.midPx - canvasPos).distance;
+                  for (final e in edges.skip(1)) {
+                    final d = (e.midPx - canvasPos).distance;
+                    if (d < minDist) { minDist = d; nearest = e; }
+                  }
+                  ref.read(floorBuilderNotifierProvider.notifier).addWallFixture(
+                    centerFt: Offset(nearest.midPx.dx / _pixelsPerFt, nearest.midPx.dy / _pixelsPerFt),
+                    lengthFt: nearest.lengthFt,
+                    angleDeg: nearest.angleDeg,
+                  );
+                } else {
+                  ref.read(floorBuilderNotifierProvider.notifier)
+                      .addFixture(details.data, _normalizeOffset(canvasPos));
+                }
               },
               builder: (context, candidateData, rejectedData) {
                 return LayoutBuilder(
@@ -879,8 +963,8 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
                             Positioned.fill(
                               child: Transform(
                                 transform: Matrix4.identity()
-                                  ..translate(_viewOffset.dx, _viewOffset.dy)
-                                  ..scale(_viewScale),
+                                  ..translateByDouble(_viewOffset.dx, _viewOffset.dy, 0.0, 1.0)
+                                  ..scaleByDouble(_viewScale, _viewScale, _viewScale, 1.0),
                                 alignment: Alignment.topLeft,
                                 child: SnapGrid(
                                   gridSizeFt: state.gridSizeFt,
@@ -892,13 +976,14 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
                             child: GestureDetector(
                               onLongPressStart: _handleLongPressInCanvas,
                               child: Listener(
+                                behavior: HitTestBehavior.opaque,
                                 onPointerDown: _onPointerDown,
                                 onPointerMove: _onPointerMove,
                                 onPointerUp: _onPointerUp,
                                 child: Transform(
                                   transform: Matrix4.identity()
-                                    ..translate(_viewOffset.dx, _viewOffset.dy)
-                                    ..scale(_viewScale),
+                                    ..translateByDouble(_viewOffset.dx, _viewOffset.dy, 0.0, 1.0)
+                                    ..scaleByDouble(_viewScale, _viewScale, _viewScale, 1.0),
                                   alignment: Alignment.topLeft,
                                   child: CustomPaint(
                                     painter: _painter,
@@ -908,6 +993,34 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
                               ),
                             ),
                           ),
+                          if (_wallEdges != null)
+                            Positioned(
+                              top: 12,
+                              left: 0,
+                              right: 0,
+                              child: Center(
+                                child: Material(
+                                  color: AppTheme.primary,
+                                  borderRadius: BorderRadius.circular(20),
+                                  child: InkWell(
+                                    onTap: () => setState(() => _wallEdges = null),
+                                    borderRadius: BorderRadius.circular(20),
+                                    child: const Padding(
+                                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Text('Tap edge to place wall',
+                                              style: TextStyle(color: AppTheme.canvasBg, fontSize: 12)),
+                                          SizedBox(width: 8),
+                                          Icon(Icons.close, color: AppTheme.canvasBg, size: 14),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
                           if (state.selectedFixtureId != null &&
                               _dragFixtureId == null &&
                               _resizingFixtureId == null &&
@@ -934,33 +1047,26 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
                                     Text(
                                       '${state.selectedFixtureIds.length} SELECTED',
                                       style: const TextStyle(
-                                        color: Colors.white,
+                                        color: AppTheme.canvasBg,
                                         fontWeight: DesignTokens.weightBold,
                                         fontSize: DesignTokens.typeSm,
                                         letterSpacing: DesignTokens.letterSpacingEyebrow,
                                       ),
                                     ),
                                     const Spacer(),
-                                    ElevatedButton.icon(
-                                      icon: const Icon(Icons.delete_outline, size: 16),
-                                      label: const Text('DELETE ALL'),
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: AppTheme.errorColor,
-                                        foregroundColor: Colors.white,
-                                      ),
+                                    MmButton.destructive(
+                                      label: 'Delete All',
+                                      icon: Icons.delete_outline,
                                       onPressed: () => ref
                                           .read(floorBuilderNotifierProvider.notifier)
                                           .deleteSelectedFixtures(),
                                     ),
                                     const SizedBox(width: DesignTokens.spaceSm),
-                                    TextButton(
+                                    MmButton.text(
+                                      label: 'Cancel',
                                       onPressed: () => ref
                                           .read(floorBuilderNotifierProvider.notifier)
                                           .exitMultiSelect(),
-                                      child: const Text(
-                                        'CANCEL',
-                                        style: TextStyle(color: Colors.white70),
-                                      ),
                                     ),
                                   ],
                                 ),
@@ -979,7 +1085,7 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
               heroTag: 'add',
               onPressed: _showElementLibrary,
               backgroundColor: AppTheme.accent,
-              foregroundColor: Colors.white,
+              foregroundColor: AppTheme.canvasBg,
               tooltip: 'Add element',
               child: const Icon(Icons.add),
             ),

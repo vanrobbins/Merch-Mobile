@@ -1,4 +1,13 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-  <rect x="20" y="35" width="60" height="55" rx="4" fill="currentColor"/>
-  <path d="M38 35 Q38 15 50 15 Q62 15 62 35" fill="none" stroke="currentColor" stroke-width="5"/>
+﻿<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <path d="M16 38 L14 90 C14 94 18 96 22 96 L78 96 C82 96 86 94 86 90 L84 38 L66 38 C64 12 50 8 50 8 C50 8 36 12 34 38 Z" fill="currentColor" fill-opacity="0.18"/>
+  <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M16 38 L14 90 C14 94 18 96 22 96 L78 96 C82 96 86 94 86 90 L84 38 L66 38 C64 12 50 8 50 8 C50 8 36 12 34 38 Z" stroke-width="2.5"/>
+    <path d="M38 38 C38 16 50 12 50 12 C50 12 62 16 62 38" stroke-width="1.8"/>
+    <path d="M14 44 L86 44" stroke-width="1.8"/>
+    <path d="M50 44 L50 94" stroke-width="1" opacity="0.3"/>
+    <path d="M14 60 L86 60" stroke-width="1" opacity="0.25"/>
+    <path d="M14 76 L86 76" stroke-width="0.9" opacity="0.2"/>
+    <path d="M44 44 L44 46 M50 44 L50 46 M56 44 L56 46" stroke-width="1.5" opacity="0.6"/>
+    <path d="M16 90 L84 90" stroke-width="1.1" opacity="0.4"/>
+  </g>
 </svg>

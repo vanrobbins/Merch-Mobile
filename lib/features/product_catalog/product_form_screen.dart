@@ -7,6 +7,10 @@ import '../../core/providers/store_provider.dart';
 import '../../core/services/firestore_refs.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/design_tokens.dart';
+import '../../core/widgets/mm_button.dart';
+import '../../core/widgets/mm_dialog.dart';
+import '../../core/widgets/mm_eyebrow.dart';
+import '../../core/widgets/mm_text_field.dart';
 import 'catalog_provider.dart';
 
 class ProductFormScreen extends ConsumerStatefulWidget {
@@ -185,26 +189,20 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
 
   Future<void> _delete() async {
     if (_existing == null) return;
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Delete product?'),
-        content: Text('Remove "${_existing!.name}"?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('CANCEL'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.errorColor,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('DELETE'),
-          ),
-        ],
-      ),
+    final confirm = await MmDialog.show<bool>(
+      context,
+      title: 'Delete product?',
+      content: Text('Remove "${_existing!.name}"?'),
+      actions: [
+        MmButton.text(
+          label: 'CANCEL',
+          onPressed: () => Navigator.pop(context, false),
+        ),
+        MmButton.destructive(
+          label: 'DELETE',
+          onPressed: () => Navigator.pop(context, true),
+        ),
+      ],
     );
     if (confirm == true) {
       final storeId = ref.read(activeStoreIdProvider).value ?? '';
@@ -465,7 +463,7 @@ class _ColorStep extends ConsumerWidget {
                                                   1) >
                                               0.5
                                           ? AppTheme.primary
-                                          : Colors.white,
+                                          : AppTheme.canvasBg,
                                     )
                                   : null,
                             ),
@@ -498,19 +496,9 @@ class _ColorStep extends ConsumerWidget {
               bottom: DesignTokens.spaceMd,
               top: DesignTokens.spaceSm,
             ),
-            child: OutlinedButton(
+            child: MmButton.outlined(
+              label: 'SKIP — NO COLOR',
               onPressed: onSkip,
-              style: OutlinedButton.styleFrom(
-                foregroundColor: AppTheme.textSecondary,
-                side: const BorderSide(color: AppTheme.divider),
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: const RoundedRectangleBorder(
-                  borderRadius: BorderRadius.all(
-                    Radius.circular(AppTheme.borderRadius),
-                  ),
-                ),
-              ),
-              child: const Text('SKIP — NO COLOR'),
             ),
           ),
         ],
@@ -564,12 +552,8 @@ class _DetailsStep extends StatelessWidget {
 
   Color? get _colorValue {
     if (selectedColorHex == null) return null;
-    try {
-      return Color(
-          int.parse(selectedColorHex!.replaceFirst('#', 'FF'), radix: 16));
-    } catch (_) {
-      return null;
-    }
+    return Color(
+        int.parse(selectedColorHex!.replaceFirst('#', 'FF'), radix: 16));
   }
 
   @override
@@ -629,30 +613,22 @@ class _DetailsStep extends StatelessWidget {
                 ],
               ),
             ),
-          TextFormField(
+          MmTextField(
+            label: 'Product Name *',
             controller: nameCtrl,
-            decoration: const InputDecoration(labelText: 'Product Name *'),
           ),
           const SizedBox(height: DesignTokens.spaceMd),
-          TextFormField(
+          MmTextField(
+            label: 'SKU *',
             controller: skuCtrl,
-            decoration: const InputDecoration(labelText: 'SKU *'),
           ),
           const SizedBox(height: DesignTokens.spaceMd),
-          TextFormField(
+          MmTextField(
+            label: 'Category *',
             controller: categoryCtrl,
-            decoration: const InputDecoration(labelText: 'Category *'),
           ),
           const SizedBox(height: DesignTokens.spaceMd),
-          const Text(
-            'GENDER',
-            style: TextStyle(
-              fontSize: DesignTokens.typeXs,
-              fontWeight: DesignTokens.weightBold,
-              letterSpacing: DesignTokens.letterSpacingEyebrow,
-              color: AppTheme.textSecondary,
-            ),
-          ),
+          const MmEyebrow('GENDER'),
           const SizedBox(height: DesignTokens.spaceSm),
           SegmentedButton<String>(
             segments: const [
@@ -673,54 +649,35 @@ class _DetailsStep extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: TextFormField(
+                child: MmTextField(
+                  label: 'Price',
                   controller: priceCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Price',
-                    prefixText: '\$',
-                  ),
+                  prefix: const Text('\$'),
                   keyboardType:
                       const TextInputType.numberWithOptions(decimal: true),
                 ),
               ),
               const SizedBox(width: DesignTokens.spaceMd),
               Expanded(
-                child: TextFormField(
+                child: MmTextField(
+                  label: 'Stock Qty',
                   controller: stockCtrl,
-                  decoration: const InputDecoration(labelText: 'Stock Qty'),
                   keyboardType: TextInputType.number,
                 ),
               ),
             ],
           ),
           const SizedBox(height: DesignTokens.spaceMd),
-          TextFormField(
+          MmTextField(
+            label: 'Color notes',
+            hint: 'e.g. heathered, overdyed…',
             controller: colorNotesCtrl,
-            decoration: const InputDecoration(
-              labelText: 'Color notes',
-              hintText: 'e.g. heathered, overdyed…',
-            ),
           ),
           const SizedBox(height: DesignTokens.spaceLg),
-          ElevatedButton(
+          MmButton(
+            label: 'SAVE PRODUCT',
             onPressed: loading ? null : onSave,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.accent,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: const RoundedRectangleBorder(
-                borderRadius:
-                    BorderRadius.all(Radius.circular(AppTheme.borderRadius)),
-              ),
-            ),
-            child: loading
-                ? const SizedBox(
-                    height: 20,
-                    width: 20,
-                    child: CircularProgressIndicator(
-                        color: Colors.white, strokeWidth: 2),
-                  )
-                : const Text('SAVE PRODUCT'),
+            isLoading: loading,
           ),
         ],
       ),

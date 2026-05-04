@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:riverpod/riverpod.dart' show Ref;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../models/store_membership.dart';
 import '../providers/store_provider.dart';
@@ -15,9 +16,13 @@ import '../../features/floor_builder/floor_builder_screen.dart';
 import '../../features/auto_build/auto_build_screen.dart';
 import '../../features/planogram/planogram_list_screen.dart';
 import '../../features/planogram/planogram_detail_screen.dart';
+import '../../features/planogram/planogram_editor_screen.dart';
 import '../../features/planogram/proposal_review_screen.dart';
 import '../../features/dashboard/dashboard_screen.dart';
 import '../../features/product_catalog/catalog_screen.dart';
+import '../../features/product_catalog/color_palette_screen.dart';
+import '../../features/product_catalog/product_form_screen.dart';
+import '../../features/product_catalog/product_template_screen.dart';
 import '../../features/photo_docs/photo_list_screen.dart';
 import '../../features/photo_docs/photo_detail_screen.dart';
 import '../../features/store/store_gate_screen.dart';
@@ -27,7 +32,6 @@ import '../../features/store/pending_approval_screen.dart';
 import '../../features/store/members_screen.dart';
 import '../../features/store/group_management_screen.dart';
 import '../../features/zone_manager/outfit_proposal_review_screen.dart';
-import '../../features/planogram/planogram_editor_screen.dart';
 
 part 'app_router.g.dart';
 
@@ -73,6 +77,9 @@ class AppRoutes {
   static const proposalReview = 'proposalReview';
   static const outfitProposalReview = 'outfitProposalReview';
   static const planogramEdit = 'planogramEdit';
+  static const productForm = 'productForm';
+  static const colorPalette = 'colorPalette';
+  static const productTemplate = 'productTemplate';
 }
 
 class AppPaths {
@@ -98,11 +105,14 @@ class AppPaths {
   static const proposalReview = '/home/planograms/:planogramId/proposals';
   static const outfitProposalReview = '/home/zones/outfit-proposals';
   static const planogramEdit = '/home/planograms/:planogramId/edit';
+  static const productForm = '/home/catalog/product/new';
+  static const colorPalette = '/home/catalog/colors';
+  static const productTemplate = '/home/catalog/templates';
 }
 
 
 @Riverpod(keepAlive: true)
-GoRouter appRouter(AppRouterRef ref) {
+GoRouter appRouter(Ref ref) {
   final notifier = _AppRefreshNotifier();
   // Re-evaluate router whenever the active store ID changes (e.g. cleared when
   // a stale storeId is detected, or set after store creation/join).
@@ -254,6 +264,25 @@ GoRouter appRouter(AppRouterRef ref) {
             name: AppRoutes.catalog,
             path: AppPaths.catalog,
             builder: (context, state) => const CatalogScreen(),
+            routes: [
+              GoRoute(
+                name: AppRoutes.productForm,
+                path: 'product/new',
+                builder: (context, state) => ProductFormScreen(
+                  productId: state.uri.queryParameters['productId'],
+                ),
+              ),
+              GoRoute(
+                name: AppRoutes.colorPalette,
+                path: 'colors',
+                builder: (_, __) => const ColorPaletteScreen(),
+              ),
+              GoRoute(
+                name: AppRoutes.productTemplate,
+                path: 'templates',
+                builder: (_, __) => const ProductTemplateScreen(),
+              ),
+            ],
           ),
           GoRoute(
             name: AppRoutes.photoList,

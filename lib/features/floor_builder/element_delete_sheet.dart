@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/design_tokens.dart';
+import '../../core/widgets/mm_bottom_sheet.dart';
+import '../../core/widgets/mm_button.dart';
 
 class ElementDeleteSheet extends StatelessWidget {
   const ElementDeleteSheet({
@@ -15,24 +17,12 @@ class ElementDeleteSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).padding.bottom + 16,
-        left: 16, right: 16, top: 16,
-      ),
+    return MmBottomSheet(
+      title: title,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(
-            title,
-            style: const TextStyle(
-              fontWeight: DesignTokens.weightBold,
-              fontSize: DesignTokens.typeMd,
-              letterSpacing: DesignTokens.letterSpacingEyebrow,
-            ),
-          ),
-          const SizedBox(height: 2),
           Text(
             subtitle,
             style: const TextStyle(
@@ -42,19 +32,13 @@ class ElementDeleteSheet extends StatelessWidget {
             ),
           ),
           const SizedBox(height: DesignTokens.spaceMd),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.errorColor,
-              foregroundColor: Colors.white,
-              shape: const RoundedRectangleBorder(
-                borderRadius: BorderRadius.all(Radius.circular(AppTheme.borderRadius)),
-              ),
-            ),
+          MmButton.destructive(
+            label: 'Delete',
+            icon: Icons.delete_outline,
             onPressed: () {
               Navigator.pop(context);
               onDelete();
             },
-            child: const Text('DELETE'),
           ),
         ],
       ),

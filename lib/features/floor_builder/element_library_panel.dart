@@ -6,14 +6,14 @@ class ElementLibraryPanel extends StatelessWidget {
   const ElementLibraryPanel({
     super.key,
     required this.onFixtureSelected,
-    required this.onWallSelected,
+    this.onWallDragStarted,
     this.onDragStarted,
     this.onMannequinSelected,
     this.onPlatformSelected,
     this.onPropSelected,
   });
   final void Function(String fixtureType) onFixtureSelected;
-  final VoidCallback onWallSelected;
+  final VoidCallback? onWallDragStarted;
   final VoidCallback? onDragStarted;
   final VoidCallback? onMannequinSelected;
   final VoidCallback? onPlatformSelected;
@@ -22,7 +22,6 @@ class ElementLibraryPanel extends StatelessWidget {
   static const _types = [
     _FixtureTile('rack', Icons.view_column_outlined, 'RACK'),
     _FixtureTile('table', Icons.table_restaurant_outlined, 'TABLE'),
-    _FixtureTile('shelf', Icons.horizontal_split_outlined, 'SHELF'),
     _FixtureTile('partition', Icons.horizontal_rule, 'PARTITION'),
     _FixtureTile('wall', Icons.crop_square_outlined, 'WALL'),
   ];
@@ -69,12 +68,12 @@ class ElementLibraryPanel extends StatelessWidget {
                 onTap: () {
                   Navigator.pop(context);
                   if (t.type == 'wall') {
-                    onWallSelected();
+                    onWallDragStarted?.call();
                   } else {
                     onFixtureSelected(t.type);
                   }
                 },
-                onDragStarted: (t.type == 'wall') ? null : onDragStarted,
+                onDragStarted: t.type == 'wall' ? null : onDragStarted,
               )).toList(),
             ),
           ),
@@ -165,7 +164,7 @@ class _DraggableTile extends StatelessWidget {
           fontSize: DesignTokens.typeXs,
           fontWeight: DesignTokens.weightBold,
           letterSpacing: DesignTokens.letterSpacingEyebrow,
-          color: Colors.black.withValues(alpha: opacity),
+          color: AppTheme.primary.withValues(alpha: opacity),
         )),
       ],
     );

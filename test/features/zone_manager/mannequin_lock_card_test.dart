@@ -38,19 +38,19 @@ void main() {
 
   group('MannequinLockCard outfit name', () {
     testWidgets('shows outfitName when non-empty', (tester) async {
-      await tester.pumpWidget(_wrap(MannequinLockCard(
+      await tester.pumpWidget(_wrap(const MannequinLockCard(
         outfitName: 'Summer Look',
-        slots: const [],
-        products: const [],
+        slots: [],
+        products: [],
       )));
       expect(find.text('Summer Look'), findsOneWidget);
     });
 
     testWidgets('shows UNNAMED OUTFIT when outfitName is empty', (tester) async {
-      await tester.pumpWidget(_wrap(MannequinLockCard(
+      await tester.pumpWidget(_wrap(const MannequinLockCard(
         outfitName: '',
-        slots: const [],
-        products: const [],
+        slots: [],
+        products: [],
       )));
       expect(find.text('UNNAMED OUTFIT'), findsOneWidget);
     });
@@ -60,10 +60,10 @@ void main() {
 
   group('MannequinLockCard empty state', () {
     testWidgets('shows "No outfit" when slot list is empty', (tester) async {
-      await tester.pumpWidget(_wrap(MannequinLockCard(
+      await tester.pumpWidget(_wrap(const MannequinLockCard(
         outfitName: 'Summer Look',
-        slots: const [],
-        products: const [],
+        slots: [],
+        products: [],
       )));
       expect(find.text('No outfit'), findsOneWidget);
     });

@@ -4,6 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/providers/store_provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/design_tokens.dart';
+import '../../core/widgets/mm_button.dart';
+import '../../core/widgets/mm_dialog.dart';
+import '../../core/widgets/mm_text_field.dart';
 import '../../core/widgets/role_guard.dart';
 import 'auto_build_models.dart';
 import 'auto_build_provider.dart';
@@ -43,33 +46,24 @@ class _PresetsSheetState extends ConsumerState<PresetsSheet> {
 
   Future<void> _saveCurrentPreset() async {
     final nameCtrl = TextEditingController();
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('SAVE PRESET',
-            style: TextStyle(
-              fontWeight: DesignTokens.weightBold,
-              letterSpacing: DesignTokens.letterSpacingEyebrow,
-            )),
-        content: TextField(
-          controller: nameCtrl,
-          autofocus: true,
-          decoration: const InputDecoration(labelText: 'Preset name'),
-          textCapitalization: TextCapitalization.words,
-        ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('CANCEL')),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.accent,
-                foregroundColor: Colors.white),
-            child: const Text('SAVE'),
-          ),
-        ],
+    final confirmed = await MmDialog.show<bool>(
+      context,
+      title: 'Save Preset',
+      content: MmTextField(
+        controller: nameCtrl,
+        label: 'Preset name',
+        autofocus: true,
       ),
+      actions: [
+        MmButton.text(
+          label: 'Cancel',
+          onPressed: () => Navigator.pop(context, false),
+        ),
+        MmButton(
+          label: 'Save',
+          onPressed: () => Navigator.pop(context, true),
+        ),
+      ],
     );
     if (confirmed == true && nameCtrl.text.isNotEmpty) {
       await ref
@@ -101,7 +95,7 @@ class _PresetsSheetState extends ConsumerState<PresetsSheet> {
       builder: (_, controller) => Container(
         decoration: const BoxDecoration(
           color: AppTheme.primary,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(DesignTokens.radiusLg)),
         ),
         child: Column(
           children: [
@@ -110,7 +104,7 @@ class _PresetsSheetState extends ConsumerState<PresetsSheet> {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.white24,
+                color: AppTheme.canvasBg.withValues(alpha: 0.24),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -124,7 +118,7 @@ class _PresetsSheetState extends ConsumerState<PresetsSheet> {
                   const Text(
                     'PRESETS',
                     style: TextStyle(
-                      color: Colors.white,
+                      color: AppTheme.canvasBg,
                       fontWeight: DesignTokens.weightBold,
                       letterSpacing: DesignTokens.letterSpacingEyebrow,
                       fontSize: DesignTokens.typeMd,
@@ -132,22 +126,29 @@ class _PresetsSheetState extends ConsumerState<PresetsSheet> {
                   ),
                   const Spacer(),
                   IconButton(
-                    icon: const Icon(Icons.close, color: Colors.white),
+                    icon: const Icon(Icons.close, color: AppTheme.canvasBg),
                     onPressed: () => Navigator.pop(context),
                   ),
                 ],
               ),
             ),
-            const Divider(color: Colors.white12, height: 1),
+            Divider(
+              color: AppTheme.canvasBg.withValues(alpha: 0.12),
+              height: 1,
+            ),
             Expanded(
               child: _loading
-                  ? const Center(
-                      child:
-                          CircularProgressIndicator(color: Colors.white54))
+                  ? Center(
+                      child: CircularProgressIndicator(
+                          color: AppTheme.canvasBg.withValues(alpha: 0.54)))
                   : (_presets == null || _presets!.isEmpty)
-                      ? const Center(
-                          child: Text('No presets saved yet.',
-                              style: TextStyle(color: Colors.white54)))
+                      ? Center(
+                          child: Text(
+                            'No presets saved yet.',
+                            style: TextStyle(
+                                color: AppTheme.canvasBg.withValues(alpha: 0.54)),
+                          ),
+                        )
                       : ListView.builder(
                           controller: controller,
                           itemCount: _presets!.length,
@@ -160,9 +161,11 @@ class _PresetsSheetState extends ConsumerState<PresetsSheet> {
                                 alignment: Alignment.centerRight,
                                 padding: const EdgeInsets.only(
                                     right: DesignTokens.spaceMd),
-                                color: Colors.red.shade700,
-                                child: const Icon(Icons.delete,
-                                    color: Colors.white),
+                                color: AppTheme.errorColor,
+                                child: const Icon(
+                                  Icons.delete,
+                                  color: AppTheme.canvasBg,
+                                ),
                               ),
                               confirmDismiss: (_) => _confirmDelete(),
                               onDismissed: (_) async {
@@ -174,15 +177,22 @@ class _PresetsSheetState extends ConsumerState<PresetsSheet> {
                                     .deletePreset(id);
                               },
                               child: ListTile(
-                                title: Text(preset.name,
-                                    style: const TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.w600)),
-                                subtitle: Text(preset.settingsSummary,
-                                    style: const TextStyle(
-                                        color: Colors.white54,
-                                        fontSize: 12)),
-                                trailing: TextButton(
+                                title: Text(
+                                  preset.name,
+                                  style: const TextStyle(
+                                    color: AppTheme.canvasBg,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                subtitle: Text(
+                                  preset.settingsSummary,
+                                  style: TextStyle(
+                                    color: AppTheme.canvasBg.withValues(alpha: 0.54),
+                                    fontSize: DesignTokens.typeXs,
+                                  ),
+                                ),
+                                trailing: MmButton.text(
+                                  label: 'Load',
                                   onPressed: () async {
                                     await ref
                                         .read(autoBuildNotifierProvider
@@ -192,9 +202,6 @@ class _PresetsSheetState extends ConsumerState<PresetsSheet> {
                                       Navigator.pop(context);
                                     }
                                   },
-                                  style: TextButton.styleFrom(
-                                      foregroundColor: AppTheme.accent),
-                                  child: const Text('LOAD'),
                                 ),
                               ),
                             );
@@ -206,14 +213,10 @@ class _PresetsSheetState extends ConsumerState<PresetsSheet> {
               child: SafeArea(
                 child: Padding(
                   padding: const EdgeInsets.all(DesignTokens.spaceMd),
-                  child: ElevatedButton(
+                  child: MmButton(
+                    label: 'Save Current',
+                    icon: Icons.save_outlined,
                     onPressed: _saveCurrentPreset,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.accent,
-                      foregroundColor: Colors.white,
-                      minimumSize: const Size.fromHeight(44),
-                    ),
-                    child: const Text('SAVE CURRENT'),
                   ),
                 ),
               ),

@@ -1,9 +1,11 @@
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../core/models/product.dart';
 import '../../core/providers/connectivity_provider.dart';
 import '../../core/providers/store_provider.dart';
+import '../../core/router/app_router.dart';
 import '../../core/services/seed_service.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/design_tokens.dart';
@@ -12,10 +14,7 @@ import '../../core/widgets/mm_empty_state.dart';
 import '../../core/widgets/mm_search_bar.dart';
 import '../../core/widgets/role_guard.dart';
 import 'catalog_provider.dart';
-import 'color_palette_screen.dart';
 import 'product_card.dart';
-import 'product_form_screen.dart';
-import 'product_template_screen.dart';
 
 class CatalogScreen extends ConsumerWidget {
   const CatalogScreen({super.key});
@@ -57,14 +56,11 @@ class CatalogScreen extends ConsumerWidget {
       floatingActionButton: RoleGuard(
         allowedRoles: const ['coordinator', 'manager'],
         child: FloatingActionButton.extended(
-          onPressed: () => Navigator.push<void>(
-            context,
-            MaterialPageRoute(builder: (_) => const ProductFormScreen()),
-          ),
+          onPressed: () => context.goNamed(AppRoutes.productForm),
           label: const Text('ADD PRODUCT'),
           icon: const Icon(Icons.add),
           backgroundColor: AppTheme.accent,
-          foregroundColor: Colors.white,
+          foregroundColor: AppTheme.canvasBg,
         ),
       ),
     );
@@ -138,22 +134,12 @@ class _CatalogBodyState extends ConsumerState<_CatalogBody> {
           title: const Text('CATALOG'),
           actions: [
             PopupMenuButton<String>(
-              icon: const Icon(Icons.settings_outlined, color: Colors.white),
+              icon: const Icon(Icons.settings_outlined, color: AppTheme.canvasBg),
               onSelected: (value) {
                 if (value == 'colors') {
-                  Navigator.push<void>(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const ColorPaletteScreen(),
-                    ),
-                  );
+                  context.goNamed(AppRoutes.colorPalette);
                 } else if (value == 'templates') {
-                  Navigator.push<void>(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const ProductTemplateScreen(),
-                    ),
-                  );
+                  context.goNamed(AppRoutes.productTemplate);
                 }
               },
               itemBuilder: (_) => const [
@@ -286,12 +272,9 @@ class _CatalogBodyState extends ConsumerState<_CatalogBody> {
                   return ProductCard(
                     product: product,
                     colorHex: colorHex,
-                    onTap: () => Navigator.push<void>(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => ProductFormScreen(
-                            productId: product.id),
-                      ),
+                    onTap: () => context.goNamed(
+                      AppRoutes.productForm,
+                      queryParameters: {'productId': product.id},
                     ),
                   );
                 },
@@ -335,7 +318,7 @@ class _CategoryChip extends StatelessWidget {
             fontSize: DesignTokens.typeXs,
             fontWeight: DesignTokens.weightBold,
             letterSpacing: DesignTokens.letterSpacingEyebrow,
-            color: selected ? Colors.white : AppTheme.textSecondary,
+            color: selected ? AppTheme.canvasBg : AppTheme.textSecondary,
           ),
         ),
       ),

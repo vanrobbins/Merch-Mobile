@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
-import '../../core/theme/app_theme.dart';
 import '../../core/theme/design_tokens.dart';
+import '../../core/widgets/mm_bottom_sheet.dart';
+import '../../core/widgets/mm_button.dart';
+import '../../core/widgets/mm_text_field.dart';
 import 'floor_builder_provider.dart';
 
 class FixtureActionsSheet extends StatefulWidget {
@@ -39,87 +41,59 @@ class _FixtureActionsSheetState extends State<FixtureActionsSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom + 16,
-        left: 16, right: 16, top: 16,
-      ),
+    return MmBottomSheet(
+      title: 'Fixture Options',
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Text(
-            'FIXTURE OPTIONS',
-            style: TextStyle(
-              fontWeight: DesignTokens.weightBold,
-              fontSize: DesignTokens.typeMd,
-              letterSpacing: DesignTokens.letterSpacingEyebrow,
-            ),
-          ),
-          const SizedBox(height: DesignTokens.spaceMd),
-          TextField(
+          MmTextField(
+            label: 'Label',
             controller: _ctrl,
-            decoration: const InputDecoration(
-              labelText: 'Label',
-              border: UnderlineInputBorder(),
-            ),
           ),
           if (widget.fixtureType == 'partition') ...[
             const SizedBox(height: DesignTokens.spaceSm),
-            OutlinedButton(
+            MmButton.outlined(
+              label: widget.wallAdjacent
+                  ? 'Mark as Free-Standing'
+                  : 'Mark as Wall-Adjacent',
               onPressed: () {
                 widget.notifier.toggleWallAdjacent(widget.fixtureId);
                 Navigator.pop(context);
               },
-              child: Text(widget.wallAdjacent ? 'MARK AS FREE-STANDING' : 'MARK AS WALL-ADJACENT'),
             ),
           ],
           const SizedBox(height: DesignTokens.spaceMd),
           Row(
             children: [
               Expanded(
-                child: OutlinedButton(
+                child: MmButton.outlined(
+                  label: 'Rename',
                   onPressed: () {
                     widget.notifier.renameFixture(widget.fixtureId, _ctrl.text);
                     Navigator.pop(context);
                   },
-                  style: OutlinedButton.styleFrom(
-                    shape: const RoundedRectangleBorder(
-                      borderRadius: BorderRadius.all(Radius.circular(AppTheme.borderRadius)),
-                    ),
-                  ),
-                  child: const Text('RENAME'),
                 ),
               ),
-              const SizedBox(width: DesignTokens.spaceSm),
-              if (widget.fixtureType != 'wall')
+              if (widget.fixtureType != 'wall') ...[
+                const SizedBox(width: DesignTokens.spaceSm),
                 Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () => widget.notifier.rotateFixture(widget.fixtureId),
-                    icon: const Icon(Icons.rotate_right, size: 16),
-                    label: const Text('ROTATE'),
-                    style: OutlinedButton.styleFrom(
-                      shape: const RoundedRectangleBorder(
-                        borderRadius: BorderRadius.all(Radius.circular(AppTheme.borderRadius)),
-                      ),
-                    ),
+                  child: MmButton.outlined(
+                    label: 'Rotate',
+                    icon: Icons.rotate_right,
+                    onPressed: () =>
+                        widget.notifier.rotateFixture(widget.fixtureId),
                   ),
                 ),
+              ],
               const SizedBox(width: DesignTokens.spaceSm),
               Expanded(
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.errorColor,
-                    foregroundColor: Colors.white,
-                    shape: const RoundedRectangleBorder(
-                      borderRadius: BorderRadius.all(Radius.circular(AppTheme.borderRadius)),
-                    ),
-                  ),
+                child: MmButton.destructive(
+                  label: 'Delete',
                   onPressed: () {
                     widget.notifier.deleteFixture(widget.fixtureId);
                     Navigator.pop(context);
                   },
-                  child: const Text('DELETE'),
                 ),
               ),
             ],

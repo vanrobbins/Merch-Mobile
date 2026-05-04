@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../router/app_router.dart';
+import '../theme/app_theme.dart';
 
 class AppScaffold extends StatelessWidget {
   const AppScaffold({super.key, required this.child});
@@ -22,14 +23,46 @@ class AppScaffold extends StatelessWidget {
 
     return Scaffold(
       body: child,
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: activeIndex,
-        type: BottomNavigationBarType.fixed,
-        onTap: (i) => context.goNamed(_tabs[i].routeName),
-        items: [
-          for (final t in _tabs)
-            BottomNavigationBarItem(icon: Icon(t.icon), label: t.label),
-        ],
+      bottomNavigationBar: Container(
+        decoration: const BoxDecoration(
+          border: Border(
+            top: BorderSide(color: AppTheme.divider, width: 0.5),
+          ),
+        ),
+        child: Theme(
+          data: Theme.of(context).copyWith(
+            navigationBarTheme: NavigationBarThemeData(
+              backgroundColor: AppTheme.primary,
+              indicatorColor: Colors.transparent,
+              elevation: 0,
+              labelTextStyle: WidgetStateProperty.resolveWith(
+                (states) => TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                  color: states.contains(WidgetState.selected)
+                      ? AppTheme.accent
+                      : AppTheme.textHint,
+                ),
+              ),
+            ),
+          ),
+          child: NavigationBar(
+            selectedIndex: activeIndex,
+            onDestinationSelected: (i) => context.goNamed(_tabs[i].routeName),
+            backgroundColor: AppTheme.primary,
+            indicatorColor: Colors.transparent,
+            elevation: 0,
+            labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+            destinations: [
+              for (final t in _tabs)
+                NavigationDestination(
+                  icon: Icon(t.icon, color: AppTheme.textHint),
+                  selectedIcon: Icon(t.icon, color: AppTheme.accent),
+                  label: t.label,
+                ),
+            ],
+          ),
+        ),
       ),
     );
   }

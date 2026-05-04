@@ -1,19 +1,20 @@
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import '../../core/models/store_zone.dart';
-import '../../core/router/app_router.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/design_tokens.dart';
+import '../../core/widgets/mm_button.dart';
+import '../../core/widgets/mm_eyebrow.dart';
+import '../../core/widgets/mm_text_field.dart';
 import '../../core/widgets/role_guard.dart';
 import 'zone_map_provider.dart';
-import 'zone_shape_picker.dart';
 
 class ZonePropertiesPanel extends ConsumerStatefulWidget {
-  const ZonePropertiesPanel({super.key, required this.zone});
+  const ZonePropertiesPanel({super.key, required this.zone, this.onDeleted});
 
   final StoreZone zone;
+  final VoidCallback? onDeleted;
 
   @override
   ConsumerState<ZonePropertiesPanel> createState() =>
@@ -64,7 +65,7 @@ class _ZonePropertiesPanelState extends ConsumerState<ZonePropertiesPanel> {
 
     return Container(
       decoration: const BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.cardSurface,
         borderRadius: BorderRadius.vertical(
             top: Radius.circular(DesignTokens.radiusLg)),
       ),
@@ -86,7 +87,7 @@ class _ZonePropertiesPanelState extends ConsumerState<ZonePropertiesPanel> {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.grey.shade300,
+                color: AppTheme.divider,
                 borderRadius:
                     BorderRadius.circular(AppTheme.borderRadius),
               ),
@@ -94,7 +95,7 @@ class _ZonePropertiesPanelState extends ConsumerState<ZonePropertiesPanel> {
           ),
           const SizedBox(height: DesignTokens.spaceSm),
           const Text(
-            'EDIT ZONE',
+            'ZONE SETTINGS',
             style: TextStyle(
               fontSize: DesignTokens.typeLg,
               fontWeight: DesignTokens.weightBold,
@@ -103,34 +104,16 @@ class _ZonePropertiesPanelState extends ConsumerState<ZonePropertiesPanel> {
           ),
           const SizedBox(height: DesignTokens.spaceMd),
 
-          // Name + current type
-          TextField(
+          // Name field
+          MmTextField(
+            label: 'Zone Name',
             controller: _nameCtrl,
-            decoration: const InputDecoration(labelText: 'Zone Name'),
             onSubmitted: (v) => notifier.updateZoneName(widget.zone.id, v),
-          ),
-          const SizedBox(height: DesignTokens.spaceXs),
-          Text(
-            liveZone.zoneType.replaceAll('_', ' ').toUpperCase(),
-            style: const TextStyle(
-              fontSize: DesignTokens.typeXs,
-              color: AppTheme.textSecondary,
-              fontWeight: DesignTokens.weightBold,
-              letterSpacing: DesignTokens.letterSpacingEyebrow,
-            ),
           ),
           const SizedBox(height: DesignTokens.spaceMd),
 
           // Zone type
-          const Text(
-            'ZONE TYPE',
-            style: TextStyle(
-              fontSize: DesignTokens.typeXs,
-              fontWeight: DesignTokens.weightBold,
-              letterSpacing: DesignTokens.letterSpacingEyebrow,
-              color: AppTheme.textSecondary,
-            ),
-          ),
+          const MmEyebrow('ZONE TYPE'),
           const SizedBox(height: DesignTokens.spaceSm),
           Wrap(
             spacing: DesignTokens.spaceXs,
@@ -142,7 +125,7 @@ class _ZonePropertiesPanelState extends ConsumerState<ZonePropertiesPanel> {
                 selected: isSelected,
                 selectedColor: AppTheme.primary,
                 labelStyle: TextStyle(
-                  color: isSelected ? Colors.white : null,
+                  color: isSelected ? AppTheme.cardSurface : null,
                   fontSize: DesignTokens.typeXs,
                 ),
                 onSelected: (_) =>
@@ -153,15 +136,7 @@ class _ZonePropertiesPanelState extends ConsumerState<ZonePropertiesPanel> {
           const SizedBox(height: DesignTokens.spaceMd),
 
           // Color swatches
-          const Text(
-            'COLOR',
-            style: TextStyle(
-              fontSize: DesignTokens.typeXs,
-              fontWeight: DesignTokens.weightBold,
-              letterSpacing: DesignTokens.letterSpacingEyebrow,
-              color: AppTheme.textSecondary,
-            ),
-          ),
+          const MmEyebrow('COLOR'),
           const SizedBox(height: DesignTokens.spaceSm),
           Wrap(
             spacing: DesignTokens.spaceSm,
@@ -178,8 +153,9 @@ class _ZonePropertiesPanelState extends ConsumerState<ZonePropertiesPanel> {
                     borderRadius:
                         BorderRadius.circular(AppTheme.borderRadius),
                     border: Border.all(
-                      color:
-                          isSelected ? AppTheme.accent : Colors.transparent,
+                      color: isSelected
+                          ? AppTheme.accent
+                          : AppTheme.divider.withValues(alpha: 0.0),
                       width: 2,
                     ),
                   ),
@@ -189,93 +165,42 @@ class _ZonePropertiesPanelState extends ConsumerState<ZonePropertiesPanel> {
           ),
           const SizedBox(height: DesignTokens.spaceMd),
 
-          // Shape controls — coordinator/manager only
+          // Lock position — coordinator/manager only
           RoleGuard(
             allowedRoles: const ['coordinator', 'manager'],
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
+            child: Row(
               children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () {
-                          final notifier = ref.read(zoneMapNotifierProvider.notifier);
-                          final zoneId = widget.zone.id;
-                          Navigator.pop(context);
-                          ZoneShapePicker.show(context, notifier, zoneId);
-                        },
-                        child: const Text('REPLACE SHAPE'),
-                      ),
-                    ),
-                  ],
+                const Icon(Icons.lock_outline,
+                    size: DesignTokens.iconSm, color: AppTheme.textSecondary),
+                const SizedBox(width: DesignTokens.spaceXs),
+                const Expanded(
+                  child: Text(
+                    'Lock position & size',
+                    style: TextStyle(fontSize: DesignTokens.typeSm),
+                  ),
                 ),
-                const SizedBox(height: DesignTokens.spaceXs),
-                Row(
-                  children: [
-                    const Icon(Icons.lock_outline,
-                        size: DesignTokens.iconSm, color: AppTheme.textSecondary),
-                    const SizedBox(width: DesignTokens.spaceXs),
-                    const Expanded(
-                      child: Text(
-                        'Lock position & size',
-                        style: TextStyle(fontSize: DesignTokens.typeSm),
-                      ),
-                    ),
-                    Switch(
-                      value: liveZone.positionLocked,
-                      onChanged: (v) =>
-                          notifier.updateZoneLocked(widget.zone.id, locked: v),
-                      activeThumbColor: AppTheme.accent,
-                      activeTrackColor: AppTheme.accent.withValues(alpha: 0.4),
-                    ),
-                  ],
+                Switch(
+                  value: liveZone.positionLocked,
+                  onChanged: (v) =>
+                      notifier.updateZoneLocked(widget.zone.id, locked: v),
+                  activeThumbColor: AppTheme.accent,
+                  activeTrackColor: AppTheme.accent.withValues(alpha: 0.4),
                 ),
               ],
             ),
           ),
           const SizedBox(height: DesignTokens.spaceMd),
 
-          // Open detail / Delete — coordinator/manager only
+          // Delete — coordinator/manager only
           RoleGuard(
             allowedRoles: const ['coordinator', 'manager'],
-            child: Row(
-              children: [
-                if (widget.zone.zoneType == 'display')
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () {
-                        notifier.updateZoneName(
-                            widget.zone.id, _nameCtrl.text);
-                        Navigator.pop(context);
-                        context.goNamed(
-                          AppRoutes.zoneDetail,
-                          pathParameters: {'zoneId': widget.zone.id},
-                        );
-                      },
-                      style: ElevatedButton.styleFrom(
-                          backgroundColor: AppTheme.accent),
-                      child: const Text('OPEN ZONE'),
-                    ),
-                  ),
-                if (widget.zone.zoneType == 'display')
-                  const SizedBox(width: DesignTokens.spaceSm),
-                OutlinedButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                    notifier.deleteZone(widget.zone.id);
-                  },
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.red.shade600,
-                    side: BorderSide(color: Colors.red.shade600),
-                    shape: const RoundedRectangleBorder(
-                      borderRadius: BorderRadius.all(
-                          Radius.circular(AppTheme.borderRadius)),
-                    ),
-                  ),
-                  child: const Text('DELETE'),
-                ),
-              ],
+            child: MmButton.destructive(
+              label: 'DELETE ZONE',
+              onPressed: () {
+                Navigator.pop(context);
+                notifier.deleteZone(widget.zone.id);
+                widget.onDeleted?.call();
+              },
             ),
           ),
         ],

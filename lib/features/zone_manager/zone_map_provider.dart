@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 import 'dart:ui';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:collection/collection.dart';
@@ -267,6 +268,28 @@ class ZoneMapNotifier extends _$ZoneMapNotifier {
       'widthFt': widthFt,
       'depthFt': depthFt,
     });
+  }
+
+  Future<void> updateStoreShape(List<Offset> points) async {
+    await FirestoreRefs.store(_storeId).update({
+      'shapePoints': ZoneShape.encode(points),
+    });
+  }
+
+  Future<void> applyStorePreset(String presetName) async {
+    final pts = ZoneShape.presets[presetName] ?? ZoneShape.presets['rectangle']!;
+    // preset points are centered at (0,0); normalize so min corner = (0,0)
+    final minX = pts.map((p) => p.dx).reduce(min);
+    final minY = pts.map((p) => p.dy).reduce(min);
+    final maxX = pts.map((p) => p.dx).reduce(max);
+    final maxY = pts.map((p) => p.dy).reduce(max);
+    final rangeX = maxX - minX;
+    final rangeY = maxY - minY;
+    final normalized = pts.map((p) => Offset(
+      (p.dx - minX) / rangeX,
+      (p.dy - minY) / rangeY,
+    )).toList();
+    await updateStoreShape(normalized);
   }
 
   Future<void> setEntrance(String entranceJson) async {

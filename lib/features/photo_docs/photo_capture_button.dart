@@ -114,7 +114,7 @@ class _PhotoCaptureButtonState extends ConsumerState<PhotoCaptureButton>
             FloatingActionButton(
               onPressed: _toggle,
               backgroundColor: AppTheme.accent,
-              foregroundColor: Colors.white,
+              foregroundColor: AppTheme.canvasBg,
               child: AnimatedRotation(
                 turns: _expanded ? 0.125 : 0,
                 duration: DesignTokens.durationMed,
@@ -126,8 +126,9 @@ class _PhotoCaptureButtonState extends ConsumerState<PhotoCaptureButton>
                 child: IgnorePointer(
                   child: CircularProgressIndicator(
                     strokeWidth: 3,
-                    valueColor:
-                        AlwaysStoppedAnimation<Color>(Colors.white.withAlpha(180)),
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      AppTheme.canvasBg.withValues(alpha: 0.71),
+                    ),
                   ),
                 ),
               ),
@@ -169,7 +170,7 @@ class _MiniFab extends StatelessWidget {
               fontSize: DesignTokens.typeXs,
               fontWeight: DesignTokens.weightBold,
               letterSpacing: DesignTokens.letterSpacingEyebrow,
-              color: Colors.white,
+              color: AppTheme.canvasBg,
             ),
           ),
         ),
@@ -178,7 +179,7 @@ class _MiniFab extends StatelessWidget {
           heroTag: label,
           onPressed: onTap,
           backgroundColor: AppTheme.primary,
-          foregroundColor: Colors.white,
+          foregroundColor: AppTheme.canvasBg,
           child: Icon(icon),
         ),
       ],

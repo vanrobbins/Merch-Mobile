@@ -14,6 +14,9 @@ import '../../core/providers/store_provider.dart';
 import '../../core/services/firestore_refs.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/design_tokens.dart';
+import '../../core/widgets/mm_button.dart';
+import '../../core/widgets/mm_eyebrow.dart';
+import '../../core/widgets/mm_text_field.dart';
 
 // ---------------------------------------------------------------------------
 // Public entry point
@@ -55,6 +58,8 @@ const _slotsForType = <String, List<String>>{
   'torso': ['torso', 'accessory_1', 'accessory_2'],
   'leg_form': ['legs', 'feet'],
   'bra_form': ['torso'],
+  'bag_stand': ['bag_1', 'bag_2', 'bag_3', 'bag_4'],
+  'hat_stand': ['hat_1', 'hat_2', 'hat_3', 'hat_4'],
 };
 
 const _silhouetteAsset = <String, String>{
@@ -74,6 +79,14 @@ const _slotIcon = <String, IconData>{
   'right_hand': Icons.front_hand_outlined,
   'accessory_1': Icons.watch_outlined,
   'accessory_2': Icons.style_outlined,
+  'bag_1': Icons.shopping_bag_outlined,
+  'bag_2': Icons.shopping_bag_outlined,
+  'bag_3': Icons.shopping_bag_outlined,
+  'bag_4': Icons.shopping_bag_outlined,
+  'hat_1': Icons.hive_outlined,
+  'hat_2': Icons.hive_outlined,
+  'hat_3': Icons.hive_outlined,
+  'hat_4': Icons.hive_outlined,
 };
 
 String _slotLabel(String slot) =>
@@ -289,16 +302,7 @@ class _MannequinDressingSheetState
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Text(
-                                    'DRESS MANNEQUIN',
-                                    style: TextStyle(
-                                      fontSize: DesignTokens.typeXs,
-                                      fontWeight: DesignTokens.weightBold,
-                                      letterSpacing:
-                                          DesignTokens.letterSpacingEyebrow,
-                                      color: AppTheme.textSecondary,
-                                    ),
-                                  ),
+                                  const MmEyebrow('DRESS MANNEQUIN', padding: EdgeInsets.only(bottom: 4)),
                                   const SizedBox(height: DesignTokens.spaceXs),
                                   Text(
                                     widget.mannequin.name?.isNotEmpty == true
@@ -375,22 +379,9 @@ class _MannequinDressingSheetState
         ),
         const SizedBox(width: DesignTokens.spaceMd),
         Expanded(
-          child: TextField(
+          child: MmTextField(
+            label: 'Outfit Name',
             controller: _outfitNameCtrl,
-            decoration: InputDecoration(
-              labelText: 'OUTFIT NAME',
-              labelStyle: const TextStyle(
-                fontSize: DesignTokens.typeXs,
-                fontWeight: DesignTokens.weightBold,
-                letterSpacing: DesignTokens.letterSpacingEyebrow,
-                color: AppTheme.textSecondary,
-              ),
-              border: OutlineInputBorder(
-                borderRadius:
-                    BorderRadius.circular(AppTheme.borderRadius),
-              ),
-              isDense: true,
-            ),
           ),
         ),
       ],
@@ -401,15 +392,7 @@ class _MannequinDressingSheetState
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'OUTFIT SLOTS',
-          style: TextStyle(
-            fontSize: DesignTokens.typeXs,
-            fontWeight: DesignTokens.weightBold,
-            letterSpacing: DesignTokens.letterSpacingEyebrow,
-            color: AppTheme.textSecondary,
-          ),
-        ),
+        const MmEyebrow('OUTFIT SLOTS'),
         const SizedBox(height: DesignTokens.spaceSm),
         ..._slots.map((slot) => _SlotRow(
               slot: slot,
@@ -422,53 +405,18 @@ class _MannequinDressingSheetState
   }
 
   Widget _buildNotesField() {
-    return TextField(
+    return MmTextField(
+      label: 'Notes',
       controller: _outfitNotesCtrl,
-      decoration: InputDecoration(
-        labelText: 'NOTES',
-        labelStyle: const TextStyle(
-          fontSize: DesignTokens.typeXs,
-          fontWeight: DesignTokens.weightBold,
-          letterSpacing: DesignTokens.letterSpacingEyebrow,
-          color: AppTheme.textSecondary,
-        ),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppTheme.borderRadius),
-        ),
-        alignLabelWithHint: true,
-        isDense: true,
-      ),
       maxLines: 3,
-      minLines: 2,
     );
   }
 
   Widget _buildSaveButton(String role, bool isManager) {
-    return ElevatedButton(
+    return MmButton(
+      label: isManager ? 'SAVE OUTFIT' : 'SUBMIT PROPOSAL',
+      isLoading: _isSaving,
       onPressed: _isSaving ? null : () => _save(role),
-      style: ElevatedButton.styleFrom(
-        backgroundColor: AppTheme.accent,
-        foregroundColor: Colors.white,
-        minimumSize: const Size.fromHeight(48),
-        shape: const RoundedRectangleBorder(
-          borderRadius:
-              BorderRadius.all(Radius.circular(AppTheme.borderRadius)),
-        ),
-      ),
-      child: _isSaving
-          ? const SizedBox(
-              width: 20,
-              height: 20,
-              child: CircularProgressIndicator(
-                  color: Colors.white, strokeWidth: 2),
-            )
-          : Text(
-              isManager ? 'SAVE OUTFIT' : 'SUBMIT PROPOSAL',
-              style: const TextStyle(
-                fontWeight: DesignTokens.weightBold,
-                letterSpacing: DesignTokens.letterSpacingEyebrow,
-              ),
-            ),
     );
   }
 }
@@ -690,30 +638,11 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'ASSIGN PRODUCT — ${_slotLabel(widget.slot)}',
-                      style: const TextStyle(
-                        fontSize: DesignTokens.typeXs,
-                        fontWeight: DesignTokens.weightBold,
-                        letterSpacing: DesignTokens.letterSpacingEyebrow,
-                        color: AppTheme.textSecondary,
-                      ),
-                    ),
+                    MmEyebrow('ASSIGN PRODUCT — ${_slotLabel(widget.slot)}'),
                     const SizedBox(height: DesignTokens.spaceSm),
-                    TextField(
-                      controller: _searchCtrl,
-                      decoration: InputDecoration(
-                        hintText: 'Search products…',
-                        prefixIcon:
-                            const Icon(Icons.search, size: DesignTokens.iconMd),
-                        border: OutlineInputBorder(
-                          borderRadius:
-                              BorderRadius.circular(AppTheme.borderRadius),
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 10),
-                        isDense: true,
-                      ),
+                    MmTextField(
+                      hint: 'Search products…',
+                      prefix: const Icon(Icons.search, size: DesignTokens.iconMd),
                       onChanged: (v) => setState(() => _query = v),
                     ),
                   ],
@@ -749,7 +678,7 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
                           ),
                           child: Icon(
                             Icons.checkroom_outlined,
-                            color: isSelected ? Colors.white : AppTheme.accent,
+                            color: isSelected ? AppTheme.cardSurface : AppTheme.accent,
                             size: 18,
                           ),
                         ),

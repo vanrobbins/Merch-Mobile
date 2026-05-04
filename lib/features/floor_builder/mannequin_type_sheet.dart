@@ -12,6 +12,8 @@ class MannequinTypeSheet extends StatelessWidget {
     _MannequinTypeDef('torso', Icons.radio_button_unchecked, 'TORSO', 'floor'),
     _MannequinTypeDef('leg_form', Icons.vertical_align_bottom_outlined, 'LEG FORM', 'floor'),
     _MannequinTypeDef('bra_form', Icons.radio_button_checked, 'BRA FORM', 'floor'),
+    _MannequinTypeDef('bag_stand', Icons.shopping_bag_outlined, 'BAG STAND', 'floor'),
+    _MannequinTypeDef('hat_stand', Icons.hive_outlined, 'HAT STAND', 'floor'),
   ];
 
   @override

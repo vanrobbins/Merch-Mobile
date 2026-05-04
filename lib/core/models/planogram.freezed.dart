@@ -33,6 +33,7 @@ mixin _$Planogram {
   String get status => throw _privateConstructorUsedError;
   String get slotsJson => throw _privateConstructorUsedError;
   String get rowsJson => throw _privateConstructorUsedError;
+  String get looksJson => throw _privateConstructorUsedError;
   DateTime? get publishedAt => throw _privateConstructorUsedError;
   DateTime get updatedAt => throw _privateConstructorUsedError;
 
@@ -63,6 +64,7 @@ abstract class $PlanogramCopyWith<$Res> {
       String status,
       String slotsJson,
       String rowsJson,
+      String looksJson,
       DateTime? publishedAt,
       DateTime updatedAt});
 }
@@ -93,6 +95,7 @@ class _$PlanogramCopyWithImpl<$Res, $Val extends Planogram>
     Object? status = null,
     Object? slotsJson = null,
     Object? rowsJson = null,
+    Object? looksJson = null,
     Object? publishedAt = freezed,
     Object? updatedAt = null,
   }) {
@@ -141,6 +144,10 @@ class _$PlanogramCopyWithImpl<$Res, $Val extends Planogram>
           ? _value.rowsJson
           : rowsJson // ignore: cast_nullable_to_non_nullable
               as String,
+      looksJson: null == looksJson
+          ? _value.looksJson
+          : looksJson // ignore: cast_nullable_to_non_nullable
+              as String,
       publishedAt: freezed == publishedAt
           ? _value.publishedAt
           : publishedAt // ignore: cast_nullable_to_non_nullable
@@ -173,6 +180,7 @@ abstract class _$$PlanogramImplCopyWith<$Res>
       String status,
       String slotsJson,
       String rowsJson,
+      String looksJson,
       DateTime? publishedAt,
       DateTime updatedAt});
 }
@@ -201,6 +209,7 @@ class __$$PlanogramImplCopyWithImpl<$Res>
     Object? status = null,
     Object? slotsJson = null,
     Object? rowsJson = null,
+    Object? looksJson = null,
     Object? publishedAt = freezed,
     Object? updatedAt = null,
   }) {
@@ -249,6 +258,10 @@ class __$$PlanogramImplCopyWithImpl<$Res>
           ? _value.rowsJson
           : rowsJson // ignore: cast_nullable_to_non_nullable
               as String,
+      looksJson: null == looksJson
+          ? _value.looksJson
+          : looksJson // ignore: cast_nullable_to_non_nullable
+              as String,
       publishedAt: freezed == publishedAt
           ? _value.publishedAt
           : publishedAt // ignore: cast_nullable_to_non_nullable
@@ -276,6 +289,7 @@ class _$PlanogramImpl implements _Planogram {
       this.status = 'draft',
       this.slotsJson = '',
       this.rowsJson = '',
+      this.looksJson = '',
       this.publishedAt,
       required this.updatedAt});
 
@@ -314,13 +328,16 @@ class _$PlanogramImpl implements _Planogram {
   @JsonKey()
   final String rowsJson;
   @override
+  @JsonKey()
+  final String looksJson;
+  @override
   final DateTime? publishedAt;
   @override
   final DateTime updatedAt;
 
   @override
   String toString() {
-    return 'Planogram(id: $id, fixtureId: $fixtureId, title: $title, season: $season, planogramType: $planogramType, rows: $rows, cols: $cols, linearFt: $linearFt, status: $status, slotsJson: $slotsJson, rowsJson: $rowsJson, publishedAt: $publishedAt, updatedAt: $updatedAt)';
+    return 'Planogram(id: $id, fixtureId: $fixtureId, title: $title, season: $season, planogramType: $planogramType, rows: $rows, cols: $cols, linearFt: $linearFt, status: $status, slotsJson: $slotsJson, rowsJson: $rowsJson, looksJson: $looksJson, publishedAt: $publishedAt, updatedAt: $updatedAt)';
   }
 
   @override
@@ -344,6 +361,8 @@ class _$PlanogramImpl implements _Planogram {
                 other.slotsJson == slotsJson) &&
             (identical(other.rowsJson, rowsJson) ||
                 other.rowsJson == rowsJson) &&
+            (identical(other.looksJson, looksJson) ||
+                other.looksJson == looksJson) &&
             (identical(other.publishedAt, publishedAt) ||
                 other.publishedAt == publishedAt) &&
             (identical(other.updatedAt, updatedAt) ||
@@ -365,6 +384,7 @@ class _$PlanogramImpl implements _Planogram {
       status,
       slotsJson,
       rowsJson,
+      looksJson,
       publishedAt,
       updatedAt);
 
@@ -397,6 +417,7 @@ abstract class _Planogram implements Planogram {
       final String status,
       final String slotsJson,
       final String rowsJson,
+      final String looksJson,
       final DateTime? publishedAt,
       required final DateTime updatedAt}) = _$PlanogramImpl;
 
@@ -425,6 +446,8 @@ abstract class _Planogram implements Planogram {
   String get slotsJson;
   @override
   String get rowsJson;
+  @override
+  String get looksJson;
   @override
   DateTime? get publishedAt;
   @override

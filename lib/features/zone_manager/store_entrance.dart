@@ -44,8 +44,65 @@ class StoreEntrance {
         widthFrac: widthFrac ?? this.widthFrac,
       );
 
+  /// Find the polygon edge index whose midpoint best matches the given wall direction.
+  /// wall: 0=bottom (max Y), 1=right (max X), 2=top (min Y), 3=left (min X).
+  /// Works with any coordinate system (normalized or canvas pixels).
+  static int edgeForWall(List<Offset> pts, int wall) {
+    final n = pts.length;
+    if (n < 2) return 0;
+    int best = 0;
+    double bestScore = double.negativeInfinity;
+    for (int i = 0; i < n; i++) {
+      final mid = (pts[i] + pts[(i + 1) % n]) / 2;
+      final score = wall == 0
+          ? mid.dy
+          : wall == 1
+              ? mid.dx
+              : wall == 2
+                  ? -mid.dy
+                  : -mid.dx;
+      if (score > bestScore) {
+        bestScore = score;
+        best = i;
+      }
+    }
+    return best;
+  }
+
+  /// Build a boundary [Path] for a polygon (canvas coords) with an entrance gap.
+  /// The gap is cut on the edge whose midpoint is closest to [entrance.wall] direction.
+  static Path boundaryPathPolygon(List<Offset> canvasPts, StoreEntrance? entrance) {
+    final n = canvasPts.length;
+    if (n < 3) return Path()..addPolygon(canvasPts, true);
+    if (entrance == null) return Path()..addPolygon(canvasPts, true);
+
+    final edgeIdx = edgeForWall(canvasPts, entrance.wall);
+    final from = canvasPts[edgeIdx];
+    final to = canvasPts[(edgeIdx + 1) % n];
+    final dir = to - from;
+    final len = dir.distance;
+    if (len < 1.0) return Path()..addPolygon(canvasPts, true);
+    final unit = dir / len;
+
+    final gapStartFrac = (entrance.pos - entrance.widthFrac / 2).clamp(0.0, 1.0);
+    final gapEndFrac = (entrance.pos + entrance.widthFrac / 2).clamp(0.0, 1.0);
+    final pGapStart = from + unit * (gapStartFrac * len);
+    final pGapEnd = from + unit * (gapEndFrac * len);
+
+    // Start at gapEnd, finish the entrance edge, traverse all other edges, end at gapStart.
+    final path = Path();
+    path.moveTo(pGapEnd.dx, pGapEnd.dy);
+    path.lineTo(to.dx, to.dy);
+    for (int i = 1; i < n - 1; i++) {
+      final idx = (edgeIdx + 1 + i) % n;
+      path.lineTo(canvasPts[idx].dx, canvasPts[idx].dy);
+    }
+    path.lineTo(from.dx, from.dy);
+    if (gapStartFrac > 0) path.lineTo(pGapStart.dx, pGapStart.dy);
+    return path;
+  }
+
   /// Builds a boundary [Path] for [rect] with this entrance cut out.
-  /// Pass [pixelsPerFt] and [wallFt] to label the gap width in feet (unused in path).
   static Path boundaryPath(Rect rect, StoreEntrance? entrance) {
     if (entrance == null) return Path()..addRect(rect);
 

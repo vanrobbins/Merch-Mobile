@@ -30,7 +30,10 @@ class _PhotoListScreenState extends ConsumerState<PhotoListScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 2, vsync: this)
+      ..addListener(() {
+        if (!_tabController.indexIsChanging) setState(() {});
+      });
   }
 
   @override
@@ -50,8 +53,8 @@ class _PhotoListScreenState extends ConsumerState<PhotoListScreen>
         title: const Text('PHOTO DOCS'),
         bottom: TabBar(
           controller: _tabController,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white54,
+          labelColor: AppTheme.canvasBg,
+          unselectedLabelColor: AppTheme.textHint,
           indicatorColor: AppTheme.accent,
           labelStyle: const TextStyle(
             fontSize: DesignTokens.typeXs,
@@ -64,11 +67,11 @@ class _PhotoListScreenState extends ConsumerState<PhotoListScreen>
           ],
         ),
       ),
-      floatingActionButton: const RoleGuard(
-        allowedRoles: ['coordinator', 'manager', 'staff'],
+      floatingActionButton: RoleGuard(
+        allowedRoles: const ['coordinator', 'manager', 'staff'],
         child: PhotoCaptureButton(
           fixtureId: '',
-          phase: 'before',
+          phase: _tabController.index == 0 ? 'before' : 'after',
         ),
       ),
       body: Column(
@@ -156,17 +159,17 @@ class _PhotoGridItem extends StatelessWidget {
       return CachedNetworkImage(
         imageUrl: photo.remoteUrl!,
         fit: BoxFit.cover,
-        placeholder: (context, url) => Container(color: Colors.grey.shade200),
+        placeholder: (context, url) => Container(color: AppTheme.surfaceVariant),
         errorWidget: (context, url, error) =>
-            Container(color: Colors.grey.shade300),
+            Container(color: AppTheme.divider),
       );
     }
     return Container(
-      color: Colors.grey.shade300,
+      color: AppTheme.divider,
       child: const Center(
         child: Icon(
           Icons.image_not_supported_outlined,
-          color: Colors.grey,
+          color: AppTheme.textHint,
         ),
       ),
     );
@@ -192,13 +195,16 @@ class _PhotoGridItem extends StatelessWidget {
             left: 0,
             right: 0,
             child: Container(
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.bottomCenter,
                   end: Alignment.topCenter,
-                  colors: [Colors.black54, Colors.transparent],
+                  colors: [
+                    AppTheme.primary.withValues(alpha: 0.54),
+                    AppTheme.primary.withValues(alpha: 0.0),
+                  ],
                 ),
-                borderRadius: BorderRadius.only(
+                borderRadius: const BorderRadius.only(
                   bottomLeft: Radius.circular(DesignTokens.radiusSm),
                   bottomRight: Radius.circular(DesignTokens.radiusSm),
                 ),

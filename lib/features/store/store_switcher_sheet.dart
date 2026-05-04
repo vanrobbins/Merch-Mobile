@@ -6,6 +6,7 @@ import '../../core/providers/store_provider.dart';
 import '../../core/router/app_router.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/design_tokens.dart';
+import '../../core/widgets/mm_eyebrow.dart';
 
 class StoreSwitcherSheet extends ConsumerWidget {
   const StoreSwitcherSheet({super.key});
@@ -26,7 +27,7 @@ class StoreSwitcherSheet extends ConsumerWidget {
 
     return Container(
       decoration: const BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.cardSurface,
         borderRadius: BorderRadius.vertical(
             top: Radius.circular(DesignTokens.radiusLg)),
       ),
@@ -39,22 +40,14 @@ class StoreSwitcherSheet extends ConsumerWidget {
             width: 40,
             height: 4,
             decoration: BoxDecoration(
-              color: Colors.grey.shade300,
+              color: AppTheme.divider,
               borderRadius:
                   BorderRadius.circular(AppTheme.borderRadius),
             ),
           ),
           const Padding(
             padding: EdgeInsets.all(DesignTokens.spaceMd),
-            child: Text(
-              'MY STORES',
-              style: TextStyle(
-                fontSize: DesignTokens.typeXs,
-                fontWeight: DesignTokens.weightBold,
-                letterSpacing: DesignTokens.letterSpacingEyebrow,
-                color: AppTheme.textSecondary,
-              ),
-            ),
+            child: MmEyebrow('MY STORES'),
           ),
           for (var i = 0; i < stores.length; i++) ...[
             _StoreTile(
@@ -130,7 +123,7 @@ class _StoreTile extends ConsumerWidget {
                     child: Text(
                       role.toUpperCase(),
                       style: const TextStyle(
-                        color: Colors.white,
+                        color: AppTheme.canvasBg,
                         fontSize: DesignTokens.typeXs,
                         fontWeight: DesignTokens.weightBold,
                         letterSpacing: DesignTokens.letterSpacingEyebrow,

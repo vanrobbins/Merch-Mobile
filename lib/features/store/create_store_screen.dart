@@ -14,6 +14,9 @@ import '../../core/theme/app_theme.dart';
 import '../../core/theme/design_tokens.dart';
 import '../../core/services/seed_service.dart';
 import '../../core/utils/invite_code_util.dart';
+import '../../core/widgets/mm_button.dart';
+import '../../core/widgets/mm_eyebrow.dart';
+import '../../core/widgets/mm_text_field.dart';
 
 class CreateStoreScreen extends ConsumerStatefulWidget {
   const CreateStoreScreen({super.key});
@@ -88,10 +91,9 @@ class _CreateStoreScreenState extends ConsumerState<CreateStoreScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            TextField(
+            MmTextField(
+              label: 'Store name',
               controller: _nameCtrl,
-              decoration: const InputDecoration(labelText: 'Store name'),
-              textCapitalization: TextCapitalization.words,
             ),
             const SizedBox(height: DesignTokens.spaceLg),
             const Text(
@@ -99,12 +101,10 @@ class _CreateStoreScreenState extends ConsumerState<CreateStoreScreen> {
               style: TextStyle(color: AppTheme.textSecondary, fontSize: DesignTokens.typeSm),
             ),
             const SizedBox(height: DesignTokens.spaceLg),
-            ElevatedButton(
+            MmButton(
+              label: 'CREATE STORE',
+              isLoading: _loading,
               onPressed: _loading ? null : _create,
-              style: ElevatedButton.styleFrom(backgroundColor: AppTheme.accent),
-              child: _loading
-                  ? const CircularProgressIndicator(color: Colors.white)
-                  : const Text('CREATE STORE'),
             ),
           ],
         ),
@@ -133,8 +133,7 @@ class _InviteCodeDisplay extends StatelessWidget {
               height: 72,
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                // ignore: deprecated_member_use
-                color: AppTheme.accent.withOpacity(0.12),
+                color: AppTheme.accent.withValues(alpha: 0.12),
                 shape: BoxShape.circle,
               ),
               child: const Icon(
@@ -144,16 +143,7 @@ class _InviteCodeDisplay extends StatelessWidget {
               ),
             ),
             const SizedBox(height: DesignTokens.spaceLg),
-            const Text(
-              'YOUR INVITE CODE',
-              style: TextStyle(
-                fontSize: DesignTokens.typeXs,
-                fontWeight: DesignTokens.weightBold,
-                letterSpacing: DesignTokens.letterSpacingEyebrow,
-                color: AppTheme.textSecondary,
-              ),
-              textAlign: TextAlign.center,
-            ),
+            const Center(child: MmEyebrow('YOUR INVITE CODE')),
             const SizedBox(height: DesignTokens.spaceMd),
             // Warm-neutral code card
             Container(
@@ -164,8 +154,7 @@ class _InviteCodeDisplay extends StatelessWidget {
               decoration: BoxDecoration(
                 color: AppTheme.canvasBg,
                 border: Border.all(
-                  // ignore: deprecated_member_use
-                  color: AppTheme.primary.withOpacity(0.12),
+                  color: AppTheme.primary.withValues(alpha: 0.12),
                 ),
                 borderRadius:
                     BorderRadius.circular(AppTheme.borderRadius),
@@ -188,31 +177,15 @@ class _InviteCodeDisplay extends StatelessWidget {
               style: TextStyle(color: AppTheme.textSecondary),
             ),
             const SizedBox(height: DesignTokens.spaceLg),
-            OutlinedButton.icon(
+            MmButton.outlined(
+              label: 'COPY CODE',
+              icon: Icons.copy,
               onPressed: () => Clipboard.setData(ClipboardData(text: code)),
-              icon: const Icon(Icons.copy),
-              label: const Text('COPY CODE'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: AppTheme.primary,
-                side: const BorderSide(color: AppTheme.primary),
-                shape: const RoundedRectangleBorder(
-                  borderRadius: BorderRadius.all(
-                      Radius.circular(AppTheme.borderRadius)),
-                ),
-              ),
             ),
             const SizedBox(height: DesignTokens.spaceLg),
-            ElevatedButton(
+            MmButton(
+              label: 'GO TO STORE',
               onPressed: () => context.goNamed(AppRoutes.zoneMap),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.accent,
-                foregroundColor: Colors.white,
-                shape: const RoundedRectangleBorder(
-                  borderRadius: BorderRadius.all(
-                      Radius.circular(AppTheme.borderRadius)),
-                ),
-              ),
-              child: const Text('GO TO STORE'),
             ),
           ],
         ),

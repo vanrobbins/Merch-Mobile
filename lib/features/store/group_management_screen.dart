@@ -6,6 +6,9 @@ import '../../core/providers/auth_provider.dart';
 import '../../core/providers/store_provider.dart';
 import '../../core/services/firestore_refs.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/widgets/mm_button.dart';
+import '../../core/widgets/mm_dialog.dart';
+import '../../core/widgets/mm_text_field.dart';
 
 class GroupManagementScreen extends ConsumerWidget {
   const GroupManagementScreen({super.key});
@@ -26,7 +29,12 @@ class GroupManagementScreen extends ConsumerWidget {
       appBar: AppBar(title: const Text('STORE GROUPS')),
       body: groups.when(
         data: (list) => list.isEmpty
-            ? const Center(child: Text('No groups yet.'))
+            ? const Center(
+                child: Text(
+                  'No groups yet.',
+                  style: TextStyle(color: AppTheme.textSecondary),
+                ),
+              )
             : ListView(
                 children: list
                     .map((g) => ListTile(
@@ -37,8 +45,15 @@ class GroupManagementScreen extends ConsumerWidget {
                         ))
                     .toList(),
               ),
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Error: $e')),
+        loading: () => const Center(
+          child: CircularProgressIndicator(color: AppTheme.accent),
+        ),
+        error: (e, _) => Center(
+          child: Text(
+            'Error: $e',
+            style: const TextStyle(color: AppTheme.textSecondary),
+          ),
+        ),
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showCreateDialog(context, ref, storeId),
@@ -52,52 +67,49 @@ class GroupManagementScreen extends ConsumerWidget {
   void _showCreateDialog(BuildContext context, WidgetRef ref, String storeId) {
     final nameCtrl = TextEditingController();
     final descCtrl = TextEditingController();
-    showDialog<void>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Create Group'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: nameCtrl,
-              decoration: const InputDecoration(labelText: 'Group name'),
-            ),
-            TextField(
-              controller: descCtrl,
-              decoration:
-                  const InputDecoration(labelText: 'Description (optional)'),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('CANCEL'),
+    MmDialog.show<void>(
+      context,
+      title: 'Create Group',
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          MmTextField(
+            label: 'Group name',
+            controller: nameCtrl,
           ),
-          ElevatedButton(
-            onPressed: () async {
-              final user = ref.read(authStateProvider).value;
-              final groupId = const Uuid().v4();
-              final group = StoreGroup(
-                id: groupId,
-                name: nameCtrl.text.trim(),
-                description: descCtrl.text.trim().isEmpty
-                    ? null
-                    : descCtrl.text.trim(),
-                createdByUid: user?.uid ?? '',
-                createdAt: DateTime.now().millisecondsSinceEpoch,
-              );
-              await FirestoreRefs.groups(storeId)
-                  .doc(groupId)
-                  .set(group.toFirestore());
-              if (ctx.mounted) Navigator.pop(ctx);
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.accent),
-            child: const Text('CREATE'),
+          const SizedBox(height: 12),
+          MmTextField(
+            label: 'Description (optional)',
+            controller: descCtrl,
           ),
         ],
       ),
+      actions: [
+        MmButton.text(
+          label: 'CANCEL',
+          onPressed: () => Navigator.pop(context),
+        ),
+        MmButton(
+          label: 'CREATE',
+          onPressed: () async {
+            final user = ref.read(authStateProvider).value;
+            final groupId = const Uuid().v4();
+            final group = StoreGroup(
+              id: groupId,
+              name: nameCtrl.text.trim(),
+              description: descCtrl.text.trim().isEmpty
+                  ? null
+                  : descCtrl.text.trim(),
+              createdByUid: user?.uid ?? '',
+              createdAt: DateTime.now().millisecondsSinceEpoch,
+            );
+            await FirestoreRefs.groups(storeId)
+                .doc(groupId)
+                .set(group.toFirestore());
+            if (context.mounted) Navigator.pop(context);
+          },
+        ),
+      ],
     );
   }
 }

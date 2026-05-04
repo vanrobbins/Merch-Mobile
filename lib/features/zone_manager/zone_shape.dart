@@ -62,6 +62,11 @@ class ZoneShape {
       const Offset( 0.10,  0.10),
       const Offset(-0.10,  0.10),
     ],
+    'triangle': [
+      const Offset( 0.00, -0.10),
+      const Offset( 0.10,  0.10),
+      const Offset(-0.10,  0.10),
+    ],
   };
 
   /// Translate a preset shape to a center position.

@@ -6,6 +6,7 @@ import '../../core/providers/store_provider.dart';
 import '../../core/router/app_router.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/design_tokens.dart';
+import '../../core/widgets/mm_button.dart';
 
 class PendingApprovalScreen extends ConsumerWidget {
   const PendingApprovalScreen({super.key});
@@ -51,9 +52,9 @@ class PendingApprovalScreen extends ConsumerWidget {
               style: TextStyle(color: AppTheme.textSecondary),
             ),
             const SizedBox(height: DesignTokens.spaceLg),
-            TextButton(
+            MmButton.text(
+              label: 'Join a different store',
               onPressed: () => context.goNamed(AppRoutes.joinStore),
-              child: const Text('Join a different store'),
             ),
           ],
         ),

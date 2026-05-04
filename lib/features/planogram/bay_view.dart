@@ -10,24 +10,28 @@ import 'slot_cell_widget.dart';
 
 /// Seamless column-based planogram bay for wall/shelf/rack planogram types.
 ///
-/// Each column stacks fixtures freely at any quarter-slot position.
-/// No row headers or dividers — the wall flows continuously.
+/// Two edit-mode interactions:
+///   • Tap any empty cell → fixture picker opens → fixture placed there immediately.
+///   • FAB "ADD FIXTURE" → picker opens → enters placement mode → tap cell to place.
 class BayView extends ConsumerStatefulWidget {
-  const BayView({super.key, required this.planogramId});
+  const BayView({super.key, required this.planogramId, this.isEditing = false});
   final String planogramId;
+  final bool isEditing;
 
   @override
   ConsumerState<BayView> createState() => _BayViewState();
 }
 
 class _BayViewState extends ConsumerState<BayView> {
-  static const double _cellWidth = 80.0;
-  static const double _quarterHeight = 20.0;
+  static const double _cellWidth = 88.0;
+  static const double _quarterHeight = 44.0;
   static const double _gap = 2.0;
 
+  /// Set when the user picks a fixture type from the FAB picker (placement mode).
+  /// null = no pending placement (direct-tap mode).
   String? _pendingNodeType;
 
-  void _showFixturePicker() {
+  void _openFabPicker() {
     showModalBottomSheet<void>(
       context: context,
       backgroundColor: Colors.transparent,
@@ -38,14 +42,31 @@ class _BayViewState extends ConsumerState<BayView> {
   }
 
   void _onEmptyQuarterTap(int col, int subRow) {
-    if (_pendingNodeType == null) return;
-    ref
-        .read(planogramEditorNotifierProvider(widget.planogramId).notifier)
-        .placeFixture(col, subRow, _pendingNodeType!);
-    setState(() => _pendingNodeType = null);
+    if (!widget.isEditing) return;
+    if (_pendingNodeType != null) {
+      // Placement mode: drop the pending type here.
+      ref
+          .read(planogramEditorNotifierProvider(widget.planogramId).notifier)
+          .placeFixture(col, subRow, _pendingNodeType!);
+      setState(() => _pendingNodeType = null);
+    } else {
+      // Direct-tap mode: open picker and place immediately.
+      showModalBottomSheet<void>(
+        context: context,
+        backgroundColor: Colors.transparent,
+        builder: (_) => FixturePickerSheet(
+          onPick: (nodeType) {
+            ref
+                .read(planogramEditorNotifierProvider(widget.planogramId).notifier)
+                .placeFixture(col, subRow, nodeType);
+          },
+        ),
+      );
+    }
   }
 
   void _onFixturePress(PgSlot slot) {
+    if (!widget.isEditing) return;
     setState(() => _pendingNodeType = null);
     ProductAssignmentSheet.show(
       context,
@@ -65,88 +86,89 @@ class _BayViewState extends ConsumerState<BayView> {
     final totalQuarters = pg.rows * 4;
     final totalHeight =
         totalQuarters * _quarterHeight + (totalQuarters - 1) * _gap;
+    final isPlacementMode = widget.isEditing && _pendingNodeType != null;
 
-    final isPendingPlacement = _pendingNodeType != null;
-
-    return Stack(
+    return Column(
       children: [
-        SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: List.generate(pg.cols, (col) {
-                return Padding(
-                  padding: const EdgeInsets.only(right: 4),
-                  child: SizedBox(
-                    width: _cellWidth,
-                    height: totalHeight,
-                    child: _buildColumn(
-                        col, slots, totalQuarters, isPendingPlacement),
+        // Placement-mode banner
+        if (isPlacementMode)
+          Material(
+            color: AppTheme.accent,
+            child: Padding(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Row(
+                children: [
+                  Text(
+                    'TAP A CELL TO PLACE ${_pendingNodeType!.toUpperCase()}',
+                    style: const TextStyle(
+                      color: AppTheme.canvasBg,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1.2,
+                    ),
                   ),
-                );
-              }),
+                  const Spacer(),
+                  GestureDetector(
+                    onTap: () => setState(() => _pendingNodeType = null),
+                    child: const Icon(Icons.close,
+                        color: AppTheme.canvasBg, size: 18),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        // Planogram wall (scrollable)
+        Expanded(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: List.generate(pg.cols, (col) {
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 4),
+                    child: SizedBox(
+                      width: _cellWidth,
+                      height: totalHeight,
+                      child: _buildColumn(col, slots, totalQuarters, isPlacementMode),
+                    ),
+                  );
+                }),
+              ),
             ),
           ),
         ),
-        if (isPendingPlacement)
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            child: Material(
-              color: AppTheme.accent,
-              child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: Row(
-                  children: [
-                    Text(
-                      'TAP A CELL TO PLACE ${_pendingNodeType!.toUpperCase()}',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 1.2,
-                      ),
-                    ),
-                    const Spacer(),
-                    GestureDetector(
-                      onTap: () => setState(() => _pendingNodeType = null),
-                      child: const Icon(Icons.close,
-                          color: Colors.white, size: 18),
-                    ),
-                  ],
+        // ADD FIXTURE FAB (edit mode only)
+        if (widget.isEditing)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(0, 8, 16, 16),
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: FloatingActionButton.extended(
+                heroTag: 'bay_view_fab',
+                backgroundColor: AppTheme.primary,
+                foregroundColor: AppTheme.canvasBg,
+                icon: const Icon(Icons.add, size: 18),
+                label: const Text(
+                  'ADD FIXTURE',
+                  style: TextStyle(
+                    fontSize: 9,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 1.2,
+                  ),
                 ),
+                onPressed: _openFabPicker,
               ),
             ),
           ),
-        Positioned(
-          right: 16,
-          bottom: 16,
-          child: FloatingActionButton.extended(
-            heroTag: 'bay_view_fab',
-            backgroundColor: AppTheme.primary,
-            foregroundColor: Colors.white,
-            icon: const Icon(Icons.add, size: 18),
-            label: const Text(
-              'ADD FIXTURE',
-              style: TextStyle(
-                fontSize: 9,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 1.2,
-              ),
-            ),
-            onPressed: _showFixturePicker,
-          ),
-        ),
       ],
     );
   }
 
-  Widget _buildColumn(
-      int col, List<PgSlot> slots, int totalQuarters, bool isPendingPlacement) {
+  Widget _buildColumn(int col, List<PgSlot> slots, int totalQuarters,
+      bool isPlacementMode) {
     final colSlots = slots
         .where((s) => s.col == col)
         .toList()
@@ -157,20 +179,20 @@ class _BayViewState extends ConsumerState<BayView> {
 
     for (final slot in colSlots) {
       while (current < slot.subRow) {
-        widgets.add(_emptyQuarterCell(col, current, isPendingPlacement));
+        widgets.add(_emptyQuarterCell(col, current, isPlacementMode));
         current++;
       }
       widgets.add(SlotCellWidget(
         slot: slot,
         cellWidth: _cellWidth,
         quarterHeight: _quarterHeight,
-        onPress: () => _onFixturePress(slot),
+        onPress: widget.isEditing ? () => _onFixturePress(slot) : null,
       ));
       current += slot.spanQuarters;
     }
 
     while (current < totalQuarters) {
-      widgets.add(_emptyQuarterCell(col, current, isPendingPlacement));
+      widgets.add(_emptyQuarterCell(col, current, isPlacementMode));
       current++;
     }
 
@@ -183,27 +205,34 @@ class _BayViewState extends ConsumerState<BayView> {
     );
   }
 
-  Widget _emptyQuarterCell(int col, int subRow, bool isPendingPlacement) {
+  Widget _emptyQuarterCell(int col, int subRow, bool isPlacementMode) {
+    final interactive = widget.isEditing;
     return GestureDetector(
-      onTap:
-          isPendingPlacement ? () => _onEmptyQuarterTap(col, subRow) : null,
+      onTap: interactive ? () => _onEmptyQuarterTap(col, subRow) : null,
       child: Container(
         width: _cellWidth,
         height: _quarterHeight,
         decoration: BoxDecoration(
-          color: isPendingPlacement
+          color: isPlacementMode
               ? AppTheme.accent.withValues(alpha: 0.07)
               : Colors.transparent,
           border: Border.all(
-            color: isPendingPlacement
+            color: isPlacementMode
                 ? AppTheme.accent.withValues(alpha: 0.35)
                 : const Color(0x22393735),
           ),
           borderRadius: BorderRadius.circular(AppTheme.borderRadius),
         ),
-        child: isPendingPlacement
-            ? const Center(
-                child: Icon(Icons.add, size: 10, color: AppTheme.accent))
+        child: interactive
+            ? Center(
+                child: Icon(
+                  Icons.add,
+                  size: 14,
+                  color: isPlacementMode
+                      ? AppTheme.accent
+                      : const Color(0x44393735),
+                ),
+              )
             : null,
       ),
     );

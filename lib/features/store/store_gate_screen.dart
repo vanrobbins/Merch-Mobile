@@ -5,6 +5,8 @@ import '../../core/providers/store_provider.dart';
 import '../../core/router/app_router.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/design_tokens.dart';
+import '../../core/widgets/mm_button.dart';
+import '../../core/widgets/mm_eyebrow.dart';
 
 class StoreGateScreen extends ConsumerWidget {
   const StoreGateScreen({super.key});
@@ -16,7 +18,9 @@ class StoreGateScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('MERCH MOBILE')),
       body: storesAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const Center(
+          child: CircularProgressIndicator(color: AppTheme.accent),
+        ),
         error: (_, __) => _body(context, ref, hasStores: false),
         data: (stores) {
           if (stores.isEmpty) return _body(context, ref, hasStores: false);
@@ -27,15 +31,7 @@ class StoreGateScreen extends ConsumerWidget {
             children: [
               const Padding(
                 padding: EdgeInsets.only(bottom: DesignTokens.spaceMd),
-                child: Text(
-                  'YOUR STORES',
-                  style: TextStyle(
-                    fontSize: DesignTokens.typeXs,
-                    fontWeight: DesignTokens.weightBold,
-                    letterSpacing: DesignTokens.letterSpacingEyebrow,
-                    color: AppTheme.textSecondary,
-                  ),
-                ),
+                child: MmEyebrow('YOUR STORES'),
               ),
               for (final store in stores)
                 Card(
@@ -55,12 +51,9 @@ class StoreGateScreen extends ConsumerWidget {
               const SizedBox(height: DesignTokens.spaceLg),
               const Divider(),
               const SizedBox(height: DesignTokens.spaceMd),
-              OutlinedButton(
+              MmButton.outlined(
+                label: 'JOIN ANOTHER STORE',
                 onPressed: () => context.goNamed(AppRoutes.joinStore),
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                ),
-                child: const Text('JOIN ANOTHER STORE'),
               ),
             ],
           );
@@ -86,22 +79,14 @@ class StoreGateScreen extends ConsumerWidget {
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: DesignTokens.spaceLg),
-          ElevatedButton(
+          MmButton(
+            label: 'CREATE A STORE',
             onPressed: () => context.goNamed(AppRoutes.createStore),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.primary,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-            ),
-            child: const Text('CREATE A STORE'),
           ),
           const SizedBox(height: DesignTokens.spaceMd),
-          OutlinedButton(
+          MmButton.outlined(
+            label: 'JOIN WITH INVITE CODE',
             onPressed: () => context.goNamed(AppRoutes.joinStore),
-            style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 16),
-            ),
-            child: const Text('JOIN WITH INVITE CODE'),
           ),
         ],
       ),

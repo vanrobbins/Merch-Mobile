@@ -27,6 +27,7 @@ mixin _$Store {
   double? get widthFt => throw _privateConstructorUsedError;
   double? get depthFt => throw _privateConstructorUsedError;
   String? get entranceJson => throw _privateConstructorUsedError;
+  String? get shapePoints => throw _privateConstructorUsedError;
   DateTime get createdAt => throw _privateConstructorUsedError;
 
   /// Serializes this Store to a JSON map.
@@ -51,6 +52,7 @@ abstract class $StoreCopyWith<$Res> {
       double? widthFt,
       double? depthFt,
       String? entranceJson,
+      String? shapePoints,
       DateTime createdAt});
 }
 
@@ -76,6 +78,7 @@ class _$StoreCopyWithImpl<$Res, $Val extends Store>
     Object? widthFt = freezed,
     Object? depthFt = freezed,
     Object? entranceJson = freezed,
+    Object? shapePoints = freezed,
     Object? createdAt = null,
   }) {
     return _then(_value.copyWith(
@@ -107,6 +110,10 @@ class _$StoreCopyWithImpl<$Res, $Val extends Store>
           ? _value.entranceJson
           : entranceJson // ignore: cast_nullable_to_non_nullable
               as String?,
+      shapePoints: freezed == shapePoints
+          ? _value.shapePoints
+          : shapePoints // ignore: cast_nullable_to_non_nullable
+              as String?,
       createdAt: null == createdAt
           ? _value.createdAt
           : createdAt // ignore: cast_nullable_to_non_nullable
@@ -130,6 +137,7 @@ abstract class _$$StoreImplCopyWith<$Res> implements $StoreCopyWith<$Res> {
       double? widthFt,
       double? depthFt,
       String? entranceJson,
+      String? shapePoints,
       DateTime createdAt});
 }
 
@@ -153,6 +161,7 @@ class __$$StoreImplCopyWithImpl<$Res>
     Object? widthFt = freezed,
     Object? depthFt = freezed,
     Object? entranceJson = freezed,
+    Object? shapePoints = freezed,
     Object? createdAt = null,
   }) {
     return _then(_$StoreImpl(
@@ -184,6 +193,10 @@ class __$$StoreImplCopyWithImpl<$Res>
           ? _value.entranceJson
           : entranceJson // ignore: cast_nullable_to_non_nullable
               as String?,
+      shapePoints: freezed == shapePoints
+          ? _value.shapePoints
+          : shapePoints // ignore: cast_nullable_to_non_nullable
+              as String?,
       createdAt: null == createdAt
           ? _value.createdAt
           : createdAt // ignore: cast_nullable_to_non_nullable
@@ -203,6 +216,7 @@ class _$StoreImpl implements _Store {
       this.widthFt,
       this.depthFt,
       this.entranceJson,
+      this.shapePoints,
       required this.createdAt});
 
   factory _$StoreImpl.fromJson(Map<String, dynamic> json) =>
@@ -223,11 +237,13 @@ class _$StoreImpl implements _Store {
   @override
   final String? entranceJson;
   @override
+  final String? shapePoints;
+  @override
   final DateTime createdAt;
 
   @override
   String toString() {
-    return 'Store(id: $id, name: $name, inviteCode: $inviteCode, ownerUid: $ownerUid, widthFt: $widthFt, depthFt: $depthFt, entranceJson: $entranceJson, createdAt: $createdAt)';
+    return 'Store(id: $id, name: $name, inviteCode: $inviteCode, ownerUid: $ownerUid, widthFt: $widthFt, depthFt: $depthFt, entranceJson: $entranceJson, shapePoints: $shapePoints, createdAt: $createdAt)';
   }
 
   @override
@@ -245,6 +261,8 @@ class _$StoreImpl implements _Store {
             (identical(other.depthFt, depthFt) || other.depthFt == depthFt) &&
             (identical(other.entranceJson, entranceJson) ||
                 other.entranceJson == entranceJson) &&
+            (identical(other.shapePoints, shapePoints) ||
+                other.shapePoints == shapePoints) &&
             (identical(other.createdAt, createdAt) ||
                 other.createdAt == createdAt));
   }
@@ -252,7 +270,7 @@ class _$StoreImpl implements _Store {
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   int get hashCode => Object.hash(runtimeType, id, name, inviteCode, ownerUid,
-      widthFt, depthFt, entranceJson, createdAt);
+      widthFt, depthFt, entranceJson, shapePoints, createdAt);
 
   /// Create a copy of Store
   /// with the given fields replaced by the non-null parameter values.
@@ -279,6 +297,7 @@ abstract class _Store implements Store {
       final double? widthFt,
       final double? depthFt,
       final String? entranceJson,
+      final String? shapePoints,
       required final DateTime createdAt}) = _$StoreImpl;
 
   factory _Store.fromJson(Map<String, dynamic> json) = _$StoreImpl.fromJson;
@@ -297,6 +316,8 @@ abstract class _Store implements Store {
   double? get depthFt;
   @override
   String? get entranceJson;
+  @override
+  String? get shapePoints;
   @override
   DateTime get createdAt;
 

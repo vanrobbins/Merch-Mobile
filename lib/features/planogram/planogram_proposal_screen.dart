@@ -9,6 +9,8 @@ import '../../core/providers/store_provider.dart';
 import '../../core/services/firestore_refs.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/design_tokens.dart';
+import '../../core/widgets/mm_button.dart';
+import '../../core/widgets/mm_text_field.dart';
 import 'planogram_provider.dart';
 import 'planogram_slot.dart';
 
@@ -87,32 +89,16 @@ class _PlanogramProposalScreenState
               style: TextStyle(color: AppTheme.textSecondary),
             ),
             const SizedBox(height: DesignTokens.spaceMd),
-            TextField(
+            MmTextField(
+              label: 'Notes (optional)',
               controller: _notesCtrl,
-              decoration: const InputDecoration(
-                labelText: 'Notes (optional)',
-                border: OutlineInputBorder(),
-              ),
               maxLines: 4,
             ),
             const SizedBox(height: DesignTokens.spaceLg),
-            ElevatedButton(
+            MmButton(
+              label: 'SUBMIT PROPOSAL',
+              isLoading: _loading,
               onPressed: _loading ? null : _submit,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.accent,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-              ),
-              child: _loading
-                  ? const SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(
-                        color: Colors.white,
-                        strokeWidth: 2,
-                      ),
-                    )
-                  : const Text('SUBMIT PROPOSAL'),
             ),
           ],
         ),

@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import '../../core/models/photo_doc.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/design_tokens.dart';
+import '../../core/widgets/mm_button.dart';
 import '../../core/widgets/mm_empty_state.dart';
 import '../../core/widgets/role_guard.dart';
 import 'approval_status_chip.dart';
@@ -54,10 +55,12 @@ class _PhotoDetailScreenState extends ConsumerState<PhotoDetailScreen> {
         final photo = photoOrNull;
 
         return Scaffold(
-          backgroundColor: Colors.black,
+          backgroundColor: AppTheme.primary,
           appBar: AppBar(
-            title: const Text('PHOTO DETAIL'),
-            backgroundColor: Colors.black,
+            title: Text(
+              DateFormat('MMM d, h:mm a').format(photo.capturedAt).toUpperCase(),
+            ),
+            backgroundColor: AppTheme.primary,
           ),
           body: Column(
             children: [
@@ -95,7 +98,7 @@ class _PhotoDetailScreenState extends ConsumerState<PhotoDetailScreen> {
                                 : '—',
                             style: const TextStyle(
                               fontSize: DesignTokens.typeSm,
-                              color: Colors.white,
+                              color: AppTheme.canvasBg,
                               fontWeight: DesignTokens.weightMedium,
                             ),
                             overflow: TextOverflow.ellipsis,
@@ -125,32 +128,19 @@ class _PhotoDetailScreenState extends ConsumerState<PhotoDetailScreen> {
                           Row(
                             children: [
                               Expanded(
-                                child: ElevatedButton(
-                                  onPressed: photo.approvalStatus == 'approved'
-                                      ? null
-                                      : () async {
-                                          await ref
-                                              .read(
-                                                  photoNotifierProvider.notifier)
-                                              .approvePhoto(widget.photoId);
-                                        },
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.green.shade600,
-                                    foregroundColor: Colors.white,
-                                    disabledBackgroundColor:
-                                        Colors.green.shade900,
-                                    shape: const RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.all(
-                                          Radius.circular(
-                                              DesignTokens.radiusSm)),
-                                    ),
-                                  ),
-                                  child: const Text('APPROVE'),
+                                child: _ApproveButton(
+                                  disabled: photo.approvalStatus == 'approved',
+                                  onPressed: () async {
+                                    await ref
+                                        .read(photoNotifierProvider.notifier)
+                                        .approvePhoto(widget.photoId);
+                                  },
                                 ),
                               ),
                               const SizedBox(width: DesignTokens.spaceSm),
                               Expanded(
-                                child: ElevatedButton(
+                                child: MmButton.destructive(
+                                  label: 'REJECT',
                                   onPressed: photo.approvalStatus == 'rejected'
                                       ? null
                                       : () async {
@@ -159,17 +149,6 @@ class _PhotoDetailScreenState extends ConsumerState<PhotoDetailScreen> {
                                                   photoNotifierProvider.notifier)
                                               .rejectPhoto(widget.photoId);
                                         },
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.red.shade600,
-                                    foregroundColor: Colors.white,
-                                    disabledBackgroundColor: Colors.red.shade900,
-                                    shape: const RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.all(
-                                          Radius.circular(
-                                              DesignTokens.radiusSm)),
-                                    ),
-                                  ),
-                                  child: const Text('REJECT'),
                                 ),
                               ),
                             ],
@@ -209,17 +188,49 @@ class _PhotoDetailScreenState extends ConsumerState<PhotoDetailScreen> {
   }
 }
 
+/// Approve button styled with successColor — no MmButton variant for green,
+/// so we use a themed ElevatedButton directly.
+class _ApproveButton extends StatelessWidget {
+  const _ApproveButton({required this.disabled, required this.onPressed});
+
+  final bool disabled;
+  final VoidCallback onPressed;
+
+  static const _shape = RoundedRectangleBorder(
+    borderRadius: BorderRadius.all(Radius.circular(DesignTokens.radiusCta)),
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    return ElevatedButton(
+      onPressed: disabled ? null : onPressed,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: AppTheme.successColor,
+        foregroundColor: AppTheme.canvasBg,
+        disabledBackgroundColor: AppTheme.successColor.withValues(alpha: 0.4),
+        minimumSize: const Size(double.infinity, 44),
+        shape: _shape,
+        elevation: 0,
+      ),
+      child: const Text(
+        'APPROVE',
+        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 1.2),
+      ),
+    );
+  }
+}
+
 class _ErrorImage extends StatelessWidget {
   const _ErrorImage();
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: Colors.grey.shade900,
-      child: const Center(
+      color: AppTheme.primary,
+      child: Center(
         child: Icon(
           Icons.broken_image_outlined,
-          color: Colors.white38,
+          color: AppTheme.canvasBg.withValues(alpha: 0.38),
           size: 64,
         ),
       ),

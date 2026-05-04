@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../core/models/planogram.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/theme/design_tokens.dart';
+import '../../core/widgets/mm_text_field.dart';
 import 'planogram_slot_count.dart';
 
 class PlanogramPickerSheet extends StatefulWidget {
@@ -47,64 +49,74 @@ class _PlanogramPickerSheetState extends State<PlanogramPickerSheet> {
       builder: (context, scrollCtrl) {
         return Container(
           decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+            color: AppTheme.cardSurface,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(DesignTokens.radiusLg)),
           ),
           child: Column(
             children: [
               Center(
                 child: Container(
-                  margin: const EdgeInsets.only(top: 8),
+                  margin: const EdgeInsets.only(top: DesignTokens.spaceSm),
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: Colors.grey.shade300,
-                    borderRadius: BorderRadius.circular(2),
+                    color: AppTheme.divider,
+                    borderRadius: BorderRadius.circular(AppTheme.borderRadius),
                   ),
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                padding: const EdgeInsets.fromLTRB(
+                    DesignTokens.spaceMd, DesignTokens.spaceSm, DesignTokens.spaceMd, 0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('ASSIGN PLANOGRAM',
-                        style: TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.w700, letterSpacing: 1.2)),
-                    Text(widget.fixtureLabel,
-                        style: const TextStyle(fontSize: 11, color: Colors.grey)),
-                    const SizedBox(height: 8),
-                    TextField(
-                      controller: _searchCtrl,
-                      decoration: InputDecoration(
-                        hintText: 'Search planograms\u2026',
-                        prefixIcon: const Icon(Icons.search, size: 20),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(2)),
-                        contentPadding:
-                            const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-                        isDense: true,
+                    const Text(
+                      'ASSIGN PLANOGRAM',
+                      style: TextStyle(
+                        fontSize: DesignTokens.typeLg,
+                        fontWeight: DesignTokens.weightBold,
+                        letterSpacing: DesignTokens.letterSpacingEyebrow,
+                        color: AppTheme.textPrimary,
                       ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      widget.fixtureLabel,
+                      style: const TextStyle(
+                        fontSize: DesignTokens.typeXs,
+                        color: AppTheme.textSecondary,
+                      ),
+                    ),
+                    const SizedBox(height: DesignTokens.spaceSm),
+                    MmTextField(
+                      controller: _searchCtrl,
+                      hint: 'Search planograms…',
+                      prefix: const Icon(Icons.search, size: 20),
                       onChanged: (v) => setState(() => _query = v),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: DesignTokens.spaceXs),
               Expanded(
                 child: ListView(
                   controller: scrollCtrl,
                   children: [
                     if (widget.currentPlanogramId != null) ...[
                       ListTile(
-                        leading: const Icon(Icons.remove_circle_outline, color: Colors.red),
-                        title: const Text('Remove assignment',
-                            style: TextStyle(color: Colors.red)),
+                        leading: const Icon(Icons.remove_circle_outline,
+                            color: AppTheme.errorColor),
+                        title: const Text(
+                          'Remove assignment',
+                          style: TextStyle(color: AppTheme.errorColor),
+                        ),
                         onTap: () {
                           widget.onSelect(null);
                           Navigator.of(context).pop();
                         },
                       ),
-                      const Divider(height: 1),
+                      const Divider(height: 1, color: AppTheme.divider),
                     ],
                     ..._filtered.map((p) {
                       final isSelected = p.id == widget.currentPlanogramId;
@@ -117,17 +129,28 @@ class _PlanogramPickerSheetState extends State<PlanogramPickerSheet> {
                             color: isSelected
                                 ? AppTheme.accent
                                 : AppTheme.accent.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(2),
+                            borderRadius: BorderRadius.circular(AppTheme.borderRadius),
                           ),
-                          child: Icon(Icons.grid_view_rounded,
-                              color: isSelected ? Colors.white : AppTheme.accent, size: 18),
+                          child: Icon(
+                            Icons.grid_view_rounded,
+                            color: isSelected ? AppTheme.canvasBg : AppTheme.accent,
+                            size: 18,
+                          ),
                         ),
-                        title: Text(p.title,
-                            style: TextStyle(
-                                fontWeight: FontWeight.w700,
-                                color: isSelected ? AppTheme.accent : null)),
-                        subtitle: Text('${p.season} \u00b7 $slotCount slots',
-                            style: const TextStyle(fontSize: 11)),
+                        title: Text(
+                          p.title,
+                          style: TextStyle(
+                            fontWeight: DesignTokens.weightBold,
+                            color: isSelected ? AppTheme.accent : AppTheme.textPrimary,
+                          ),
+                        ),
+                        subtitle: Text(
+                          '${p.season} · $slotCount slots',
+                          style: const TextStyle(
+                            fontSize: DesignTokens.typeXs,
+                            color: AppTheme.textSecondary,
+                          ),
+                        ),
                         trailing: isSelected
                             ? const Icon(Icons.check, color: AppTheme.accent)
                             : null,
@@ -139,10 +162,12 @@ class _PlanogramPickerSheetState extends State<PlanogramPickerSheet> {
                     }),
                     if (_filtered.isEmpty)
                       const Padding(
-                        padding: EdgeInsets.all(24),
+                        padding: EdgeInsets.all(DesignTokens.spaceLg),
                         child: Center(
-                          child: Text('No planograms found',
-                              style: TextStyle(color: Colors.grey)),
+                          child: Text(
+                            'No planograms found',
+                            style: TextStyle(color: AppTheme.textHint),
+                          ),
                         ),
                       ),
                   ],
@@ -154,5 +179,4 @@ class _PlanogramPickerSheetState extends State<PlanogramPickerSheet> {
       },
     );
   }
-
 }

@@ -7,7 +7,9 @@ import '../../core/providers/store_provider.dart';
 import '../../core/services/firestore_refs.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/design_tokens.dart';
+import '../../core/widgets/mm_button.dart';
 import '../../core/widgets/mm_empty_state.dart';
+import '../../core/widgets/mm_eyebrow.dart';
 
 final _pendingMembersProvider =
     StreamProvider.autoDispose<List<StoreMembership>>((ref) {
@@ -69,15 +71,7 @@ class MembersScreen extends ConsumerWidget {
                       ),
                       child: Row(
                         children: [
-                          const Text(
-                            'PENDING REQUESTS',
-                            style: TextStyle(
-                                fontSize: DesignTokens.typeXs,
-                                fontWeight: DesignTokens.weightBold,
-                                letterSpacing:
-                                    DesignTokens.letterSpacingEyebrow,
-                                color: AppTheme.textSecondary),
-                          ),
+                          const MmEyebrow('PENDING REQUESTS'),
                           if (pendingList.isNotEmpty) ...[
                             const SizedBox(width: DesignTokens.spaceSm),
                             Container(
@@ -93,7 +87,7 @@ class MembersScreen extends ConsumerWidget {
                               child: Text(
                                 '${pendingList.length}',
                                 style: const TextStyle(
-                                  color: Colors.white,
+                                  color: Color(0xFFF2EFE8),
                                   fontSize: 11,
                                   fontWeight: DesignTokens.weightBold,
                                 ),
@@ -130,8 +124,21 @@ class MembersScreen extends ConsumerWidget {
                   ],
                 );
               },
-              loading: () => const SizedBox(),
-              error: (_, __) => const SizedBox(),
+              loading: () => const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(DesignTokens.spaceLg),
+                  child: CircularProgressIndicator(color: AppTheme.accent),
+                ),
+              ),
+              error: (_, __) => const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(DesignTokens.spaceLg),
+                  child: Text(
+                    'Something went wrong',
+                    style: TextStyle(color: AppTheme.textSecondary),
+                  ),
+                ),
+              ),
             ),
           ],
           // Active members
@@ -142,12 +149,7 @@ class MembersScreen extends ConsumerWidget {
               DesignTokens.spaceMd,
               DesignTokens.spaceSm,
             ),
-            child: Text('ACTIVE MEMBERS',
-                style: TextStyle(
-                    fontSize: DesignTokens.typeXs,
-                    fontWeight: DesignTokens.weightBold,
-                    letterSpacing: DesignTokens.letterSpacingEyebrow,
-                    color: AppTheme.textSecondary)),
+            child: MmEyebrow('ACTIVE MEMBERS'),
           ),
           members.when(
             data: (list) {
@@ -174,13 +176,17 @@ class MembersScreen extends ConsumerWidget {
             },
             loading: () => const Padding(
               padding: EdgeInsets.all(DesignTokens.spaceLg),
-              child: Center(child: CircularProgressIndicator()),
+              child: Center(
+                child: CircularProgressIndicator(color: AppTheme.accent),
+              ),
             ),
-            error: (e, _) => Padding(
-              padding: const EdgeInsets.all(DesignTokens.spaceLg),
-              child: Text(
-                'Error: $e',
-                style: const TextStyle(color: AppTheme.textSecondary),
+            error: (e, _) => const Center(
+              child: Padding(
+                padding: EdgeInsets.all(DesignTokens.spaceLg),
+                child: Text(
+                  'Something went wrong',
+                  style: TextStyle(color: AppTheme.textSecondary),
+                ),
               ),
             ),
           ),
@@ -214,10 +220,10 @@ class _InviteCodeCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'INVITE CODE',
             style: TextStyle(
-              color: Colors.white70,
+              color: AppTheme.canvasBg.withValues(alpha: 0.70),
               fontSize: DesignTokens.typeXs,
               fontWeight: DesignTokens.weightBold,
               letterSpacing: DesignTokens.letterSpacingEyebrow,
@@ -229,7 +235,7 @@ class _InviteCodeCard extends StatelessWidget {
               Text(
                 inviteCode,
                 style: const TextStyle(
-                  color: Colors.white,
+                  color: AppTheme.canvasBg,
                   fontSize: 28,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 8,
@@ -237,7 +243,8 @@ class _InviteCodeCard extends StatelessWidget {
               ),
               const Spacer(),
               IconButton(
-                icon: const Icon(Icons.copy, color: Colors.white70),
+                icon: Icon(Icons.copy,
+                    color: AppTheme.canvasBg.withValues(alpha: 0.70)),
                 tooltip: 'Copy code',
                 onPressed: () {
                   Clipboard.setData(ClipboardData(text: inviteCode));
@@ -251,10 +258,10 @@ class _InviteCodeCard extends StatelessWidget {
               ),
             ],
           ),
-          const Text(
+          Text(
             'Share this code with staff who want to join.',
             style: TextStyle(
-              color: Colors.white60,
+              color: AppTheme.canvasBg.withValues(alpha: 0.60),
               fontSize: DesignTokens.typeSm,
             ),
           ),
@@ -280,28 +287,14 @@ class _PendingMemberTile extends ConsumerWidget {
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          ElevatedButton(
+          MmButton(
+            label: 'APPROVE',
             onPressed: () => _showApproveDialog(context, ref),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.primary,
-              foregroundColor: Colors.white,
-              shape: const RoundedRectangleBorder(
-                borderRadius: BorderRadius.all(
-                    Radius.circular(AppTheme.borderRadius)),
-              ),
-            ),
-            child: const Text('APPROVE'),
           ),
           const SizedBox(width: DesignTokens.spaceSm),
-          OutlinedButton(
+          MmButton.outlined(
+            label: 'DENY',
             onPressed: () => _deny(ref),
-            style: OutlinedButton.styleFrom(
-              shape: const RoundedRectangleBorder(
-                borderRadius: BorderRadius.all(
-                    Radius.circular(AppTheme.borderRadius)),
-              ),
-            ),
-            child: const Text('DENY'),
           ),
         ],
       ),
@@ -324,26 +317,30 @@ class _PendingMemberTile extends ConsumerWidget {
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setState) => AlertDialog(
           title: Text('Approve ${membership.displayName}'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: roles
-                .map((r) => RadioListTile<String>(
-                      title: Text(r.toUpperCase()),
-                      value: r,
-                      groupValue: selectedRole,
-                      onChanged: (v) => setState(() => selectedRole = v!),
-                    ))
-                .toList(),
+          content: RadioGroup<String>(
+            groupValue: selectedRole,
+            onChanged: (v) { if (v != null) setState(() => selectedRole = v); },
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: roles
+                  .map((r) => RadioListTile<String>(
+                        title: Text(r.toUpperCase()),
+                        value: r,
+                      ))
+                  .toList(),
+            ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('CANCEL')),
-            ElevatedButton(
+            MmButton.text(
+              label: 'CANCEL',
+              onPressed: () => Navigator.pop(ctx),
+            ),
+            MmButton(
+              label: 'CONFIRM',
               onPressed: () {
                 Navigator.pop(ctx);
                 _approve(ref, selectedRole);
               },
-              style: ElevatedButton.styleFrom(backgroundColor: AppTheme.accent),
-              child: const Text('CONFIRM'),
             ),
           ],
         ),
@@ -382,10 +379,9 @@ class _ActiveMemberTile extends ConsumerWidget {
       subtitle: Text(membership.role.toUpperCase(),
           style: const TextStyle(fontSize: DesignTokens.typeXs)),
       trailing: myRole == 'coordinator'
-          ? TextButton(
+          ? MmButton.text(
+              label: 'EDIT ROLE',
               onPressed: () => _showRoleDialog(context, ref),
-              child: const Text('EDIT ROLE',
-                  style: TextStyle(color: AppTheme.accent, fontSize: DesignTokens.typeXs)),
             )
           : null,
     );
@@ -398,27 +394,32 @@ class _ActiveMemberTile extends ConsumerWidget {
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setState) => AlertDialog(
           title: Text('Edit role for ${membership.displayName}'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: ['staff', 'manager', 'coordinator']
-                .map((r) => RadioListTile<String>(
-                      title: Text(r.toUpperCase()),
-                      value: r,
-                      groupValue: selectedRole,
-                      onChanged: (v) => setState(() => selectedRole = v!),
-                    ))
-                .toList(),
+          content: RadioGroup<String>(
+            groupValue: selectedRole,
+            onChanged: (v) { if (v != null) setState(() => selectedRole = v); },
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: ['staff', 'manager', 'coordinator']
+                  .map((r) => RadioListTile<String>(
+                        title: Text(r.toUpperCase()),
+                        value: r,
+                      ))
+                  .toList(),
+            ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('CANCEL')),
-            ElevatedButton(
+            MmButton.text(
+              label: 'CANCEL',
+              onPressed: () => Navigator.pop(ctx),
+            ),
+            MmButton(
+              label: 'SAVE',
               onPressed: () {
                 Navigator.pop(ctx);
                 FirestoreRefs.memberships(membership.storeId)
                     .doc(membership.uid)
                     .update({'role': selectedRole});
               },
-              child: const Text('SAVE'),
             ),
           ],
         ),
