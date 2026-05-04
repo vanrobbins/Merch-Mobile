@@ -408,7 +408,7 @@ class _ColorStep extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final colorsAsync = ref.watch(brandColorsProvider);
     return colorsAsync.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
+      loading: () => const Center(child: CircularProgressIndicator(color: AppTheme.accent)),
       error: (e, _) => Center(child: Text('$e')),
       data: (colors) => Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,

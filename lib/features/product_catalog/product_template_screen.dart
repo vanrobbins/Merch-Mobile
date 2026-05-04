@@ -75,7 +75,7 @@ class ProductTemplateScreen extends ConsumerWidget {
           ),
           if (customAsync.isLoading)
             const SliverToBoxAdapter(
-              child: Center(child: CircularProgressIndicator()),
+              child: Center(child: CircularProgressIndicator(color: AppTheme.accent)),
             )
           else if (customTemplates.isEmpty)
             SliverToBoxAdapter(

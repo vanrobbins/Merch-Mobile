@@ -903,18 +903,10 @@ class _ZoneDetailScreenState extends ConsumerState<ZoneDetailScreen> {
                             ),
                   ),
                 ),
-                RoleGuard(
-                  allowedRoles: const ['coordinator', 'manager'],
-                  child: IconButton(
-                    icon: const Icon(Icons.edit_outlined),
-                    tooltip: 'Edit floor',
-                    onPressed: () => setState(() { _isEditing = true; _hasFitView = false; }),
-                  ),
-                ),
               ],
             ),
       body: state.isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator(color: AppTheme.accent))
           : _buildCanvas(context, state, zone, zoneRow, zonePts, store),
       floatingActionButton: _isEditing
           ? (state.isMultiSelectMode
@@ -1421,7 +1413,7 @@ class _PlanogramPreviewSheet extends ConsumerWidget {
           const Divider(height: 1),
           Expanded(
             child: editorState.planogram == null
-                ? const Center(child: CircularProgressIndicator())
+                ? const Center(child: CircularProgressIndicator(color: AppTheme.accent))
                 : isTable
                     ? ListView(
                         controller: scrollController,

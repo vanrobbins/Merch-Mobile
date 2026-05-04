@@ -8,6 +8,7 @@ import '../../core/providers/store_provider.dart';
 import '../../core/router/app_router.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/design_tokens.dart';
+import '../../core/widgets/mm_bottom_sheet.dart';
 import '../../core/widgets/mm_button.dart';
 import '../../core/widgets/mm_dialog.dart';
 import '../../core/widgets/mm_eyebrow.dart';
@@ -56,29 +57,10 @@ class DashboardScreen extends ConsumerWidget {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.logout),
-            tooltip: 'Log out',
-            onPressed: () async {
-              final confirmed = await MmDialog.show<bool>(
-                context,
-                title: 'Log Out',
-                content: const Text('Are you sure you want to log out?'),
-                actions: [
-                  MmButton.text(
-                    label: 'Cancel',
-                    onPressed: () => Navigator.pop(context, false),
-                  ),
-                  MmButton.destructive(
-                    label: 'Log Out',
-                    onPressed: () => Navigator.pop(context, true),
-                  ),
-                ],
-              );
-              if (confirmed == true) {
-                await ref.read(activeStoreIdProvider.notifier).clearStore();
-                await FirebaseAuth.instance.signOut();
-              }
-            },
+            icon: const Icon(Icons.account_circle_outlined),
+            tooltip: 'Profile',
+            onPressed: () =>
+                _showProfileSheet(context, ref, membership, role, activeStore),
           ),
         ],
       ),
@@ -86,62 +68,33 @@ class DashboardScreen extends ConsumerWidget {
         data: (stats) => ListView(
           padding: const EdgeInsets.all(DesignTokens.spaceMd),
           children: [
-            // Role / welcome banner — subtle gradient for depth
-            Container(
-              padding: const EdgeInsets.all(DesignTokens.spaceMd),
-              margin: const EdgeInsets.only(bottom: DesignTokens.spaceMd),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    AppTheme.primary,
-                    AppTheme.primary.withValues(alpha: 0.85),
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(AppTheme.borderRadius),
-                boxShadow: const [AppTheme.cardShadow],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    membership?.displayName ?? 'Welcome',
-                    style: const TextStyle(
-                      color: Color(0xFFF2EFE8),
-                      fontWeight: FontWeight.w700,
-                      fontSize: DesignTokens.typeLg,
-                    ),
-                  ),
-                  const SizedBox(height: DesignTokens.spaceXs),
-                  Text(
-                    role.toUpperCase(),
-                    style: TextStyle(
-                      color: AppTheme.canvasBg.withValues(alpha: 0.70),
-                      fontSize: DesignTokens.typeXs,
-                      fontWeight: DesignTokens.weightBold,
-                      letterSpacing: DesignTokens.letterSpacingEyebrow,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
             if (role == 'coordinator') ...[
-              _StoreSetupCard(ref: ref),
-              const SizedBox(height: DesignTokens.spaceMd),
+              Consumer(
+                builder: (context, ref, _) {
+                  final store =
+                      ref.watch(zoneMapNotifierProvider).storeData;
+                  final hasDims =
+                      store?.widthFt != null && store?.depthFt != null;
+                  final hasEntrance = store?.entranceJson != null &&
+                      store!.entranceJson!.isNotEmpty;
+                  if (!hasDims || !hasEntrance) {
+                    return Column(
+                      children: [
+                        _StoreSetupCard(ref: ref),
+                        const SizedBox(height: DesignTokens.spaceMd),
+                      ],
+                    );
+                  }
+                  return const SizedBox.shrink();
+                },
+              ),
               _StatsGrid(items: [
                 _StatItem(
                   'Zones',
                   stats.zoneCount,
                   Icons.map_outlined,
                   () => context.goNamed(AppRoutes.zoneMap),
-                ),
-                _StatItem(
-                  'Fixtures',
-                  stats.fixtureCount,
-                  Icons.chair_outlined,
-                  () => context.goNamed(AppRoutes.floorBuilder),
+                  subtitle: '${stats.fixtureCount} fixtures',
                 ),
                 _StatItem(
                   'Products',
@@ -235,6 +188,73 @@ class DashboardScreen extends ConsumerWidget {
       ),
     );
   }
+}
+
+void _showProfileSheet(
+  BuildContext context,
+  WidgetRef ref,
+  dynamic membership,
+  String role,
+  dynamic activeStore,
+) {
+  showMmBottomSheet<void>(
+    context: context,
+    title: 'Profile',
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        MmEyebrow(role.toUpperCase()),
+        const SizedBox(height: DesignTokens.spaceXs),
+        Text(
+          membership?.displayName ?? 'User',
+          style: const TextStyle(
+            fontSize: DesignTokens.typeLg,
+            fontWeight: DesignTokens.weightBold,
+          ),
+        ),
+        if (activeStore != null) ...[
+          const SizedBox(height: DesignTokens.spaceXs),
+          Text(
+            activeStore.name as String,
+            style: const TextStyle(
+              fontSize: DesignTokens.typeSm,
+              color: AppTheme.textSecondary,
+            ),
+          ),
+        ],
+        const SizedBox(height: DesignTokens.spaceLg),
+        SizedBox(
+          width: double.infinity,
+          child: MmButton.destructive(
+            label: 'LOG OUT',
+            onPressed: () async {
+              Navigator.pop(context);
+              final confirmed = await MmDialog.show<bool>(
+                context,
+                title: 'LOG OUT',
+                content: const Text('Are you sure you want to log out?'),
+                actions: [
+                  MmButton.text(
+                    label: 'CANCEL',
+                    onPressed: () => Navigator.pop(context, false),
+                  ),
+                  MmButton.destructive(
+                    label: 'LOG OUT',
+                    onPressed: () => Navigator.pop(context, true),
+                  ),
+                ],
+              );
+              if (confirmed == true) {
+                await ref.read(activeStoreIdProvider.notifier).clearStore();
+                await FirebaseAuth.instance.signOut();
+              }
+            },
+          ),
+        ),
+      ],
+    ),
+  );
 }
 
 class _StoreSetupCard extends StatelessWidget {
@@ -467,12 +487,14 @@ class _StatItem {
     this.icon,
     this.onTap, {
     this.badge = false,
+    this.subtitle,
   });
   final String label;
   final int value;
   final IconData icon;
   final VoidCallback? onTap;
   final bool badge;
+  final String? subtitle;
 }
 
 class _StatCard extends StatelessWidget {
@@ -516,11 +538,22 @@ class _StatCard extends StatelessWidget {
                   const Spacer(),
                   if (highlighted)
                     Container(
-                      width: 8,
-                      height: 8,
-                      decoration: const BoxDecoration(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: DesignTokens.spaceXs + 2,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
                         color: AppTheme.accent,
-                        shape: BoxShape.circle,
+                        borderRadius:
+                            BorderRadius.circular(DesignTokens.radiusPill),
+                      ),
+                      child: Text(
+                        '${item.value}',
+                        style: const TextStyle(
+                          color: AppTheme.canvasBg,
+                          fontSize: DesignTokens.typeXs,
+                          fontWeight: DesignTokens.weightBold,
+                        ),
                       ),
                     ),
                 ],
@@ -530,7 +563,7 @@ class _StatCard extends StatelessWidget {
                 '${item.value}',
                 style: const TextStyle(
                   fontSize: 28,
-                  fontWeight: FontWeight.w700,
+                  fontWeight: DesignTokens.weightBold,
                 ),
               ),
               Text(
@@ -540,6 +573,14 @@ class _StatCard extends StatelessWidget {
                   color: AppTheme.textSecondary,
                 ),
               ),
+              if (item.subtitle != null)
+                Text(
+                  item.subtitle!,
+                  style: const TextStyle(
+                    fontSize: DesignTokens.typeXs,
+                    color: AppTheme.textHint,
+                  ),
+                ),
             ],
           ),
         ),

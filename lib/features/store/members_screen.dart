@@ -88,7 +88,7 @@ class MembersScreen extends ConsumerWidget {
                               child: Text(
                                 '${pendingList.length}',
                                 style: const TextStyle(
-                                  color: Color(0xFFF2EFE8),
+                                  color: AppTheme.canvasBg,
                                   fontSize: 11,
                                   fontWeight: DesignTokens.weightBold,
                                 ),
@@ -131,14 +131,10 @@ class MembersScreen extends ConsumerWidget {
                   child: CircularProgressIndicator(color: AppTheme.accent),
                 ),
               ),
-              error: (_, __) => const Center(
-                child: Padding(
-                  padding: EdgeInsets.all(DesignTokens.spaceLg),
-                  child: Text(
-                    'Something went wrong',
-                    style: TextStyle(color: AppTheme.textSecondary),
-                  ),
-                ),
+              error: (_, __) => const MmEmptyState(
+                icon: Icons.error_outline,
+                headline: 'Something went wrong',
+                body: 'Check your connection and try again.',
               ),
             ),
           ],
@@ -181,14 +177,10 @@ class MembersScreen extends ConsumerWidget {
                 child: CircularProgressIndicator(color: AppTheme.accent),
               ),
             ),
-            error: (e, _) => const Center(
-              child: Padding(
-                padding: EdgeInsets.all(DesignTokens.spaceLg),
-                child: Text(
-                  'Something went wrong',
-                  style: TextStyle(color: AppTheme.textSecondary),
-                ),
-              ),
+            error: (e, _) => const MmEmptyState(
+              icon: Icons.error_outline,
+              headline: 'Something went wrong',
+              body: 'Check your connection and try again.',
             ),
           ),
         ],
@@ -328,8 +320,10 @@ class _PendingMemberTile extends ConsumerWidget {
               .map((r) => RadioListTile<String>(
                     title: Text(r.toUpperCase()),
                     value: r,
+                    // ignore: deprecated_member_use
                     groupValue: selectedRole,
                     activeColor: AppTheme.accent,
+                    // ignore: deprecated_member_use
                     onChanged: (v) {
                       if (v != null) setState(() => selectedRole = v);
                     },
@@ -405,8 +399,10 @@ class _ActiveMemberTile extends ConsumerWidget {
               .map((r) => RadioListTile<String>(
                     title: Text(r.toUpperCase()),
                     value: r,
+                    // ignore: deprecated_member_use
                     groupValue: selectedRole,
                     activeColor: AppTheme.accent,
+                    // ignore: deprecated_member_use
                     onChanged: (v) {
                       if (v != null) setState(() => selectedRole = v);
                     },

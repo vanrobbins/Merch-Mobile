@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:riverpod/riverpod.dart' show Ref;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -81,33 +80,8 @@ Stream<List<Store>> myStores(Ref ref) {
   if (user == null) return Stream.value([]);
 
   return FirestoreRefs.userStores(user.uid).snapshots().asyncMap((snap) async {
-    var storeIds = List<String>.from(
+    final storeIds = List<String>.from(
         snap.data()?['activeStoreIds'] as List? ?? []);
-
-    if (storeIds.isEmpty) {
-      // One-time migration: scan all stores and check membership by document ID.
-      // This is reliable regardless of whether the uid field exists in old docs.
-      final allStores = await FirestoreRefs.stores().limit(100).get();
-      final checks = allStores.docs.map((storeDoc) async {
-        final memberDoc = await FirestoreRefs.memberships(storeDoc.id)
-            .doc(user.uid)
-            .get();
-        if (memberDoc.exists && memberDoc.data()?['status'] == 'active') {
-          return storeDoc.id;
-        }
-        return null;
-      });
-      final found = await Future.wait(checks);
-      storeIds = found.whereType<String>().toList();
-
-      if (storeIds.isNotEmpty) {
-        // Populate userStores so future loads skip this scan.
-        Future.microtask(() => FirestoreRefs.userStores(user.uid).set(
-              {'activeStoreIds': storeIds},
-              SetOptions(merge: true),
-            ));
-      }
-    }
 
     final stores = <Store>[];
     for (final storeId in storeIds) {

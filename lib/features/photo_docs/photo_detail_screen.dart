@@ -30,7 +30,7 @@ class _PhotoDetailScreenState extends ConsumerState<PhotoDetailScreen> {
     return photoAsync.when(
       loading: () => Scaffold(
         appBar: AppBar(title: const Text('PHOTO DETAIL')),
-        body: const Center(child: CircularProgressIndicator()),
+        body: const Center(child: CircularProgressIndicator(color: AppTheme.accent)),
       ),
       error: (err, _) => Scaffold(
         appBar: AppBar(title: const Text('PHOTO DETAIL')),
@@ -180,7 +180,7 @@ class _PhotoDetailScreenState extends ConsumerState<PhotoDetailScreen> {
         imageUrl: photo.remoteUrl!,
         fit: BoxFit.contain,
         placeholder: (context, url) =>
-            const Center(child: CircularProgressIndicator()),
+            const Center(child: CircularProgressIndicator(color: AppTheme.accent)),
         errorWidget: (context, url, error) => const _ErrorImage(),
       );
     }

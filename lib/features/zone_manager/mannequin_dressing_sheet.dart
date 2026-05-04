@@ -409,6 +409,7 @@ class _MannequinDressingSheetState
       label: 'Notes',
       controller: _outfitNotesCtrl,
       maxLines: 3,
+      maxLength: 500,
     );
   }
 

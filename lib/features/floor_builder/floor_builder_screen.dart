@@ -865,7 +865,7 @@ class _FloorBuilderScreenState extends ConsumerState<FloorBuilderScreen> {
         ],
       ),
       body: state.isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator(color: AppTheme.accent))
           : DragTarget<String>(
               onMove: (details) {
                 if (details.data == 'wall') return;

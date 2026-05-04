@@ -53,7 +53,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final activeState = _isSignUp ? signUpState : loginState;
 
     final error = activeState.hasError
-        ? activeState.error.toString()
+        ? 'Invalid email or password. Please try again.'
         : _confirmError;
     final isLoading = activeState.isLoading;
 

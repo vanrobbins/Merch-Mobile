@@ -84,7 +84,7 @@ class _PhotoListScreenState extends ConsumerState<PhotoListScreen>
           Expanded(
             child: photoAsync.when(
               loading: () =>
-                  const Center(child: CircularProgressIndicator()),
+                  const Center(child: CircularProgressIndicator(color: AppTheme.accent)),
               error: (err, _) => Center(
                 child: Text(
                   'Error: $err',

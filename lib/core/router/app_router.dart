@@ -17,6 +17,7 @@ import '../../features/auto_build/auto_build_screen.dart';
 import '../../features/planogram/planogram_list_screen.dart';
 import '../../features/planogram/planogram_detail_screen.dart';
 import '../../features/planogram/planogram_editor_screen.dart';
+import '../../features/planogram/planogram_proposal_screen.dart';
 import '../../features/planogram/proposal_review_screen.dart';
 import '../../features/dashboard/dashboard_screen.dart';
 import '../../features/product_catalog/catalog_screen.dart';
@@ -77,6 +78,7 @@ class AppRoutes {
   static const proposalReview = 'proposalReview';
   static const outfitProposalReview = 'outfitProposalReview';
   static const planogramEdit = 'planogramEdit';
+  static const planogramProposal = 'planogramProposal';
   static const productForm = 'productForm';
   static const colorPalette = 'colorPalette';
   static const productTemplate = 'productTemplate';
@@ -105,6 +107,7 @@ class AppPaths {
   static const proposalReview = '/home/planograms/:planogramId/proposals';
   static const outfitProposalReview = '/home/zones/outfit-proposals';
   static const planogramEdit = '/home/planograms/:planogramId/edit';
+  static const planogramProposal = '/home/planograms/:planogramId/propose';
   static const productForm = '/home/catalog/product/new';
   static const colorPalette = '/home/catalog/colors';
   static const productTemplate = '/home/catalog/templates';
@@ -144,8 +147,11 @@ GoRouter appRouter(Ref ref) {
         final storeId = ref.read(activeStoreIdProvider).value;
         if (storeId == null || storeId.isEmpty) return AppPaths.storeGate;
 
-        // If membership is known and not active, hold on pending screen.
+        // If membership is still loading, block navigation until it resolves.
+        // Without this guard, pending/rejected users can briefly access home
+        // routes during the AsyncLoading window. [I3]
         final membershipAsync = ref.read(currentMembershipProvider);
+        if (membershipAsync is AsyncLoading) return AppPaths.splash;
         if (membershipAsync is AsyncData<StoreMembership?>) {
           final membership = membershipAsync.value;
           if (membership != null && membership.status != 'active') {
@@ -253,6 +259,13 @@ GoRouter appRouter(Ref ref) {
                     name: AppRoutes.planogramEdit,
                     path: 'edit',
                     builder: (context, state) => PlanogramEditorScreen(
+                      planogramId: state.pathParameters['planogramId']!,
+                    ),
+                  ),
+                  GoRoute(
+                    name: AppRoutes.planogramProposal,
+                    path: 'propose',
+                    builder: (context, state) => PlanogramProposalScreen(
                       planogramId: state.pathParameters['planogramId']!,
                     ),
                   ),

@@ -51,6 +51,11 @@ class StoreGateScreen extends ConsumerWidget {
               const SizedBox(height: DesignTokens.spaceLg),
               const Divider(),
               const SizedBox(height: DesignTokens.spaceMd),
+              MmButton(
+                label: 'CREATE A NEW STORE',
+                onPressed: () => context.goNamed(AppRoutes.createStore),
+              ),
+              const SizedBox(height: DesignTokens.spaceSm),
               MmButton.outlined(
                 label: 'JOIN ANOTHER STORE',
                 onPressed: () => context.goNamed(AppRoutes.joinStore),

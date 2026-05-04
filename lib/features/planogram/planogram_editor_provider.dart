@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -25,7 +26,6 @@ class PlanogramEditorState {
   final List<PgRow> rows;
   final bool canUndo;
   final bool canRedo;
-  final bool hasUnsavedChanges;
 
   const PlanogramEditorState({
     this.planogram,
@@ -33,7 +33,6 @@ class PlanogramEditorState {
     this.rows = const [],
     this.canUndo = false,
     this.canRedo = false,
-    this.hasUnsavedChanges = false,
   });
 
   PlanogramEditorState copyWith({
@@ -42,7 +41,6 @@ class PlanogramEditorState {
     List<PgRow>? rows,
     bool? canUndo,
     bool? canRedo,
-    bool? hasUnsavedChanges,
   }) =>
       PlanogramEditorState(
         planogram: planogram ?? this.planogram,
@@ -50,7 +48,6 @@ class PlanogramEditorState {
         rows: rows ?? this.rows,
         canUndo: canUndo ?? this.canUndo,
         canRedo: canRedo ?? this.canRedo,
-        hasUnsavedChanges: hasUnsavedChanges ?? this.hasUnsavedChanges,
       );
 }
 
@@ -81,18 +78,14 @@ class PlanogramEditorNotifier extends _$PlanogramEditorNotifier {
     // fireImmediately is intentionally omitted: it fires synchronously during
     // build() when the provider already has a cached value, which causes a
     // StateError because `state` is not yet initialised at that point.
+    //
+    // Slots/rows are managed locally and auto-saved to Firestore on every
+    // mutation — we never reload them from the listener to avoid overwriting
+    // in-flight edits.
     ref.listen(planogramDetailProvider(planogramId), (_, next) {
       final pg = next.value;
       if (pg == null) return;
-      if (state.hasUnsavedChanges) {
-        state = state.copyWith(planogram: pg);
-      } else {
-        final slots = _initialSlots(pg);
-        final rows = pg.rowsJson.isEmpty
-            ? PgRow.defaults(pg.rows, pg.planogramType)
-            : PgRow.decodeList(pg.rowsJson);
-        state = state.copyWith(planogram: pg, slots: slots, rows: rows);
-      }
+      state = state.copyWith(planogram: pg);
     });
 
     // Initialise synchronously from whatever value is already cached.
@@ -141,7 +134,19 @@ class PlanogramEditorNotifier extends _$PlanogramEditorNotifier {
     return autoSpanQuarters(tallest.category, rowHeightIn);
   }
 
-  /// Wrap a mutation: capture before → mutate → record entry.
+  /// Persist current slots/rows to Firestore (fire-and-forget).
+  Future<void> _persistSlots() async {
+    final pg = state.planogram;
+    if (pg == null) return;
+    final storeId = ref.read(activeStoreIdProvider).value ?? '';
+    await FirestoreRefs.planograms(storeId).doc(pg.id).update({
+      'slotsJson': PgSlot.encodeList(state.slots),
+      'rowsJson': PgRow.encodeList(state.rows),
+      'updatedAt': Timestamp.now(),
+    });
+  }
+
+  /// Wrap a mutation: capture before → mutate → record entry → auto-save.
   void _record(String label, void Function() mutate) {
     final beforeSlots = _currentSlotsJson();
     final beforeRows = _currentRowsJson();
@@ -158,8 +163,8 @@ class PlanogramEditorNotifier extends _$PlanogramEditorNotifier {
     if (_undoStack.length >= 20) _undoStack.removeAt(0);
     _undoStack.add(entry);
     _redoStack.clear();
-    state = state.copyWith(
-        canUndo: true, canRedo: false, hasUnsavedChanges: true);
+    state = state.copyWith(canUndo: true, canRedo: false);
+    unawaited(_persistSlots());
   }
 
   void undo() {
@@ -171,8 +176,8 @@ class PlanogramEditorNotifier extends _$PlanogramEditorNotifier {
       rows: PgRow.decodeList(entry.beforeRows),
       canUndo: _undoStack.isNotEmpty,
       canRedo: true,
-      hasUnsavedChanges: true,
     );
+    unawaited(_persistSlots());
   }
 
   void redo() {
@@ -184,8 +189,8 @@ class PlanogramEditorNotifier extends _$PlanogramEditorNotifier {
       rows: PgRow.decodeList(entry.afterRows),
       canUndo: true,
       canRedo: _redoStack.isNotEmpty,
-      hasUnsavedChanges: true,
     );
+    unawaited(_persistSlots());
   }
 
   // -------------------------------------------------------------------------
@@ -393,17 +398,7 @@ class PlanogramEditorNotifier extends _$PlanogramEditorNotifier {
   // Persist
   // -------------------------------------------------------------------------
 
-  Future<void> save() async {
-    final pg = state.planogram;
-    if (pg == null) return;
-    final storeId = ref.read(activeStoreIdProvider).value ?? '';
-    await FirestoreRefs.planograms(storeId).doc(pg.id).update({
-      'slotsJson': PgSlot.encodeList(state.slots),
-      'rowsJson': PgRow.encodeList(state.rows),
-      'updatedAt': Timestamp.now(),
-    });
-    state = state.copyWith(hasUnsavedChanges: false);
-  }
+  Future<void> save() => _persistSlots();
 
   Future<void> updateTitle(String title) async {
     final pg = state.planogram;

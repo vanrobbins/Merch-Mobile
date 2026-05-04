@@ -22,7 +22,7 @@ class ColorPaletteScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('COLOR PALETTE')),
       body: colorsAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const Center(child: CircularProgressIndicator(color: AppTheme.accent)),
         error: (e, _) => Center(child: Text('Error: $e')),
         data: (colors) => colors.isEmpty
             ? Center(

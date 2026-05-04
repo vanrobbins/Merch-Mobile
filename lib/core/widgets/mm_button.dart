@@ -11,8 +11,7 @@ class MmButton extends StatelessWidget {
     required this.onPressed,
     this.icon,
     this.isLoading = false,
-    _MmButtonVariant variant = _MmButtonVariant.filled,
-  }) : _variant = variant;
+  }) : _variant = _MmButtonVariant.filled;
 
   const MmButton.outlined({
     super.key,

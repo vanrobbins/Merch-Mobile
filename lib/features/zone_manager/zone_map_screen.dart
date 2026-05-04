@@ -197,7 +197,7 @@ class _ZoneMapScreenState extends ConsumerState<ZoneMapScreen> {
               ],
       ),
       body: state.isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator(color: AppTheme.accent))
           : _ZoneCanvas(
               onZoneTap: (_entranceEditMode || _storeShapeEditMode) ? (_) {} : _onZoneTap,
               entranceEditMode: _entranceEditMode,

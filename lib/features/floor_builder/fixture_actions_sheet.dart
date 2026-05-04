@@ -50,6 +50,7 @@ class _FixtureActionsSheetState extends State<FixtureActionsSheet> {
           MmTextField(
             label: 'Label',
             controller: _ctrl,
+            maxLength: 60,
           ),
           if (widget.fixtureType == 'partition') ...[
             const SizedBox(height: DesignTokens.spaceSm),

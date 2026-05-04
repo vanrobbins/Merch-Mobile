@@ -25,14 +25,14 @@ class OutfitProposalReviewScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('OUTFIT PROPOSALS')),
       body: storeId.isEmpty
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator(color: AppTheme.accent))
           : StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
               stream: FirestoreRefs.mannequinProposals(storeId)
                   .where('status', isEqualTo: 'pending')
                   .snapshots(),
               builder: (context, snap) {
                 if (snap.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
+                  return const Center(child: CircularProgressIndicator(color: AppTheme.accent));
                 }
                 if (snap.hasError) {
                   return Center(

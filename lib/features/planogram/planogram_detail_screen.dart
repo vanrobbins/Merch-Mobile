@@ -7,13 +7,13 @@ import '../../core/theme/app_theme.dart';
 import '../../core/theme/design_tokens.dart';
 import '../../core/providers/store_provider.dart';
 import '../../core/widgets/mm_button.dart';
+import '../../core/widgets/mm_dialog.dart';
 import '../../core/widgets/mm_text_field.dart';
 import '../../core/widgets/role_guard.dart';
 import 'bay_view.dart';
 import 'planogram_editor_provider.dart';
 import 'planogram_look.dart';
 import 'planogram_slot.dart';
-import 'planogram_proposal_screen.dart';
 import 'product_slot_picker.dart';
 import 'slot_cell_widget.dart';
 
@@ -114,29 +114,28 @@ class _PlanogramDetailScreenState
   void _editTitle(String current) async {
     final ctrl = TextEditingController(text: current);
     String? result;
-    await showDialog<void>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('RENAME'),
-        content: MmTextField(
-          label: 'Title',
-          controller: ctrl,
-          autofocus: true,
-        ),
-        actions: [
-          MmButton.outlined(
-            label: 'CANCEL',
-            onPressed: () => Navigator.pop(ctx),
-          ),
-          MmButton(
-            label: 'RENAME',
-            onPressed: () {
-              result = ctrl.text.trim();
-              Navigator.pop(ctx);
-            },
-          ),
-        ],
+    await MmDialog.show<void>(
+      context,
+      title: 'RENAME',
+      content: MmTextField(
+        label: 'Title',
+        controller: ctrl,
+        autofocus: true,
+        maxLength: 80,
       ),
+      actions: [
+        MmButton.outlined(
+          label: 'CANCEL',
+          onPressed: () => Navigator.pop(context),
+        ),
+        MmButton(
+          label: 'RENAME',
+          onPressed: () {
+            result = ctrl.text.trim();
+            Navigator.pop(context);
+          },
+        ),
+      ],
     );
     if (result != null && result!.isNotEmpty && mounted) {
       await ref
@@ -156,7 +155,7 @@ class _PlanogramDetailScreenState
     if (pg == null) {
       return Scaffold(
         appBar: AppBar(title: const Text('PLANOGRAM')),
-        body: const Center(child: CircularProgressIndicator()),
+        body: const Center(child: CircularProgressIndicator(color: AppTheme.accent)),
       );
     }
 
@@ -183,9 +182,19 @@ class _PlanogramDetailScreenState
                 ),
                 title: GestureDetector(
                   onTap: () => _editTitle(pg.title),
-                  child: Text(
-                    pg.title.toUpperCase(),
-                    style: const TextStyle(color: AppTheme.canvasBg),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Flexible(
+                        child: Text(
+                          pg.title.toUpperCase(),
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(color: AppTheme.canvasBg),
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      const Icon(Icons.edit_outlined, size: 14, color: AppTheme.textHint),
+                    ],
                   ),
                 ),
                 actions: [
@@ -214,11 +223,6 @@ class _PlanogramDetailScreenState
                         onPressed: canRedo ? notifier.redo : null,
                       );
                     },
-                  ),
-                  TextButton(
-                    onPressed: () async => notifier.save(),
-                    child: const Text('SAVE',
-                        style: TextStyle(color: AppTheme.accent)),
                   ),
                 ],
               )
@@ -282,13 +286,9 @@ class _PlanogramDetailScreenState
         ),
         floatingActionButton: (role == 'staff' && !_isEditing)
             ? FloatingActionButton.extended(
-                onPressed: () => Navigator.push<void>(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => PlanogramProposalScreen(
-                      planogramId: widget.planogramId,
-                    ),
-                  ),
+                onPressed: () => context.goNamed(
+                  AppRoutes.planogramProposal,
+                  pathParameters: {'planogramId': widget.planogramId},
                 ),
                 label: const Text('PROPOSE CHANGE'),
                 icon: const Icon(Icons.edit_note),

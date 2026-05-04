@@ -99,7 +99,8 @@ class PhotoNotifier extends _$PhotoNotifier {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
 
-    final storageRef = FirebaseStorage.instance.ref('photos/$uid/$id.jpg');
+    final storageRef =
+        FirebaseStorage.instance.ref('photos/$_storeId/$uid/$id.jpg');
     final uploadTask = storageRef.putFile(File(photo.localPath!));
 
     uploadTask.snapshotEvents.listen((snap) {

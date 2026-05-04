@@ -94,6 +94,7 @@ class _CreateStoreScreenState extends ConsumerState<CreateStoreScreen> {
             MmTextField(
               label: 'Store name',
               controller: _nameCtrl,
+              maxLength: 80,
             ),
             const SizedBox(height: DesignTokens.spaceLg),
             const Text(

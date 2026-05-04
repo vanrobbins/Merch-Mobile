@@ -31,11 +31,11 @@ class PlanogramListScreen extends ConsumerWidget {
       body: planogramsAsync.when(
         data: (planograms) => CustomScrollView(
           slivers: [
-            SliverAppBar(
+            const SliverAppBar(
               expandedHeight: 88,
               pinned: true,
               backgroundColor: AppTheme.primary,
-              flexibleSpace: const FlexibleSpaceBar(
+              flexibleSpace: FlexibleSpaceBar(
                 titlePadding: EdgeInsets.fromLTRB(16, 0, 16, 12),
                 title: Text(
                   'PLANOGRAMS',
@@ -106,7 +106,7 @@ class PlanogramListScreen extends ConsumerWidget {
               ),
             ),
             SliverFillRemaining(
-              child: Center(child: CircularProgressIndicator()),
+              child: Center(child: CircularProgressIndicator(color: AppTheme.accent)),
             ),
           ],
         ),
@@ -182,6 +182,7 @@ class PlanogramListScreen extends ConsumerWidget {
                   label: 'Title',
                   controller: titleCtrl,
                   autofocus: true,
+                  maxLength: 80,
                 ),
                 const SizedBox(height: 8),
                 MmTextField(

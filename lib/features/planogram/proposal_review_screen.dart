@@ -7,6 +7,7 @@ import '../../core/providers/store_provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/design_tokens.dart';
 import '../../core/widgets/mm_button.dart';
+import '../../core/widgets/mm_card.dart';
 import '../../core/widgets/mm_empty_state.dart';
 import 'planogram_provider.dart';
 import 'planogram_slot.dart';
@@ -46,7 +47,7 @@ class ProposalReviewScreen extends ConsumerWidget {
                 itemBuilder: (_, i) =>
                     _ProposalCard(proposal: proposals[i]),
               ),
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const Center(child: CircularProgressIndicator(color: AppTheme.accent)),
         error: (e, _) => Center(
           child: Padding(
             padding: const EdgeInsets.all(DesignTokens.spaceLg),
@@ -117,65 +118,62 @@ class _ProposalCard extends ConsumerWidget {
     // Never show raw UIDs in the UI — use a friendly fallback.
     const proposerLabel = 'a team member';
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(DesignTokens.spaceMd),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    'Proposed by $proposerLabel',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: DesignTokens.typeSm,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                const SizedBox(width: DesignTokens.spaceSm),
-                _ProposalStatusChip(status: proposal.status),
-              ],
-            ),
-            if (proposal.notes.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(top: DesignTokens.spaceXs),
+    return MmCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Expanded(
                 child: Text(
-                  proposal.notes,
-                  style:
-                      const TextStyle(color: AppTheme.textSecondary),
+                  'Proposed by $proposerLabel',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: DesignTokens.typeSm,
+                  ),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
-            const SizedBox(height: DesignTokens.spaceSm),
-            Text(
-              '$assignedCount/${slots.length} slots assigned',
-              style: const TextStyle(
-                fontSize: DesignTokens.typeXs,
-                color: AppTheme.textSecondary,
+              const SizedBox(width: DesignTokens.spaceSm),
+              _ProposalStatusChip(status: proposal.status),
+            ],
+          ),
+          if (proposal.notes.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: DesignTokens.spaceXs),
+              child: Text(
+                proposal.notes,
+                style:
+                    const TextStyle(color: AppTheme.textSecondary),
               ),
             ),
-            const SizedBox(height: DesignTokens.spaceMd),
-            Row(
-              children: [
-                Expanded(
-                  child: MmButton(
-                    label: 'APPROVE',
-                    onPressed: () => _review(ref, 'approved'),
-                  ),
-                ),
-                const SizedBox(width: DesignTokens.spaceSm),
-                Expanded(
-                  child: MmButton.destructive(
-                    label: 'REJECT',
-                    onPressed: () => _review(ref, 'rejected'),
-                  ),
-                ),
-              ],
+          const SizedBox(height: DesignTokens.spaceSm),
+          Text(
+            '$assignedCount/${slots.length} slots assigned',
+            style: const TextStyle(
+              fontSize: DesignTokens.typeXs,
+              color: AppTheme.textSecondary,
             ),
-          ],
-        ),
+          ),
+          const SizedBox(height: DesignTokens.spaceMd),
+          Row(
+            children: [
+              Expanded(
+                child: MmButton(
+                  label: 'APPROVE',
+                  onPressed: () => _review(ref, 'approved'),
+                ),
+              ),
+              const SizedBox(width: DesignTokens.spaceSm),
+              Expanded(
+                child: MmButton.destructive(
+                  label: 'REJECT',
+                  onPressed: () => _review(ref, 'rejected'),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

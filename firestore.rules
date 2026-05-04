@@ -23,7 +23,10 @@ service cloud.firestore {
     }
 
     match /stores/{storeId} {
-      allow read: if request.auth != null;
+      // Only active members may read store metadata. Invite code validation is
+      // handled server-side by the joinByInviteCode Cloud Function, so the
+      // inviteCode field is never exposed to clients who are not already members.
+      allow read: if isMember(storeId);
       allow create: if request.auth != null
           && request.resource.data.ownerUid == request.auth.uid;
       allow update: if request.auth != null && isCoordinator(storeId);
@@ -34,9 +37,16 @@ service cloud.firestore {
             && (request.auth.uid == memberId
                 || resource.data.get('uid', null) == request.auth.uid
                 || isMember(storeId));
-        allow create: if request.auth != null && request.auth.uid == memberId;
+        // [C3] Enforce that self-created memberships start as staff/pending only.
+        // Prevents a user from writing role:'coordinator' or status:'active'.
+        allow create: if request.auth != null
+            && request.auth.uid == memberId
+            && request.resource.data.role == 'staff'
+            && request.resource.data.status == 'pending';
         allow update: if request.auth != null
             && (isCoordinator(storeId)
+                // [C4] Self-update is limited to the uid field only —
+                // role and status are intentionally excluded by hasOnly.
                 || (request.auth.uid == memberId
                     && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['uid'])));
         allow delete: if request.auth != null
@@ -64,7 +74,9 @@ service cloud.firestore {
 
         match /outfitSlots/{slotId} {
           allow read:  if isMember(storeId);
-          allow write: if isMember(storeId);
+          // [I6] Outfit slot writes must go through the proposal approval flow.
+          // Staff apply outfit changes via proposals; coordinators/managers approve.
+          allow write: if isCoordinatorOrManager(storeId);
         }
       }
 

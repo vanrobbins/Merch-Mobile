@@ -189,7 +189,7 @@ class ProductAssignmentSheet extends ConsumerWidget {
                             ),
                           ),
                           IconButton(
-                            icon: Icon(Icons.close,
+                            icon: const Icon(Icons.close,
                                 size: 16, color: AppTheme.errorColor),
                             onPressed: () => notifier.removeItemFromSlot(
                                 currentSlot.col, currentSlot.subRow, i),

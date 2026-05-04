@@ -10,6 +10,7 @@ import '../../core/services/seed_service.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/design_tokens.dart';
 import '../../core/widgets/mm_banner.dart';
+import '../../core/widgets/mm_chip.dart';
 import '../../core/widgets/mm_empty_state.dart';
 import '../../core/widgets/mm_search_bar.dart';
 import '../../core/widgets/role_guard.dart';
@@ -50,7 +51,7 @@ class CatalogScreen extends ConsumerWidget {
             query: query,
           );
         },
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const Center(child: CircularProgressIndicator(color: AppTheme.accent)),
         error: (e, _) => Center(child: Text('Error: $e')),
       ),
       floatingActionButton: RoleGuard(
@@ -184,7 +185,7 @@ class _CatalogBodyState extends ConsumerState<_CatalogBody> {
                   vertical: DesignTokens.spaceXs,
                 ),
                 children: [
-                  _CategoryChip(
+                  MmChip(
                     label: 'All',
                     selected: _selectedCategory == null,
                     onTap: () => setState(() => _selectedCategory = null),
@@ -194,7 +195,7 @@ class _CatalogBodyState extends ConsumerState<_CatalogBody> {
                     (cat) => Padding(
                       padding:
                           const EdgeInsets.only(right: DesignTokens.spaceXs),
-                      child: _CategoryChip(
+                      child: MmChip(
                         label: cat,
                         selected: _selectedCategory == cat,
                         onTap: () => setState(() => _selectedCategory = cat),
@@ -216,25 +217,25 @@ class _CatalogBodyState extends ConsumerState<_CatalogBody> {
                 vertical: DesignTokens.spaceXs,
               ),
               children: [
-                _CategoryChip(
+                MmChip(
                   label: 'All',
                   selected: _selectedGender == null,
                   onTap: () => setState(() => _selectedGender = null),
                 ),
                 const SizedBox(width: DesignTokens.spaceXs),
-                _CategoryChip(
+                MmChip(
                   label: 'Men',
                   selected: _selectedGender == 'male',
                   onTap: () => setState(() => _selectedGender = 'male'),
                 ),
                 const SizedBox(width: DesignTokens.spaceXs),
-                _CategoryChip(
+                MmChip(
                   label: 'Women',
                   selected: _selectedGender == 'female',
                   onTap: () => setState(() => _selectedGender = 'female'),
                 ),
                 const SizedBox(width: DesignTokens.spaceXs),
-                _CategoryChip(
+                MmChip(
                   label: 'Unisex',
                   selected: _selectedGender == 'unisex',
                   onTap: () => setState(() => _selectedGender = 'unisex'),
@@ -287,41 +288,3 @@ class _CatalogBodyState extends ConsumerState<_CatalogBody> {
   }
 }
 
-class _CategoryChip extends StatelessWidget {
-  const _CategoryChip({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: DesignTokens.durationFast,
-        padding: const EdgeInsets.symmetric(
-          horizontal: DesignTokens.spaceSm,
-          vertical: DesignTokens.spaceXs,
-        ),
-        decoration: BoxDecoration(
-          color: selected ? AppTheme.accent : AppTheme.surfaceVariant,
-          borderRadius: BorderRadius.circular(DesignTokens.radiusSm),
-        ),
-        child: Text(
-          label.toUpperCase(),
-          style: TextStyle(
-            fontSize: DesignTokens.typeXs,
-            fontWeight: DesignTokens.weightBold,
-            letterSpacing: DesignTokens.letterSpacingEyebrow,
-            color: selected ? AppTheme.canvasBg : AppTheme.textSecondary,
-          ),
-        ),
-      ),
-    );
-  }
-}

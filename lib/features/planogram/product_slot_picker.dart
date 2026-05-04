@@ -207,7 +207,7 @@ class _ProductSlotPickerState extends ConsumerState<ProductSlotPicker> {
                   );
                 },
                 loading: () =>
-                    const Center(child: CircularProgressIndicator()),
+                    const Center(child: CircularProgressIndicator(color: AppTheme.accent)),
                 error: (e, _) => Center(child: Text('Error: $e')),
               ),
             ),

@@ -74,7 +74,7 @@ void main() {
     });
 
     test('survives JSON round-trip', () {
-      final row = PgRow(index: 1, rowType: 'shelf', heightIn: 36.0);
+      const row = PgRow(index: 1, rowType: 'shelf', heightIn: 36.0);
       final restored = PgRow.fromJson(row.toJson());
       expect(restored.heightIn, 36.0);
     });

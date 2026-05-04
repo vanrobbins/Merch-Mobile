@@ -106,7 +106,7 @@ void main() {
 
   group('PgSlot new fields', () {
     test('new fields survive round-trip', () {
-      final slot = PgSlot(
+      const slot = PgSlot(
         id: 'slot_1_0',
         position: 1,
         col: 1,
@@ -160,7 +160,7 @@ void main() {
     });
 
     test('cleared() removes items and resets spanQuarters to 4', () {
-      final slot = PgSlot(
+      const slot = PgSlot(
         id: 's1',
         position: 1,
         col: 0,

@@ -14,6 +14,7 @@ class MmTextField extends StatelessWidget {
     this.autofocus = false,
     this.readOnly = false,
     this.maxLines = 1,
+    this.maxLength,
     this.keyboardType,
     this.inputFormatters,
     this.prefix,
@@ -29,6 +30,8 @@ class MmTextField extends StatelessWidget {
   final bool autofocus;
   final bool readOnly;
   final int maxLines;
+  /// Hard character limit — enforced at the input level, not just the counter.
+  final int? maxLength;
   final TextInputType? keyboardType;
   final List<TextInputFormatter>? inputFormatters;
   final Widget? prefix;
@@ -50,6 +53,10 @@ class MmTextField extends StatelessWidget {
       autofocus: autofocus,
       readOnly: readOnly,
       maxLines: maxLines,
+      maxLength: maxLength,
+      maxLengthEnforcement: maxLength != null
+          ? MaxLengthEnforcement.enforced
+          : MaxLengthEnforcement.none,
       keyboardType: keyboardType,
       inputFormatters: inputFormatters,
       validator: validator,
