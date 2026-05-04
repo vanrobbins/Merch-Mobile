@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../core/theme/app_theme.dart';
+import '../../core/widgets/mm_button.dart';
+import '../../core/widgets/mm_text_field.dart';
 
 class StoreDimensionsDialog extends StatefulWidget {
   const StoreDimensionsDialog({super.key, required this.onSave});
@@ -50,40 +51,32 @@ class _StoreDimensionsDialogState extends State<StoreDimensionsDialog> {
               'Enter the floor dimensions of your store to enable the ft grid and boundary.',
             ),
             const SizedBox(height: 16),
-            TextFormField(
+            MmTextField(
+              label: 'Width (ft)',
               controller: _widthCtrl,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              decoration: const InputDecoration(
-                labelText: 'Width (ft)',
-                border: OutlineInputBorder(),
-              ),
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
               validator: _validatePositive,
             ),
             const SizedBox(height: 12),
-            TextFormField(
+            MmTextField(
+              label: 'Depth (ft)',
               controller: _depthCtrl,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              decoration: const InputDecoration(
-                labelText: 'Depth (ft)',
-                border: OutlineInputBorder(),
-              ),
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
               validator: _validatePositive,
             ),
           ],
         ),
       ),
       actions: [
-        TextButton(
+        MmButton.text(
+          label: 'SKIP',
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('SKIP'),
         ),
-        ElevatedButton(
+        MmButton(
+          label: 'CONFIRM',
           onPressed: _onConfirm,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppTheme.accent,
-            foregroundColor: Colors.white,
-          ),
-          child: const Text('CONFIRM'),
         ),
       ],
     );

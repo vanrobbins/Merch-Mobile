@@ -8,6 +8,7 @@ import '../../core/services/firestore_refs.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/design_tokens.dart';
 import '../../core/widgets/mm_button.dart';
+import '../../core/widgets/mm_dialog.dart';
 import '../../core/widgets/mm_empty_state.dart';
 import '../../core/widgets/mm_eyebrow.dart';
 
@@ -287,14 +288,20 @@ class _PendingMemberTile extends ConsumerWidget {
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          MmButton(
-            label: 'APPROVE',
-            onPressed: () => _showApproveDialog(context, ref),
+          SizedBox(
+            width: 84,
+            child: MmButton(
+              label: 'APPROVE',
+              onPressed: () => _showApproveDialog(context, ref),
+            ),
           ),
           const SizedBox(width: DesignTokens.spaceSm),
-          MmButton.outlined(
-            label: 'DENY',
-            onPressed: () => _deny(ref),
+          SizedBox(
+            width: 72,
+            child: MmButton.outlined(
+              label: 'DENY',
+              onPressed: () => _deny(ref),
+            ),
           ),
         ],
       ),
@@ -308,43 +315,41 @@ class _PendingMemberTile extends ConsumerWidget {
   }
 
   void _showApproveDialog(BuildContext context, WidgetRef ref) {
-    // Manager can only assign 'staff'; coordinator can assign 'staff' or 'manager'
     final roles = myRole == 'coordinator' ? ['staff', 'manager'] : ['staff'];
     String selectedRole = 'staff';
 
-    showDialog<void>(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setState) => AlertDialog(
-          title: Text('Approve ${membership.displayName}'),
-          content: RadioGroup<String>(
-            groupValue: selectedRole,
-            onChanged: (v) { if (v != null) setState(() => selectedRole = v); },
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: roles
-                  .map((r) => RadioListTile<String>(
-                        title: Text(r.toUpperCase()),
-                        value: r,
-                      ))
-                  .toList(),
-            ),
-          ),
-          actions: [
-            MmButton.text(
-              label: 'CANCEL',
-              onPressed: () => Navigator.pop(ctx),
-            ),
-            MmButton(
-              label: 'CONFIRM',
-              onPressed: () {
-                Navigator.pop(ctx);
-                _approve(ref, selectedRole);
-              },
-            ),
-          ],
+    MmDialog.show<void>(
+      context,
+      title: 'Approve ${membership.displayName}',
+      content: StatefulBuilder(
+        builder: (ctx, setState) => Column(
+          mainAxisSize: MainAxisSize.min,
+          children: roles
+              .map((r) => RadioListTile<String>(
+                    title: Text(r.toUpperCase()),
+                    value: r,
+                    groupValue: selectedRole,
+                    activeColor: AppTheme.accent,
+                    onChanged: (v) {
+                      if (v != null) setState(() => selectedRole = v);
+                    },
+                  ))
+              .toList(),
         ),
       ),
+      actions: [
+        MmButton.text(
+          label: 'CANCEL',
+          onPressed: () => Navigator.pop(context),
+        ),
+        MmButton(
+          label: 'CONFIRM',
+          onPressed: () {
+            Navigator.pop(context);
+            _approve(ref, selectedRole);
+          },
+        ),
+      ],
     );
   }
 
@@ -389,41 +394,41 @@ class _ActiveMemberTile extends ConsumerWidget {
 
   void _showRoleDialog(BuildContext context, WidgetRef ref) {
     String selectedRole = membership.role;
-    showDialog<void>(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setState) => AlertDialog(
-          title: Text('Edit role for ${membership.displayName}'),
-          content: RadioGroup<String>(
-            groupValue: selectedRole,
-            onChanged: (v) { if (v != null) setState(() => selectedRole = v); },
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: ['staff', 'manager', 'coordinator']
-                  .map((r) => RadioListTile<String>(
-                        title: Text(r.toUpperCase()),
-                        value: r,
-                      ))
-                  .toList(),
-            ),
-          ),
-          actions: [
-            MmButton.text(
-              label: 'CANCEL',
-              onPressed: () => Navigator.pop(ctx),
-            ),
-            MmButton(
-              label: 'SAVE',
-              onPressed: () {
-                Navigator.pop(ctx);
-                FirestoreRefs.memberships(membership.storeId)
-                    .doc(membership.uid)
-                    .update({'role': selectedRole});
-              },
-            ),
-          ],
+
+    MmDialog.show<void>(
+      context,
+      title: 'Edit role for ${membership.displayName}',
+      content: StatefulBuilder(
+        builder: (ctx, setState) => Column(
+          mainAxisSize: MainAxisSize.min,
+          children: ['staff', 'manager', 'coordinator']
+              .map((r) => RadioListTile<String>(
+                    title: Text(r.toUpperCase()),
+                    value: r,
+                    groupValue: selectedRole,
+                    activeColor: AppTheme.accent,
+                    onChanged: (v) {
+                      if (v != null) setState(() => selectedRole = v);
+                    },
+                  ))
+              .toList(),
         ),
       ),
+      actions: [
+        MmButton.text(
+          label: 'CANCEL',
+          onPressed: () => Navigator.pop(context),
+        ),
+        MmButton(
+          label: 'SAVE',
+          onPressed: () {
+            Navigator.pop(context);
+            FirestoreRefs.memberships(membership.storeId)
+                .doc(membership.uid)
+                .update({'role': selectedRole});
+          },
+        ),
+      ],
     );
   }
 }

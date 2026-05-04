@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/app_theme.dart';
 import '../theme/design_tokens.dart';
 
 enum BannerVariant { offline, error, success }
@@ -67,20 +68,20 @@ class _MmBannerState extends State<MmBanner>
           ),
           child: Row(
             children: [
-              Icon(icon, color: Colors.white, size: DesignTokens.iconMd),
+              Icon(icon, color: AppTheme.canvasBg, size: DesignTokens.iconMd),
               const SizedBox(width: DesignTokens.spaceSm),
               Expanded(
                 child: Text(
                   widget.message,
                   style: const TextStyle(
-                    color: Colors.white,
+                    color: AppTheme.canvasBg,
                     fontSize: DesignTokens.typeMd,
                   ),
                 ),
               ),
               if (widget.onDismiss != null)
                 IconButton(
-                  icon: const Icon(Icons.close, color: Colors.white),
+                  icon: const Icon(Icons.close, color: AppTheme.canvasBg),
                   onPressed: _dismiss,
                   iconSize: DesignTokens.iconMd,
                 ),

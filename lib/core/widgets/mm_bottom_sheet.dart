@@ -18,7 +18,7 @@ class MmBottomSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: const BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.cardSurface,
         borderRadius: BorderRadius.only(
           topLeft: Radius.circular(DesignTokens.radiusLg),
           topRight: Radius.circular(DesignTokens.radiusLg),
@@ -35,7 +35,7 @@ class MmBottomSheet extends StatelessWidget {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.grey.shade300,
+                color: AppTheme.divider,
                 borderRadius:
                     BorderRadius.circular(AppTheme.borderRadius),
               ),

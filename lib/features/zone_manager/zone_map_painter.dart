@@ -2,6 +2,7 @@ import 'dart:math';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import '../../core/models/store_zone.dart';
+import '../../core/theme/app_theme.dart';
 import 'store_entrance.dart';
 import 'zone_shape.dart';
 
@@ -151,11 +152,11 @@ class ZoneMapPainter extends CustomPainter {
         .toList();
 
     final ringPaint = Paint()
-      ..color = const Color(0xFFBF5534)
+      ..color = AppTheme.accent
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2.0;
     final fillPaint = Paint()..color = Colors.white;
-    final activeFill = Paint()..color = const Color(0xFFBF5534);
+    final activeFill = Paint()..color = AppTheme.accent;
 
     for (var i = 0; i < pts.length; i++) {
       const r = 8.0;
@@ -188,7 +189,7 @@ class ZoneMapPainter extends CustomPainter {
         canvas,
         path,
         Paint()
-          ..color = const Color(0xFFBF5534)
+          ..color = AppTheme.accent
           ..style = PaintingStyle.stroke
           ..strokeWidth = 2.5
           ..strokeJoin = StrokeJoin.round,
@@ -269,7 +270,7 @@ class ZoneMapPainter extends CustomPainter {
     }
 
     final fillPaint = Paint()
-      ..color = const Color(0xFFBF5534)
+      ..color = AppTheme.accent
       ..style = PaintingStyle.fill;
     final strokePaint = Paint()
       ..color = Colors.white
@@ -288,14 +289,14 @@ class ZoneMapPainter extends CustomPainter {
     canvas.drawPath(
       path,
       Paint()
-        ..color = const Color(0xFFBF5534).withAlpha(40)
+        ..color = AppTheme.accent.withValues(alpha: 40/255)
         ..style = PaintingStyle.fill,
     );
     _drawDashedPath(
       canvas,
       path,
       Paint()
-        ..color = const Color(0xFFBF5534).withAlpha(180)
+        ..color = AppTheme.accent.withValues(alpha: 180/255)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 1.5,
     );
@@ -328,7 +329,7 @@ class ZoneMapPainter extends CustomPainter {
     canvas.drawRRect(
       bgRect,
       Paint()
-        ..color = const Color(0xFFBF5534)
+        ..color = AppTheme.accent
         ..style = PaintingStyle.stroke
         ..strokeWidth = 1.0,
     );
@@ -423,7 +424,7 @@ class ZoneMapPainter extends CustomPainter {
       pEnd1,
       pEnd2,
       Paint()
-        ..color = const Color(0xFFBF5534)
+        ..color = AppTheme.accent
         ..strokeWidth = 3.0
         ..strokeCap = StrokeCap.round,
     );
@@ -434,12 +435,12 @@ class ZoneMapPainter extends CustomPainter {
 
   void _drawHandle(Canvas canvas, Offset center, {required double radius}) {
     canvas.drawCircle(center, radius + 1.5, Paint()..color = Colors.white);
-    canvas.drawCircle(center, radius, Paint()..color = const Color(0xFFBF5534));
+    canvas.drawCircle(center, radius, Paint()..color = AppTheme.accent);
   }
 
   void _drawEntrancePlacementHints(Canvas canvas) {
     final hintPaint = Paint()
-      ..color = const Color(0xFFBF5534).withValues(alpha: 0.35)
+      ..color = AppTheme.accent.withValues(alpha: 0.35)
       ..strokeWidth = 2.0
       ..strokeCap = StrokeCap.round;
 
@@ -487,7 +488,7 @@ class ZoneMapPainter extends CustomPainter {
       text: TextSpan(
         text: text,
         style: TextStyle(
-          color: const Color(0xFFBF5534).withValues(alpha: 0.55),
+          color: AppTheme.accent.withValues(alpha: 0.55),
           fontSize: 9,
           fontWeight: FontWeight.w700,
           letterSpacing: 0.8,

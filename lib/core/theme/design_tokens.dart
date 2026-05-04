@@ -16,7 +16,6 @@ abstract class DesignTokens {
   static const double radiusCard = 12.0;
   static const double radiusCta = 10.0;
   static const double radiusBadge = 6.0;
-  static const double radiusXs = 4.0;
   static const double radiusPill = 100.0;
 
   // Type scale

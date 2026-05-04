@@ -33,7 +33,6 @@ class AppScaffold extends StatelessWidget {
           data: Theme.of(context).copyWith(
             navigationBarTheme: NavigationBarThemeData(
               backgroundColor: AppTheme.primary,
-              indicatorColor: Colors.transparent,
               elevation: 0,
               labelTextStyle: WidgetStateProperty.resolveWith(
                 (states) => TextStyle(
